@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\WriteConflict;
+use App\Models\Admission;
 use App\Models\Appointment;
 use App\Models\DoctorAssignment;
 use App\Models\Encounter;
@@ -81,6 +82,15 @@ class EncounterFlow
             }
             $assignment = $visit->assignments()->current()->lockForUpdate()->first();
             $time = now('UTC');
+            if (in_array($action, ['complete', 'cancel'], true)) {
+                $admission = Admission::query()->where('encounter_id', $visit->id)->lockForUpdate()->first();
+                if ($admission !== null && $admission->status !== 'discharged') {
+                    throw new WriteConflict('encounter_active_admission', 'Discharge the active admission before ending this visit.');
+                }
+                if ($admission?->discharged_at !== null && $time->lessThan($admission->discharged_at)) {
+                    throw new WriteConflict('encounter_clock_conflict', 'The server time precedes the saved discharge. Check the server clock.');
+                }
+            }
             if ($time->lessThan($visit->opened_at) || ($assignment !== null && ($time->lessThan($assignment->assigned_at)
                 || ($assignment->accepted_at !== null && $time->lessThan($assignment->accepted_at))))) {
                 throw new WriteConflict('encounter_clock_conflict', 'The server time precedes an existing visit event. Check the server clock.');

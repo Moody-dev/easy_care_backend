@@ -21,6 +21,8 @@ use Throwable;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected bool $dropViews = true;
+
     protected const STAFF_TEST_PASSWORD = 'Correct-secret-123!';
 
     /** @param array<string, mixed> $data @param array<string, string> $headers */

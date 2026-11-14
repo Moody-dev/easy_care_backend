@@ -106,6 +106,11 @@ class Patient extends Model
         return $this->hasMany(ClinicalRecord::class)->orderBy('recorded_at')->orderBy('id');
     }
 
+    public function admissions(): HasMany
+    {
+        return $this->hasMany(Admission::class)->orderBy('admitted_at')->orderBy('id');
+    }
+
     protected function casts(): array
     {
         return [
