@@ -156,6 +156,10 @@ class ClinicalPayloads
     private function entry(array $data, array $previous, ?ClinicalRecord $original, Encounter $visit, User $actor, bool $sign): array
     {
         foreach (['section', 'clinical_template_version_id', 'related_record_id'] as $field) {
+            if ($field === 'clinical_template_version_id' && $original?->status === 'draft'
+                && $original->careLink !== null && ($previous[$field] ?? null) === null) {
+                continue;
+            }
             if ($original !== null && (string) $data[$field] !== (string) $previous[$field]) {
                 $this->invalid($field, 'The note section, template version and related record remain fixed.');
             }

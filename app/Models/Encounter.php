@@ -90,6 +90,11 @@ class Encounter extends Model
         return $this->hasOne(Admission::class);
     }
 
+    public function carePrograms(): HasMany
+    {
+        return $this->hasMany(CareProgram::class);
+    }
+
     protected function casts(): array
     {
         return ['opened_at' => 'immutable_datetime', 'closed_at' => 'immutable_datetime', 'version' => 'integer'];

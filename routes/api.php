@@ -36,6 +36,36 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::middleware(['can:care.view','can:patients.view','can:encounters.view'])->group(function (): void {
+                $controller = \App\Http\Controllers\Api\V1\CareProgramController::class;
+                Route::get('care-programs/options', [$controller,'options'])->name('care-programs.options');
+                Route::get('care-programs/forms', [$controller,'forms'])->name('care-programs.forms');
+                Route::get('care-programs', [$controller,'index'])->name('care-programs.index');
+                Route::post('encounters/{encounter}/care-programs', [$controller,'write'])->where('encounter','[1-9][0-9]{0,17}')
+                    ->middleware(['can:care.manage','throttle:clinical-writes'])->name('care-programs.store');
+                Route::prefix('care-programs/{careProgram}')->where(['careProgram'=>'[1-9][0-9]{0,17}'])->group(function () use ($controller): void {
+                    Route::get('/', [$controller,'show'])->name('care-programs.show');
+                    Route::get('births', [$controller,'births'])->name('care-programs.births');
+                    Route::get('records', [$controller,'records'])->name('care-programs.records');
+                    Route::post('complete', [$controller,'write'])->middleware(['can:care.manage','throttle:clinical-writes'])->name('care-programs.complete');
+                    Route::post('births', [$controller,'write'])->middleware(['can:care.manage','throttle:clinical-writes'])->name('care-programs.birth');
+                    Route::post('births/{birth}/link', [$controller,'write'])->where('birth','[1-9][0-9]{0,17}')
+                        ->middleware(['can:care.link_birth','throttle:clinical-writes'])->name('care-programs.link');
+                    Route::prefix('encounters/{encounter}/records')->where(['encounter'=>'[1-9][0-9]{0,17}','clinicalRecord'=>'[1-9][0-9]{0,17}'])
+                        ->name('care.')->group(function () use ($controller): void {
+                            Route::get('{clinicalRecord}',[$controller,'record'])->name('show');
+                            Route::get('{clinicalRecord}/history',[$controller,'history'])->middleware('can:care.review')->name('history');
+                            Route::middleware(['can:care.write','throttle:clinical-writes'])->group(function () use ($controller): void {
+                                Route::post('/',[$controller,'clinicalWrite'])->name('store');
+                                Route::patch('{clinicalRecord}',[$controller,'clinicalWrite'])->name('update');
+                                foreach (['sign','amend','void'] as $action) {
+                                    Route::post('{clinicalRecord}/'.$action,[$controller,'clinicalWrite'])
+                                        ->middleware('can:care.'.($action === 'amend' ? 'amend' : ($action === 'void' ? 'void' : 'sign')))->name($action);
+                                }
+                            });
+                        });
+                });
+            });
             Route::prefix('locations')->name('locations.')->middleware('can:locations.view')->group(function (): void {
                 foreach (['wards', 'beds'] as $catalog) {
                     Route::get($catalog, [LocationController::class, $catalog])->name($catalog.'.index');

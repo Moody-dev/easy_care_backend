@@ -28,7 +28,7 @@ class ClinicalRecord extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn($query->getModel()->qualifyColumn('kind'), self::ENTRY_KINDS)
+        return $query->whereDoesntHave('careLink')->whereIn($query->getModel()->qualifyColumn('kind'), self::ENTRY_KINDS)
             ->whereHas('encounter', fn (Builder $visits): Builder => $visits->visibleTo($viewer))
             ->where(fn (Builder $records): Builder => $records->where('status', '<>', 'draft')->orWhere('authored_by', $viewer->id));
     }
@@ -36,6 +36,21 @@ class ClinicalRecord extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(ClinicalRevision::class)->orderBy('version');
+    }
+
+    public function careLink(): HasOne
+    {
+        return $this->hasOne(CareRecordLink::class);
+    }
+
+    public function scopeCareVisibleTo(Builder $query, User $viewer): Builder
+    {
+        if (! $viewer->is_active || ! $viewer->hasPermission('care.view')) {
+            return $query->whereRaw('1 = 0');
+        }
+        return $query->where('kind', 'entry')->whereHas('careLink.program', fn (Builder $programs): Builder => $programs->visibleTo($viewer))
+            ->whereHas('encounter', fn (Builder $visits): Builder => $visits->visibleTo($viewer))
+            ->where(fn (Builder $records): Builder => $records->where('status', '<>', 'draft')->orWhere('authored_by', $viewer->id));
     }
 
     public function scopePrescriptionsVisibleTo(Builder $query, User $viewer): Builder

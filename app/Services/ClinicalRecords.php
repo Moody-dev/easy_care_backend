@@ -13,6 +13,7 @@ use App\Models\Patient;
 use App\Models\Permission;
 use App\Models\User;
 use App\Models\VitalSign;
+use App\Models\CareRecordLink;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ use Illuminate\Validation\ValidationException;
 class ClinicalRecords
 {
     public const COMMANDS = ['api.v1.clinical.store', 'api.v1.clinical.update', 'api.v1.clinical.sign',
+        'api.v1.care.store', 'api.v1.care.update', 'api.v1.care.sign', 'api.v1.care.amend', 'api.v1.care.void',
         'api.v1.clinical.amend', 'api.v1.clinical.void', 'api.v1.prescriptions.store', 'api.v1.prescriptions.update',
         'api.v1.prescriptions.sign', 'api.v1.prescriptions.amend', 'api.v1.prescriptions.void',
         'api.v1.prescriptions.stop', 'api.v1.prescriptions.complete'];
@@ -37,8 +39,16 @@ class ClinicalRecords
         return str_starts_with($request->route()->getName(), 'api.v1.prescriptions.');
     }
 
+    public static function isCare(Request $request): bool
+    {
+        return str_starts_with($request->route()?->getName() ?? '', 'api.v1.care.');
+    }
+
     public static function visibleFor(Request $request, User $actor): Builder
     {
+        if (self::isCare($request)) {
+            return ClinicalRecord::query()->careVisibleTo($actor)->whereHas('careLink', fn (Builder $links): Builder => $links->where('care_program_id', $request->route('careProgram')));
+        }
         return self::isPrescription($request) ? ClinicalRecord::query()->prescriptionsVisibleTo($actor)
             : ClinicalRecord::query()->visibleTo($actor);
     }
@@ -62,7 +72,7 @@ class ClinicalRecords
     public function authorize(Request $request, User $actor): void
     {
         abort_unless($actor->is_active, 403);
-        $prefix = self::isPrescription($request) ? 'prescriptions' : 'clinical';
+        $prefix = self::isCare($request) ? 'care' : (self::isPrescription($request) ? 'prescriptions' : 'clinical');
         foreach (['patients.view', 'encounters.view', $prefix.'.view', $prefix.'.write'] as $permission) {
             Gate::forUser($actor)->authorize($permission);
         }
@@ -86,6 +96,11 @@ class ClinicalRecords
         Patient::query()->visibleTo($actor)->lockForUpdate()->findOrFail($patientId);
         $visit = Encounter::query()->visibleTo($actor)->lockForUpdate()->findOrFail($request->route('encounter'));
         $request->attributes->set('clinical_encounter', $visit);
+        if (self::isCare($request)) {
+            $program = \App\Models\CareProgram::query()->visibleTo($actor)->lockForUpdate()->findOrFail($request->route('careProgram'));
+            abort_unless($program->patient_id === $visit->patient_id, 404);
+            $request->attributes->set('care_program', $program);
+        }
         if ($action !== 'store') {
             $record = self::visibleFor($request, $actor)->where('encounter_id', $visit->id)
                 ->lockForUpdate()->findOrFail($request->route('clinicalRecord'));
@@ -112,6 +127,13 @@ class ClinicalRecords
             $actor = User::query()->lockForUpdate()->findOrFail($actor->id);
             $this->authorize($request, $actor);
             $visit = $request->attributes->get('clinical_encounter');
+            if (self::isCare($request)) {
+                $program = $request->attributes->get('care_program');
+                $this->version($program->version, $data['program_version']);
+                if ($program->status !== 'active') {
+                    throw new WriteConflict('care_program_completed', 'This care program is completed and read-only.');
+                }
+            }
             $this->version($visit->version, $data['encounter_version']);
             if (! in_array($visit->status, ['open', 'in_progress'], true)) {
                 throw new WriteConflict('clinical_encounter_closed', 'Completed and cancelled visits are read-only.');
@@ -127,7 +149,7 @@ class ClinicalRecords
                 $this->version($record->version, $data['version']);
             }
             if ($action === 'store') {
-                $kind = self::isPrescription($request) ? 'prescription' : $data['kind'];
+                $kind = self::isCare($request) ? 'entry' : (self::isPrescription($request) ? 'prescription' : $data['kind']);
                 $payload = $this->validatePayload($kind, $data['payload'], $visit, $actor, false);
                 $record = $this->draft($visit, $actor, $kind, $time);
                 $this->writePayload($record, $payload);
@@ -189,7 +211,8 @@ class ClinicalRecords
     /** @return array<string, mixed> */
     public static function snapshot(ClinicalRecord $record): array
     {
-        return $record->only(['id', 'patient_id', 'encounter_id', 'kind', 'status', 'version', 'authored_by', 'finalized_by',
+        $care = $record->careLink;
+        return ($care === null ? [] : ['care_program_id' => $care->care_program_id, 'birth_id' => $care->birth_id]) + $record->only(['id', 'patient_id', 'encounter_id', 'kind', 'status', 'version', 'authored_by', 'finalized_by',
             'amends_id', 'amendment_reason', 'void_reason']) + ['recorded_at' => $record->recorded_at->toISOString(),
             'finalized_at' => $record->finalized_at?->toISOString(),
             'payload' => self::storedPayload($record)];
@@ -204,8 +227,12 @@ class ClinicalRecords
     /** @param array<string, mixed> $input @return array<string, mixed> */
     private function validatePayload(string $kind, array $input, Encounter $visit, User $actor, bool $sign, ?ClinicalRecord $original = null): array
     {
-        return $kind === 'prescription' ? $this->prescriptions->validate($input, $sign, $original)
+        $payload = $kind === 'prescription' ? $this->prescriptions->validate($input, $sign, $original)
             : $this->payloads->validate($kind, $input, $visit, $actor, $sign, $original);
+        if (self::isCare(request())) {
+            CarePrograms::validateForm(request(), $payload, $sign, $original);
+        }
+        return $payload;
     }
 
     private function draft(Encounter $visit, User $actor, string $kind, CarbonInterface $time, ?ClinicalRecord $original = null, ?string $reason = null): ClinicalRecord
@@ -213,6 +240,12 @@ class ClinicalRecords
         $record = new ClinicalRecord;
         $record->forceFill(['patient_id' => $visit->patient_id, 'encounter_id' => $visit->id, 'kind' => $kind,
             'authored_by' => $actor->id, 'recorded_at' => $time, 'amends_id' => $original?->id, 'amendment_reason' => $reason])->save();
+
+        if (self::isCare(request())) {
+            $link = new CareRecordLink;
+            $link->forceFill(['clinical_record_id' => $record->id, 'care_program_id' => request()->attributes->get('care_program')->id,
+                'birth_id' => $original?->careLink?->birth_id ?? request()->input('birth_id')])->save();
+        }
 
         return $record;
     }

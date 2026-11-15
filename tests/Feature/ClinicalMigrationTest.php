@@ -20,6 +20,7 @@ class ClinicalMigrationTest extends TestCase
     public function test_clinical_upgrade_and_rollback_preserve_existing_identity_visits_and_grants(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $care = require database_path('migrations/2026_11_15_024759_create_care_program_records.php');
         $visit = Encounter::factory()->create();
         DoctorAssignment::factory()->for($visit)->create();
         $migration = require database_path('migrations/2026_11_12_042242_create_clinical_storage_tables.php');
@@ -29,7 +30,8 @@ class ClinicalMigrationTest extends TestCase
         $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'permission_baselines',
             'patients', 'patient_identifiers', 'patient_categories', 'appointments', 'appointment_revisions',
             'appointment_follow_ups', 'encounters', 'doctor_assignments', 'encounter_revisions', 'files', 'audit_events',
-            'idempotency_requests'], function () use ($migration, $tables, $review): void {
+            'idempotency_requests'], function () use ($migration, $tables, $review, $care): void {
+            $care->down();
             $review->down();
             $migration->down();
             foreach ($tables as $table) {
@@ -37,6 +39,7 @@ class ClinicalMigrationTest extends TestCase
             }
             $migration->up();
             $review->up();
+            $care->up();
             foreach ($tables as $table) {
                 $this->assertDatabaseCount($table, 0);
             }
@@ -47,15 +50,17 @@ class ClinicalMigrationTest extends TestCase
             'finalized_at' => now('UTC')])->save();
         $this->assertTrue($entry->record->fresh()->entry->is($entry));
         ClinicalRecord::factory()->amending($entry->record)->create();
+        $care->down();
         $review->down();
         $migration->down();
         $migration->up();
         $review->up();
+        $care->up();
         $this->seed(DatabaseSeeder::class);
         foreach ($tables as $table) {
             $this->assertDatabaseCount($table, 0);
         }
-        $this->assertDatabaseCount('permissions', 48);
+        $this->assertDatabaseCount('permissions', 57);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
     }

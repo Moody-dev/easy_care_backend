@@ -79,6 +79,22 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route, 'api.v1.care-programs.') && $status >= 400) {
+            $suffix = substr($route, strrpos($route, '.') + 1);
+            $target = $request->route('careProgram');
+            $this->audit->record('care.'.match ($suffix) {
+                'store' => 'opened', 'complete' => 'completed', 'birth' => 'birth_recorded', 'link' => 'birth_linked',
+                'index' => 'listed', default => 'viewed',
+            }, $request->user('web')?->id, 'care_program', is_string($target) && ctype_digit($target) ? (int) $target : null,
+                outcome: $status >= 500 ? 'failed' : 'denied', httpStatus: $status);
+            return $response;
+        }
+        if (str_starts_with($route, 'api.v1.care.')) {
+            $action = 'clinical.'.match (substr($route, strrpos($route, '.') + 1)) {
+                'store' => 'created', 'update' => 'updated', 'sign' => 'signed', 'amend' => 'amended', 'void' => 'voided',
+                'history' => 'history_viewed', default => 'viewed',
+            };
+        }
         if (str_starts_with($route, 'api.v1.admissions.')) {
             $suffix = substr($route, strrpos($route, '.') + 1);
             $action = 'admission.'.(\App\Services\AdmissionFlow::ACTIONS[$suffix][1]

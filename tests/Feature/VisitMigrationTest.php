@@ -21,6 +21,7 @@ class VisitMigrationTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
         $admissionHistory = require database_path('migrations/2026_11_15_015445_create_admission_revision_records.php');
+        $care = require database_path('migrations/2026_11_15_024759_create_care_program_records.php');
         $staff = User::factory()->create();
         $patient = Patient::factory()->create(['created_by' => $staff->id]);
         $migration = require database_path('migrations/2026_11_11_225842_create_visit_foundation_tables.php');
@@ -30,7 +31,8 @@ class VisitMigrationTest extends TestCase
         $review = require database_path('migrations/2026_11_12_052540_create_clinical_revision_records.php');
         $admissions = require database_path('migrations/2026_11_14_213944_create_admission_storage_tables.php');
         $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'patients', 'patient_identifiers',
-            'patient_categories', 'files', 'audit_events', 'idempotency_requests'], function () use ($migration, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory): void {
+            'patient_categories', 'files', 'audit_events', 'idempotency_requests'], function () use ($migration, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care): void {
+            $care->down();
             $admissionHistory->down();
             $admissions->down();
             $review->down();
@@ -48,6 +50,7 @@ class VisitMigrationTest extends TestCase
             $review->up();
             $admissions->up();
             $admissionHistory->up();
+            $care->up();
             foreach (['appointments', 'encounters', 'doctor_assignments'] as $table) {
                 $this->assertDatabaseCount($table, 0);
             }
@@ -58,7 +61,7 @@ class VisitMigrationTest extends TestCase
         $assignment = DoctorAssignment::factory()->for($visit)->create(['doctor_id' => $staff->id, 'assigned_by' => $staff->id]);
         $this->assertTrue($visit->currentAssignment->is($assignment));
         $this->assertDatabaseHas('patients', ['id' => $patient->id, 'mrn' => $patient->mrn]);
-        $this->assertDatabaseCount('permissions', 48);
+        $this->assertDatabaseCount('permissions', 57);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

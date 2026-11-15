@@ -30,6 +30,16 @@ class Patient extends Model
         return $this->belongsTo(PatientCategory::class, 'category_id');
     }
 
+    public function carePrograms(): HasMany
+    {
+        return $this->hasMany(CareProgram::class);
+    }
+
+    public function birthIdentity(): HasOne
+    {
+        return $this->hasOne(BirthPatientLink::class, 'child_patient_id');
+    }
+
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
