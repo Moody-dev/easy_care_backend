@@ -52,6 +52,20 @@ class Admission extends Model
         return $this->hasMany(BedAllocation::class)->orderBy('assigned_at')->orderBy('id');
     }
 
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(AdmissionRevision::class)->orderBy('workflow_version');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $viewer): Builder
+    {
+        if (! $viewer->is_active || ! $viewer->hasPermission('admissions.view')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereHas('encounter', fn (Builder $visits): Builder => $visits->visibleTo($viewer));
+    }
+
     public function currentOccupancy(): HasOne
     {
         return $this->hasOne(CurrentBedOccupancy::class);

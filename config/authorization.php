@@ -7,6 +7,13 @@ return [
     'files_baseline' => 'protected-files-v1',
     'reset_minutes' => 15,
     'permissions' => [
+        'locations.view' => 'View ward and bed catalogs and occupancy-derived availability',
+        'locations.manage' => 'Create and maintain wards and beds without rewriting used identities',
+        'admissions.view' => 'View admissions and retained episode history within visible visits',
+        'admissions.create' => 'Admit verified patients within visible active visits',
+        'admissions.allocate' => 'Allocate, transfer and release beds within visible active admissions',
+        'admissions.authorize_discharge' => 'Authorize discharge as the current visit doctor',
+        'admissions.complete_discharge' => 'Complete an independently authorized discharge as a nurse',
         'prescriptions.view' => 'View signed or voided prescriptions and own drafts within visible visits',
         'prescriptions.write' => 'Create and edit own prescription drafts',
         'prescriptions.sign' => 'Sign own prescription drafts after reauthentication',

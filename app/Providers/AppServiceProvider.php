@@ -40,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('clinical-writes', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('clinical-writes:'.$request->user('web')?->id.'|'.$request->ip()));
 
+        RateLimiter::for('admission-writes', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by('admission-writes:'.$request->user('web')?->id.'|'.$request->ip()));
+
         RateLimiter::for('patient-writes', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('patient-writes:'.$request->user('web')?->id.'|'.$request->ip()));
 

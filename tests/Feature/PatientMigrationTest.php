@@ -17,6 +17,7 @@ class PatientMigrationTest extends TestCase
     public function test_patient_foundation_rolls_back_and_reapplies_without_changing_existing_staff_or_files(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $admissionHistory = require database_path('migrations/2026_11_15_015445_create_admission_revision_records.php');
         $staff = User::factory()->create();
         $migration = require database_path('migrations/2026_11_11_171342_create_patient_foundation_tables.php');
         $lookup = require database_path('migrations/2026_11_11_173615_add_patient_lookup_indexes.php');
@@ -27,7 +28,8 @@ class PatientMigrationTest extends TestCase
         $clinical = require database_path('migrations/2026_11_12_042242_create_clinical_storage_tables.php');
         $review = require database_path('migrations/2026_11_12_052540_create_clinical_revision_records.php');
         $admissions = require database_path('migrations/2026_11_14_213944_create_admission_storage_tables.php');
-        $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'files', 'audit_events'], function () use ($migration, $lookup, $records, $visits, $bookings, $workflow, $clinical, $review, $admissions): void {
+        $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'files', 'audit_events'], function () use ($migration, $lookup, $records, $visits, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory): void {
+            $admissionHistory->down();
             $admissions->down();
             $review->down();
             $clinical->down();
@@ -49,6 +51,7 @@ class PatientMigrationTest extends TestCase
             $clinical->up();
             $review->up();
             $admissions->up();
+            $admissionHistory->up();
             $this->seed(DatabaseSeeder::class);
         });
         $patient = Patient::factory()->create(['created_by' => $staff->id]);

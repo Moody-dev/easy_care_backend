@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\V1\StaffSessionController;
 use App\Http\Middleware\EnsureStaffIsActive;
 use App\Http\Middleware\PreventAuthResponseCaching;
 use App\Models\Department;
+use App\Http\Controllers\Api\V1\AdmissionController;
+use App\Http\Controllers\Api\V1\LocationController;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +36,31 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('locations')->name('locations.')->middleware('can:locations.view')->group(function (): void {
+                foreach (['wards', 'beds'] as $catalog) {
+                    Route::get($catalog, [LocationController::class, $catalog])->name($catalog.'.index');
+                    Route::get($catalog.'/{location}', [LocationController::class, 'show'])->where('location', '[1-9][0-9]{0,17}')->name($catalog.'.show');
+                    Route::post($catalog, [LocationController::class, 'write'])->middleware(['can:locations.manage', 'throttle:admission-writes'])->name($catalog.'.store');
+                    Route::patch($catalog.'/{location}', [LocationController::class, 'write'])->where('location', '[1-9][0-9]{0,17}')
+                        ->middleware(['can:locations.manage', 'throttle:admission-writes'])->name($catalog.'.update');
+                }
+            });
+            Route::middleware(['can:admissions.view', 'can:encounters.view', 'can:patients.view'])->name('admissions.')->group(function (): void {
+                Route::get('admissions/options', [AdmissionController::class, 'options'])->name('options');
+                Route::get('admissions', [AdmissionController::class, 'index'])->name('index');
+                Route::post('encounters/{encounter}/admission', [AdmissionController::class, 'write'])->where('encounter', '[1-9][0-9]{0,17}')
+                    ->middleware(['can:admissions.create', 'throttle:admission-writes'])->name('store');
+                Route::prefix('admissions/{admission}')->where(['admission' => '[1-9][0-9]{0,17}'])->group(function (): void {
+                    Route::get('/', [AdmissionController::class, 'show'])->name('show');
+                    Route::get('history', [AdmissionController::class, 'history'])->name('history');
+                    Route::get('allocations', [AdmissionController::class, 'allocations'])->name('allocations');
+                    foreach (\App\Services\AdmissionFlow::ACTIONS as $action => [$permission]) {
+                        if ($action !== 'store') {
+                            Route::post($action, [AdmissionController::class, 'write'])->middleware(['can:'.$permission, 'throttle:admission-writes'])->name($action);
+                        }
+                    }
+                });
+            });
             Route::get('patients/{patient}/history', PatientHistoryController::class)->where('patient', '[1-9][0-9]{0,17}')
                 ->middleware(['can:patients.view', 'can:encounters.view', 'can:clinical.history.view'])->name('patients.history');
             Route::middleware(['can:prescriptions.view', 'can:encounters.view', 'can:patients.view'])->name('prescriptions.')->group(function (): void {

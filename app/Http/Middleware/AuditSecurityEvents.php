@@ -78,6 +78,28 @@ class AuditSecurityEvents
             default => PatientRecordManagement::ACTIONS[str_replace('api.v1.patients.records.', '', $request->route()?->getName() ?? '')][1] ?? null,
         };
 
+        $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route, 'api.v1.admissions.')) {
+            $suffix = substr($route, strrpos($route, '.') + 1);
+            $action = 'admission.'.(\App\Services\AdmissionFlow::ACTIONS[$suffix][1]
+                ?? match ($suffix) { 'index' => 'listed', 'history', 'allocations' => 'history_viewed', default => 'viewed' });
+        } elseif (str_starts_with($route, 'api.v1.locations.')) {
+            $action = 'location.'.match (substr($route, strrpos($route, '.') + 1)) {
+                'store' => 'created', 'update' => 'updated', 'index' => 'listed', default => 'viewed',
+            };
+        }
+
+        if ($action !== null && $status >= 400 && (str_starts_with($action, 'admission.') || str_starts_with($action, 'location.'))) {
+            $location = str_starts_with($action, 'location.');
+            $target = $request->route($location ? 'location' : 'admission');
+            $this->audit->record($action, $request->user('web')?->id,
+                $location ? (str_contains($route, '.beds.') ? 'bed' : 'ward') : 'admission',
+                is_string($target) && ctype_digit($target) ? (int) $target : null,
+                outcome: $status >= 500 ? 'failed' : 'denied', httpStatus: $status);
+
+            return $response;
+        }
+
         if ($action !== null && $status >= 400) {
             $target = $request->route('user');
             $fileId = $request->route('file');

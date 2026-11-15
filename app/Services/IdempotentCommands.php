@@ -36,7 +36,7 @@ class IdempotentCommands
         'api.v1.patients.store', 'api.v1.patients.update',
     ];
 
-    public function __construct(private WriteTransactions $transactions, private ProtectedFiles $files, private AuditTrail $audit, private PatientRecordManagement $records, private AppointmentBookings $bookings, private EncounterFlow $encounters, private ClinicalRecords $clinical) {}
+    public function __construct(private WriteTransactions $transactions, private ProtectedFiles $files, private AuditTrail $audit, private PatientRecordManagement $records, private AppointmentBookings $bookings, private EncounterFlow $encounters, private ClinicalRecords $clinical, private AdmissionFlow $admissions) {}
 
     /** @param Closure(): JsonResponse $operation */
     public function run(Request $request, Closure $operation): JsonResponse
@@ -46,7 +46,8 @@ class IdempotentCommands
         $appointmentWrite = AppointmentBookings::isCommand($route);
         $encounterWrite = EncounterFlow::isCommand($route);
         $clinicalWrite = ClinicalRecords::isCommand($route);
-        if (! in_array($route, self::ROUTES, true) && ! $recordWrite && ! $appointmentWrite && ! $encounterWrite && ! $clinicalWrite) {
+        $admissionWrite = AdmissionFlow::isCommand($route);
+        if (! in_array($route, self::ROUTES, true) && ! $recordWrite && ! $appointmentWrite && ! $encounterWrite && ! $clinicalWrite && ! $admissionWrite) {
             throw new LogicException('A write route must define its command outcome and authorization.');
         }
         $key = $request->header('Idempotency-Key');
@@ -60,6 +61,9 @@ class IdempotentCommands
         if ($clinicalWrite) {
             $target = ['encounter' => $request->route('encounter'), 'clinical_record' => $request->route('clinicalRecord')];
         }
+        if ($admissionWrite) {
+            $target = ['encounter' => $request->route('encounter'), 'admission' => $request->route('admission'), 'location' => $request->route('location')];
+        }
         $hash = $this->digest(json_encode($this->canonical([
             'target' => $target,
             'data' => $request->except('current_password'),
@@ -67,10 +71,10 @@ class IdempotentCommands
         $keyHash = hash('sha256', $key);
 
         try {
-            return $this->transactions->run(function () use ($request, $operation, $route, $fileWrite, $patientWrite, $recordWrite, $appointmentWrite, $encounterWrite, $clinicalWrite, $hash, $keyHash): JsonResponse {
+            return $this->transactions->run(function () use ($request, $operation, $route, $fileWrite, $patientWrite, $recordWrite, $appointmentWrite, $encounterWrite, $clinicalWrite, $admissionWrite, $hash, $keyHash): JsonResponse {
                 // Current staff writes share this lock with console grants and recovery.
                 abort_if(Permission::query()->where('code', 'staff.manage')->lockForUpdate()->first() === null, 503);
-                if ($patientWrite || $appointmentWrite || $encounterWrite || $clinicalWrite) {
+                if ($patientWrite || $appointmentWrite || $encounterWrite || $clinicalWrite || $admissionWrite) {
                     abort_if(Permission::query()->where('code', 'patients.create')->lockForUpdate()->first() === null, 503);
                 }
                 $requestActor = $request->user('web');
@@ -94,9 +98,9 @@ class IdempotentCommands
                 $resource = $route === 'api.v1.staff-management.password-reset' ? $body['data']['user'] : $body['data'];
                 DB::table('idempotency_requests')->where('id', $id)->update([
                     'status' => 'completed', 'response_code' => $response->getStatusCode(),
-                    'resource_type' => $clinicalWrite ? (ClinicalRecords::isPrescription($request) ? 'prescription' : 'clinical') : ($encounterWrite ? 'encounter' : ($appointmentWrite ? 'appointment' : ($recordWrite ? 'patient_record' : ($patientWrite ? 'patient' : ($fileWrite ? 'file' : 'staff'))))), 'resource_id' => $resource['id'],
+                    'resource_type' => $admissionWrite ? AdmissionFlow::resourceType($request) : ($clinicalWrite ? (ClinicalRecords::isPrescription($request) ? 'prescription' : 'clinical') : ($encounterWrite ? 'encounter' : ($appointmentWrite ? 'appointment' : ($recordWrite ? 'patient_record' : ($patientWrite ? 'patient' : ($fileWrite ? 'file' : 'staff')))))), 'resource_id' => $resource['id'],
                     'outcome_id' => $recordWrite ? $resource['record_id'] : null,
-                    'resource_version' => $resource['version'] ?? null, 'updated_at' => now('UTC'),
+                    'resource_version' => $resource['workflow_version'] ?? $resource['version'] ?? null, 'updated_at' => now('UTC'),
                 ]);
                 $response->headers->set('Idempotency-Replayed', 'false');
 
@@ -115,6 +119,11 @@ class IdempotentCommands
     private function authorize(Request $request, User $actor, bool $fileWrite): void
     {
         abort_unless($actor->is_active, 403);
+        if (AdmissionFlow::isCommand($request->route()->getName())) {
+            $this->admissions->authorize($request, $actor);
+
+            return;
+        }
         if (ClinicalRecords::isCommand($request->route()->getName())) {
             $this->clinical->authorize($request, $actor);
 
@@ -183,7 +192,10 @@ class IdempotentCommands
         $appointmentWrite = AppointmentBookings::isCommand($request->route()->getName());
         $encounterWrite = EncounterFlow::isCommand($request->route()->getName());
         $clinicalWrite = ClinicalRecords::isCommand($request->route()->getName());
-        if ($clinicalWrite) {
+        $admissionWrite = AdmissionFlow::isCommand($request->route()->getName());
+        if ($admissionWrite) {
+            $response = $this->admissions->replay($request, $actor, $record);
+        } elseif ($clinicalWrite) {
             $clinical = ClinicalRecords::visibleFor($request, $actor)->where('encounter_id', $request->route('encounter'))
                 ->lockForUpdate()->findOrFail($record->resource_id);
             if ($clinical->version !== (int) $record->resource_version || $clinical->amendment()->finalized()->lockForUpdate()->exists()) {
@@ -221,7 +233,7 @@ class IdempotentCommands
             }
             $response = (new StaffManagementResource($user->load(['department', 'roles'])))->response();
         }
-        $this->audit->record('command.replayed', $actor->id, $clinicalWrite ? 'clinical' : ($encounterWrite ? 'encounter' : ($appointmentWrite ? 'appointment' : ($patientWrite ? 'patient' : ($fileWrite ? 'file' : 'staff')))), (int) $record->resource_id);
+        $this->audit->record('command.replayed', $actor->id, $admissionWrite ? AdmissionFlow::resourceType($request) : ($clinicalWrite ? 'clinical' : ($encounterWrite ? 'encounter' : ($appointmentWrite ? 'appointment' : ($patientWrite ? 'patient' : ($fileWrite ? 'file' : 'staff'))))), (int) $record->resource_id);
         $response->setStatusCode(200);
         $response->headers->set('Idempotency-Replayed', 'true');
 
