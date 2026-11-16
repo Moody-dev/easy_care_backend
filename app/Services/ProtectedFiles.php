@@ -94,7 +94,8 @@ class ProtectedFiles
     public function owned(User $actor, int $id): stdClass
     {
         Gate::forUser($actor)->authorize('files.view_own');
-        $file = DB::table('files')->where('uploaded_by', $actor->id)->where('id', $id)->first();
+        $file = DB::table('files')->where('uploaded_by', $actor->id)->where('id', $id)
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('investigation_result_file_bindings')->whereColumn('file_id', 'files.id'))->first();
         abort_if($file === null, 404);
 
         return $file;
@@ -115,6 +116,14 @@ class ProtectedFiles
         }
 
         return ['file' => $file, 'stream' => $stream];
+    }
+
+    /** @return resource */
+    public function openForRecord(stdClass $file): mixed
+    {
+        abort_unless(in_array($file->scan_status, ['not_scanned', 'clean'], true), 409);
+
+        return $this->verifiedStream($file);
     }
 
     /** @return array{checked: int, missing: int, corrupt: int, orphaned: int} */

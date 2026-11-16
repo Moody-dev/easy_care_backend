@@ -20,6 +20,7 @@ class InvestigationMigrationTest extends TestCase
     public function test_upgrade_and_rollback_preserve_existing_care_patients_and_staff_grants(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $results = require database_path('migrations/2026_11_16_034753_create_investigation_result_records.php');
         $requests = require database_path('migrations/2026_11_16_023634_create_investigation_request_records.php');
         $clinical = ClinicalRecord::factory()->create();
         $schema = InvestigationSchema::factory()->create();
@@ -28,17 +29,19 @@ class InvestigationMigrationTest extends TestCase
         $this->assertTrue($schema->test->service->investigationTests->contains($schema->test));
         $this->assertTrue($schema->test->schemas->contains($schema));
         $migration = require database_path('migrations/2026_11_16_000353_create_investigation_catalogs.php');
-        $this->assertTablesUnchanged(['users', 'patients', 'encounters', 'clinical_records', 'care_programs', 'permissions', 'role_permissions', 'permission_baselines'], function () use ($migration, $requests): void {
+        $this->assertTablesUnchanged(['users', 'patients', 'encounters', 'clinical_records', 'care_programs', 'permissions', 'role_permissions', 'permission_baselines'], function () use ($migration, $requests, $results): void {
+            $results->down();
             $requests->down();
             $migration->down();
             $migration->up();
             $requests->up();
+            $results->up();
         });
         foreach (['services', 'investigation_tests', 'investigation_schemas'] as $table) {
             $this->assertDatabaseCount($table, 0);
         }
         $this->assertNotNull($clinical->fresh());
-        $this->assertDatabaseCount('permissions', 65);
+        $this->assertDatabaseCount('permissions', 71);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

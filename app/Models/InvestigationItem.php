@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([])]
 class InvestigationItem extends Model
@@ -14,7 +15,7 @@ class InvestigationItem extends Model
     /** @use HasFactory<\Database\Factories\InvestigationItemFactory> */
     use HasFactory;
 
-    public const STATUSES = ['requested', 'collected', 'processing', 'cancelled'];
+    public const STATUSES = ['requested', 'collected', 'processing', 'completed', 'cancelled'];
     public $timestamps = false;
     protected $dateFormat = 'Y-m-d H:i:s.u';
 
@@ -25,6 +26,7 @@ class InvestigationItem extends Model
     public function collectedBy(): BelongsTo { return $this->belongsTo(User::class, 'collected_by'); }
     public function processingBy(): BelongsTo { return $this->belongsTo(User::class, 'processing_by'); }
     public function cancelledBy(): BelongsTo { return $this->belongsTo(User::class, 'cancelled_by'); }
+    public function results(): HasMany { return $this->hasMany(InvestigationResult::class, 'item_id')->orderBy('sequence'); }
 
     public function scopeVisibleTo(Builder $query, User $actor): Builder
     {

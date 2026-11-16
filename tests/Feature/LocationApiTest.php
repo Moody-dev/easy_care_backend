@@ -132,7 +132,7 @@ class LocationApiTest extends TestCase
     public function test_catalog_permission_is_opt_in_and_patient_permissions_do_not_grant_it(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $this->assertDatabaseCount('permissions', 65);
+        $this->assertDatabaseCount('permissions', 71);
         $this->assertDatabaseCount('role_permissions', 23);
         $this->assertSame(0, Role::where('code', 'nurse')->sole()->permissions()->where('code', 'like', 'admissions.%')->count());
         $role = Role::where('code', 'admin')->sole();

@@ -131,7 +131,7 @@ class PatientClinicalHistoryTest extends TestCase
         $this->actingAs($this->actor);
         $this->postJson($this->path())->assertMethodNotAllowed();
         $this->getJson($this->path().'?kind=invalid&status=draft&page=0&per_page=101&include_superseded=invalid')->assertUnprocessable();
-        $this->assertDatabaseCount('permissions', 65);
+        $this->assertDatabaseCount('permissions', 71);
         $admin = Role::where('code', 'admin')->sole();
         $newPermissions = Permission::where('code', 'like', 'prescriptions.%')->orWhere('code', 'clinical.history.view')->pluck('id');
         $this->assertFalse($admin->permissions()->whereIn('permissions.id', $newPermissions)->exists());

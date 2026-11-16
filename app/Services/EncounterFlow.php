@@ -83,7 +83,12 @@ class EncounterFlow
             $assignment = $visit->assignments()->current()->lockForUpdate()->first();
             $time = now('UTC');
             if (in_array($action, ['complete', 'cancel'], true)) {
-                if (\App\Models\InvestigationItem::query()->where('encounter_id', $visit->id)->whereIn('status', ['requested', 'collected', 'processing'])->lockForUpdate()->exists()) {
+                $lastResult = \App\Models\InvestigationResult::query()->where('encounter_id', $visit->id)->max('last_changed_at');
+                if ($lastResult !== null && $time->lessThan(\Carbon\CarbonImmutable::parse($lastResult, 'UTC'))) {
+                    throw new WriteConflict('encounter_clock_conflict', 'The server time precedes a saved investigation result. Check the server clock.');
+                }
+                if (\App\Models\InvestigationItem::query()->where('encounter_id', $visit->id)->whereIn('status', ['requested', 'collected', 'processing'])->lockForUpdate()->exists()
+                    || \App\Models\InvestigationResult::query()->where('encounter_id', $visit->id)->whereIn('status', \App\Services\InvestigationResults::WORKING)->lockForUpdate()->exists()) {
                     throw new WriteConflict('encounter_pending_investigations', 'Resolve pending investigations before ending this visit.');
                 }
                 $admission = Admission::query()->where('encounter_id', $visit->id)->lockForUpdate()->first();

@@ -270,7 +270,7 @@ class AdmissionFoundationTest extends TestCase
         $bed->fresh()->forceFill(['label' => 'Bed 新', 'version' => 2])->save();
         $this->assertSame('Bed 新', $bed->fresh()->label);
         $this->seed(DatabaseSeeder::class);
-        $this->assertDatabaseCount('permissions', 65);
+        $this->assertDatabaseCount('permissions', 71);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

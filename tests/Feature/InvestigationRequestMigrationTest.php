@@ -29,16 +29,19 @@ class InvestigationRequestMigrationTest extends TestCase
         $this->assertTrue($item->schema->requestedItems->contains($item));
         $this->assertSame($order->ordered_by, $order->orderedBy->id);
         $this->assertSame($order->assignment_id, $order->assignment->id);
+        $results = require database_path('migrations/2026_11_16_034753_create_investigation_result_records.php');
         $migration = require database_path('migrations/2026_11_16_023634_create_investigation_request_records.php');
         $this->assertTablesUnchanged(['patients', 'users', 'encounters', 'doctor_assignments', 'investigation_tests', 'investigation_schemas',
-            'services', 'permissions', 'role_permissions', 'permission_baselines', 'audit_events'], function () use ($migration): void {
+            'services', 'permissions', 'role_permissions', 'permission_baselines', 'audit_events'], function () use ($migration, $results): void {
+                $results->down();
                 $migration->down();
                 $migration->up();
+                $results->up();
             });
         foreach (['investigation_orders', 'investigation_items', 'investigation_revisions'] as $table) {
             $this->assertDatabaseCount($table, 0);
         }
-        $this->assertDatabaseCount('permissions', 65);
+        $this->assertDatabaseCount('permissions', 71);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

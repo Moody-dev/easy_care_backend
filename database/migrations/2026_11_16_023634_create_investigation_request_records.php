@@ -62,6 +62,11 @@ return new class extends Migration
             $table->json('snapshot');
             $table->unique(['order_id', 'version']);
         });
+        $this->installGuards();
+    }
+
+    public function installGuards(bool $results = false): void
+    {
         $length = DB::getDriverName() === 'mysql' ? 'CHAR_LENGTH' : 'length';
         $this->guard('investigation_orders', 'insert', 'investigation_order_initial', "(NEW.version = 1 AND NEW.last_changed_at = NEW.requested_at
             AND {$length}(trim(NEW.reason)) BETWEEN 5 AND 2000 AND EXISTS
@@ -88,6 +93,10 @@ return new class extends Migration
             AND EXISTS (SELECT 1 FROM investigation_tests t JOIN investigation_schemas s ON s.test_id = t.id WHERE t.id = NEW.test_id
                 AND t.is_active = 1 AND t.department = NEW.department AND s.id = NEW.schema_id AND s.version = t.version AND s.published_at <= NEW.last_event_at)) IS NOT TRUE");
         $collectionSame = $this->same('NEW.collected_at', 'OLD.collected_at').' AND '.$this->same('NEW.collected_by', 'OLD.collected_by').' AND '.$this->same('NEW.specimen_ref', 'OLD.specimen_ref');
+        $completion = $results ? " OR (OLD.status = 'processing' AND NEW.status = 'completed' AND {$collectionSame}
+            AND NEW.processing_by = OLD.processing_by AND NEW.processing_at = OLD.processing_at
+            AND NEW.cancelled_by IS NULL AND NEW.cancelled_at IS NULL AND NEW.cancellation_reason IS NULL
+            AND EXISTS (SELECT 1 FROM investigation_results r WHERE r.item_id = OLD.id AND r.status = 'released' AND r.released_at = NEW.last_event_at))" : '';
         $this->guard('investigation_items', 'update', 'investigation_item_transition', "(NEW.id = OLD.id AND NEW.order_id = OLD.order_id
             AND NEW.encounter_id = OLD.encounter_id AND NEW.test_id = OLD.test_id AND NEW.schema_id = OLD.schema_id AND NEW.department = OLD.department
             AND NEW.priority = OLD.priority AND NEW.version = OLD.version + 1 AND NEW.last_event_at >= OLD.last_event_at
@@ -101,9 +110,10 @@ return new class extends Migration
                     AND NEW.cancelled_by IS NULL AND NEW.cancelled_at IS NULL AND NEW.cancellation_reason IS NULL)
                 OR (OLD.status IN ('requested','collected') AND NEW.status = 'cancelled' AND {$collectionSame}
                     AND NEW.processing_by IS NULL AND NEW.processing_at IS NULL AND NEW.cancelled_by IS NOT NULL AND NEW.cancelled_at = NEW.last_event_at
-                    AND {$length}(trim(NEW.cancellation_reason)) BETWEEN 5 AND 2000))) IS NOT TRUE");
+                    AND {$length}(trim(NEW.cancellation_reason)) BETWEEN 5 AND 2000)) {$completion}) IS NOT TRUE");
+        $operations = $results ? "'requested','collected','processing','cancelled','completed'" : "'requested','collected','processing','cancelled'";
         $this->guard('investigation_revisions', 'insert', 'investigation_revision_sequence', "(NEW.version > 0
-            AND NEW.operation IN ('requested','collected','processing','cancelled') AND {$length}(trim(NEW.reason)) BETWEEN 5 AND 2000
+            AND NEW.operation IN ({$operations}) AND {$length}(trim(NEW.reason)) BETWEEN 5 AND 2000
             AND EXISTS (SELECT 1 FROM investigation_orders o WHERE o.id = NEW.order_id AND o.version = NEW.version AND o.last_changed_at = NEW.recorded_at)
             AND NEW.version = (SELECT COALESCE(MAX(r.version),0) + 1 FROM investigation_revisions r WHERE r.order_id = NEW.order_id)
             AND ((NEW.version = 1 AND NEW.operation = 'requested' AND NEW.item_id IS NULL) OR
@@ -112,8 +122,10 @@ return new class extends Migration
         foreach (['investigation_orders', 'investigation_items', 'investigation_revisions'] as $table) {
             $this->guard($table, 'delete', $table.'_retain', '1 = 1');
         }
-        $this->guard('encounters', 'update', 'encounter_pending_investigations', "NEW.status IN ('closed','cancelled') AND EXISTS
-            (SELECT 1 FROM investigation_items i WHERE i.encounter_id = OLD.id AND i.status IN ('requested','collected','processing'))");
+        $working = $results ? " OR EXISTS (SELECT 1 FROM investigation_results r WHERE r.encounter_id = OLD.id
+            AND (r.status IN ('draft','submitted','verified') OR r.last_changed_at > NEW.closed_at))" : '';
+        $this->guard('encounters', 'update', 'encounter_pending_investigations', "NEW.status IN ('closed','cancelled') AND (EXISTS
+            (SELECT 1 FROM investigation_items i WHERE i.encounter_id = OLD.id AND i.status IN ('requested','collected','processing')) {$working})");
     }
 
     public function down(): void
@@ -131,6 +143,7 @@ return new class extends Migration
 
     private function guard(string $table, string $event, string $name, string $condition): void
     {
+        DB::unprepared("DROP TRIGGER IF EXISTS {$name}");
         if (DB::getDriverName() === 'mysql') {
             DB::unprepared("CREATE TRIGGER {$name} BEFORE {$event} ON {$table} FOR EACH ROW BEGIN
                 IF {$condition} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Investigation request integrity violation'; END IF; END");

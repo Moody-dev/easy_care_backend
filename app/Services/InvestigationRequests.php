@@ -172,7 +172,8 @@ class InvestigationRequests
         $order->loadMissing('items.schema');
         $statuses = $order->items->pluck('status');
         $status = $statuses->every(fn (string $status): bool => $status === 'cancelled') ? 'cancelled'
-            : ($statuses->contains('processing') ? 'processing' : ($statuses->contains('collected') ? 'collected' : 'requested'));
+            : ($statuses->every(fn (string $status): bool => in_array($status, ['completed', 'cancelled'], true)) ? 'completed'
+                : ($statuses->contains('processing') ? 'processing' : ($statuses->contains('collected') ? 'collected' : 'requested')));
 
         return $order->only(['id', 'patient_id', 'encounter_id', 'ordered_by', 'assignment_id', 'assignment_version', 'version', 'clinical_context', 'reason'])
             + ['requested_at' => $order->requested_at->toISOString(), 'last_changed_at' => $order->last_changed_at->toISOString(),

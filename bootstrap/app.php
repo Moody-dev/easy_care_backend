@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (QueryException $exception): ?bool {
-            if (request()->is('api/v1/investigations/orders*', 'api/v1/investigations/orders/*', 'api/v1/investigations/queue', 'api/v1/encounters/*/investigations')) {
+            if (request()->is('api/v1/investigations/results*', 'api/v1/investigations/items/*', 'api/v1/investigations/orders*', 'api/v1/investigations/orders/*', 'api/v1/investigations/queue', 'api/v1/encounters/*/investigations')) {
                 logger()->error('An investigation request database operation failed.');
 
                 return false;

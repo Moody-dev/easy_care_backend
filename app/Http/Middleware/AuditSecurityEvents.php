@@ -79,6 +79,20 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route, 'api.v1.investigations.results.') && $status >= 400) {
+            $suffix = substr($route, strrpos($route, '.') + 1);
+            $action = \App\Services\InvestigationResults::ACTIONS[$suffix] ?? match ($suffix) {
+                'index', 'item-index', 'options' => 's_listed', 'history' => '_history_viewed',
+                'download' => '_attachment_download_authorized', default => '_viewed',
+            };
+            $action = isset(\App\Services\InvestigationResults::ACTIONS[$suffix]) ? '_'.$action : $action;
+            $target = $request->route('investigationResult');
+            $this->audit->record('investigation.result'.$action, $request->user('web')?->id, 'investigation_result',
+                is_string($target) && ctype_digit($target) ? (int) $target : null,
+                outcome: $status >= 500 ? 'failed' : 'denied', httpStatus: $status);
+
+            return $response;
+        }
         if (str_starts_with($route, 'api.v1.investigations.') && ! str_starts_with($route, 'api.v1.investigations.catalog.') && $status >= 400) {
             $suffix = substr($route, strrpos($route, '.') + 1);
             $action = \App\Services\InvestigationRequests::ACTIONS[$suffix] ?? match ($suffix) {

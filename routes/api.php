@@ -36,6 +36,25 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::middleware(['can:patients.view', 'can:encounters.view', 'can:investigations.view', 'can:investigations.results.view'])
+                ->name('investigations.results.')->group(function (): void {
+                    $controller = \App\Http\Controllers\Api\V1\InvestigationResultController::class;
+                    Route::get('investigations/results/options', [$controller, 'options'])->name('options');
+                    Route::get('investigations/results', [$controller, 'index'])->name('index');
+                    Route::prefix('investigations/items/{investigationItem}/results')
+                        ->where(['investigationItem' => '[1-9][0-9]{0,17}', 'investigationResult' => '[1-9][0-9]{0,17}', 'file' => '[1-9][0-9]{0,17}'])
+                        ->group(function () use ($controller): void {
+                            Route::get('/', [$controller, 'index'])->name('item-index');
+                            Route::post('/', [$controller, 'write'])->middleware('throttle:clinical-writes')->name('store');
+                            Route::get('{investigationResult}', [$controller, 'show'])->name('show');
+                            Route::get('{investigationResult}/history', [$controller, 'history'])->middleware('can:investigations.results.review')->name('history');
+                            Route::get('{investigationResult}/attachments/{file}/download', [$controller, 'download'])->name('download');
+                            Route::patch('{investigationResult}', [$controller, 'write'])->middleware('throttle:clinical-writes')->name('update');
+                            foreach (['submit', 'verify', 'release', 'amend', 'void'] as $action) {
+                                Route::post('{investigationResult}/'.$action, [$controller, 'write'])->middleware('throttle:clinical-writes')->name($action);
+                            }
+                        });
+                });
             Route::middleware(['can:patients.view', 'can:encounters.view', 'can:investigations.view'])->name('investigations.')->group(function (): void {
                 $controller = \App\Http\Controllers\Api\V1\InvestigationRequestController::class;
                 Route::get('investigations/options', [$controller, 'options'])->name('options');

@@ -20,6 +20,7 @@ class ProtectedFileController extends Controller
     public function index(ListFilesRequest $request, AuditTrail $audit): AnonymousResourceCollection
     {
         $page = DB::table('files')->where('uploaded_by', $request->user('web')->id)->orderByDesc('id')
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('investigation_result_file_bindings')->whereColumn('file_id', 'files.id'))
             ->paginate($request->integer('per_page', config('api.pagination.per_page')))
             ->appends($request->safe()->except('page'));
         $audit->record('file.listed', $request->user('web')->id, 'file');

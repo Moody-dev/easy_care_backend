@@ -7,6 +7,12 @@ return [
     'files_baseline' => 'protected-files-v1',
     'reset_minutes' => 15,
     'permissions' => [
+        'investigations.results.view' => 'View released investigation results within visible patient visits',
+        'investigations.results.enter' => 'Create, edit, submit and withdraw own diagnostics result drafts',
+        'investigations.results.verify' => 'Independently verify submitted diagnostics results after reauthentication',
+        'investigations.results.release' => 'Release independently verified results as their verifier after reauthentication',
+        'investigations.results.amend' => 'Create reasoned replacement drafts for released investigation results',
+        'investigations.results.review' => 'Review private revisions of visible investigation results',
         'investigations.view' => 'View investigation orders and queues within visible patient visits',
         'investigations.request' => 'Place investigation requests as the current doctor and cancel own unprocessed items',
         'investigations.collect' => 'Record laboratory specimen collection as diagnostics staff',

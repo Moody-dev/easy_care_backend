@@ -9,6 +9,9 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
+        'investigation.result_created', 'investigation.result_updated', 'investigation.result_submitted', 'investigation.result_verified',
+        'investigation.result_released', 'investigation.result_amended', 'investigation.result_voided', 'investigation.results_listed',
+        'investigation.result_viewed', 'investigation.result_history_viewed', 'investigation.result_attachment_download_authorized',
         'investigation.requested', 'investigation.collected', 'investigation.processing', 'investigation.cancelled',
         'investigation.orders_listed', 'investigation.order_viewed', 'investigation.queue_viewed', 'investigation.history_viewed',
         'investigation.published', 'investigation.listed', 'investigation.viewed', 'investigation.schemas_viewed',
@@ -49,7 +52,7 @@ class AuditTrail
         if (! in_array($action, self::ACTIONS, true)
             || ! in_array($outcome, ['succeeded', 'denied', 'failed'], true)
             || ! in_array($channel, ['http', 'console'], true)
-            || ! in_array($subjectType, ['staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order'], true)) {
+            || ! in_array($subjectType, ['staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
             throw new InvalidArgumentException('Unknown audit event classification.');
         }
 
@@ -79,6 +82,8 @@ class AuditTrail
     private function validateSummary(string $action, array $summary): void
     {
         $allowed = match ($action) {
+            'investigation.result_created', 'investigation.result_updated', 'investigation.result_submitted', 'investigation.result_verified',
+            'investigation.result_released', 'investigation.result_amended', 'investigation.result_voided' => ['version', 'record_id'],
             'care.form_published', 'investigation.published', 'investigation.requested', 'investigation.collected', 'investigation.processing', 'investigation.cancelled' => ['version','record_id'],
             'admission.admitted', 'admission.allocated', 'admission.transferred', 'admission.released',
             'admission.discharge_authorized', 'admission.discharged' => ['version', 'record_id'],

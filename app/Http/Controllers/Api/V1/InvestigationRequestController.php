@@ -24,7 +24,7 @@ class InvestigationRequestController extends Controller
     {
         return response()->json(['data' => ['timezone' => 'Africa/Lagos', 'priorities' => ['routine', 'urgent'],
             'statuses' => InvestigationItem::STATUSES, 'laboratory_requires_collection' => true,
-            'cancellation_before_processing_only' => true, 'closed_visits_read_only' => true, 'result_workflow_available' => false]]);
+            'cancellation_before_processing_only' => true, 'closed_visits_read_only' => true, 'result_workflow_available' => true]]);
     }
 
     public function index(ListInvestigationRequestsRequest $request, AuditTrail $audit): AnonymousResourceCollection
@@ -107,9 +107,9 @@ class InvestigationRequestController extends Controller
             }
         }
         if ($request->has('active')) {
-            $request->boolean('active') ? $query->where('status', '<>', 'cancelled') : $query->where('status', 'cancelled');
+            $request->boolean('active') ? $query->whereIn('status', ['requested', 'collected', 'processing']) : $query->whereIn('status', ['completed', 'cancelled']);
         } elseif ($queue && ! $request->has('status')) {
-            $query->where('status', '<>', 'cancelled');
+            $query->whereIn('status', ['requested', 'collected', 'processing']);
         }
 
         return $query;
