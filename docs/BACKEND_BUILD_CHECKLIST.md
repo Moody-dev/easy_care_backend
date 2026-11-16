@@ -212,7 +212,9 @@ Stage complete when the hospital has accepted the working release and can operat
 
 ## Current next task
 
-**Task 36: connect diagnostics and clinician result screens.** Replace mock investigation ordering, collection/processing and result-entry/review/release state with the saved permission-scoped APIs. Verify private drafts, independent release, retained corrections, attachment access, patient isolation and uncertain-save handling. Keep medication requisitions distinct from investigation requests. Stage 1/hospital form acceptance remains open; Task 11 still needs approval of its identity-verification and console-operator procedure.
+**Frontend integration is deferred at the user's request while backend implementation continues.** The frontend now uses an explicit disconnected demo with local dummy records. Prepared API clients, backend endpoints and the inactive hosted-routing template remain available for later reconnection; dummy records must never be imported into MySQL. Task 36 remains open, and further screen-integration tasks should wait for the user's decision to connect the systems.
+
+**Next backend implementation: Task 37 — medication and stock foundations.** Agree drugs, base units, pack conversions, suppliers, stores, batches, pricing and stock ledger rules before proceeding through purchasing and dispensing. Task 36 will later connect diagnostics and clinician result screens, preserving independent release, corrections, attachments, patient isolation and uncertain-save behavior. Stage 1/hospital form acceptance remains open; Task 11 still needs approval of its identity-verification and console-operator procedure.
 
 ## Reference documents
 
