@@ -21,6 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (QueryException $exception): ?bool {
+            if (request()->is('api/v1/investigations/catalog', 'api/v1/investigations/catalog/*')) {
+                logger()->error('An investigation catalog database operation failed.');
+
+                return false;
+            }
             if (request()->is('api/v1/care-programs', 'api/v1/care-programs/*', 'api/v1/encounters/*/care-programs')) {
                 logger()->error('A care-program database operation failed.');
                 return false;

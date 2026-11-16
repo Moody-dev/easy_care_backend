@@ -79,6 +79,15 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route, 'api.v1.investigations.catalog.') && $status >= 400) {
+            $target = $request->route('investigationTest');
+            $this->audit->record('investigation.'.match (substr($route, strrpos($route, '.') + 1)) {
+                'index', 'options' => 'listed', 'schemas', 'schema' => 'schemas_viewed', default => 'viewed',
+            }, $request->user('web')?->id, 'investigation_test', is_string($target) && ctype_digit($target) ? (int) $target : null,
+                outcome: $status >= 500 ? 'failed' : 'denied', httpStatus: $status);
+
+            return $response;
+        }
         if (str_starts_with($route, 'api.v1.care-programs.') && $status >= 400) {
             $suffix = substr($route, strrpos($route, '.') + 1);
             $target = $request->route('careProgram');

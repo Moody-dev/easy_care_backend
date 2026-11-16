@@ -7,6 +7,8 @@ return [
     'files_baseline' => 'protected-files-v1',
     'reset_minutes' => 15,
     'permissions' => [
+        'investigations.catalog.view' => 'View approved investigation catalogs and retained result definitions',
+        'investigations.catalog.publish' => 'Publish approved investigation definitions from the trusted server console',
         'care.view' => 'View care-program records within visible patient visits',
         'care.manage' => 'Open and complete care programs and record individual births',
         'care.write' => 'Create and edit own care-program drafts',

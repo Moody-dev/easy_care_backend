@@ -9,6 +9,7 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
+        'investigation.published', 'investigation.listed', 'investigation.viewed', 'investigation.schemas_viewed',
         'care.opened','care.completed','care.birth_recorded','care.birth_linked','care.listed','care.viewed','care.form_published',
         'admission.admitted', 'admission.allocated', 'admission.transferred', 'admission.released',
         'admission.discharge_authorized', 'admission.discharged', 'admission.listed', 'admission.viewed', 'admission.history_viewed',
@@ -46,7 +47,7 @@ class AuditTrail
         if (! in_array($action, self::ACTIONS, true)
             || ! in_array($outcome, ['succeeded', 'denied', 'failed'], true)
             || ! in_array($channel, ['http', 'console'], true)
-            || ! in_array($subjectType, ['staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form'], true)) {
+            || ! in_array($subjectType, ['staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test'], true)) {
             throw new InvalidArgumentException('Unknown audit event classification.');
         }
 
@@ -76,7 +77,7 @@ class AuditTrail
     private function validateSummary(string $action, array $summary): void
     {
         $allowed = match ($action) {
-            'care.form_published' => ['version','record_id'],
+            'care.form_published', 'investigation.published' => ['version','record_id'],
             'admission.admitted', 'admission.allocated', 'admission.transferred', 'admission.released',
             'admission.discharge_authorized', 'admission.discharged' => ['version', 'record_id'],
             'staff.created' => ['role_codes', 'department_id', 'is_active', 'version'],

@@ -36,6 +36,15 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('investigations/catalog')->name('investigations.catalog.')->middleware('can:investigations.catalog.view')->group(function (): void {
+                $controller = \App\Http\Controllers\Api\V1\InvestigationCatalogController::class;
+                Route::get('options', [$controller, 'options'])->name('options');
+                Route::get('/', [$controller, 'index'])->name('index');
+                Route::get('{investigationTest}', [$controller, 'show'])->where('investigationTest', '[1-9][0-9]{0,17}')->name('show');
+                Route::get('{investigationTest}/schemas', [$controller, 'schemas'])->where('investigationTest', '[1-9][0-9]{0,17}')->name('schemas');
+                Route::get('{investigationTest}/schemas/{schema}', [$controller, 'schema'])
+                    ->where(['investigationTest' => '[1-9][0-9]{0,17}', 'schema' => '[1-9][0-9]{0,17}'])->name('schema');
+            });
             Route::middleware(['can:care.view','can:patients.view','can:encounters.view'])->group(function (): void {
                 $controller = \App\Http\Controllers\Api\V1\CareProgramController::class;
                 Route::get('care-programs/options', [$controller,'options'])->name('care-programs.options');
