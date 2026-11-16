@@ -39,6 +39,11 @@ class InvestigationTest extends Model
         return $this->hasOne(InvestigationSchema::class, 'test_id')->ofMany('version', 'max');
     }
 
+    public function requestedItems(): HasMany
+    {
+        return $this->hasMany(InvestigationItem::class, 'test_id');
+    }
+
     protected function casts(): array
     {
         return ['is_active' => 'boolean', 'version' => 'integer'];

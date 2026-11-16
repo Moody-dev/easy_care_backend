@@ -7,6 +7,12 @@ return [
     'files_baseline' => 'protected-files-v1',
     'reset_minutes' => 15,
     'permissions' => [
+        'investigations.view' => 'View investigation orders and queues within visible patient visits',
+        'investigations.request' => 'Place investigation requests as the current doctor and cancel own unprocessed items',
+        'investigations.collect' => 'Record laboratory specimen collection as diagnostics staff',
+        'investigations.process' => 'Start processing eligible investigation items as diagnostics staff',
+        'investigations.cancel' => 'Cancel unprocessed investigation items as diagnostics staff',
+        'investigations.review' => 'Review retained private investigation request history',
         'investigations.catalog.view' => 'View approved investigation catalogs and retained result definitions',
         'investigations.catalog.publish' => 'Publish approved investigation definitions from the trusted server console',
         'care.view' => 'View care-program records within visible patient visits',

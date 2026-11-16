@@ -21,7 +21,7 @@ class ListAuditEventsRequest extends FormRequest
             'outcome' => ['sometimes', 'string', Rule::in(['succeeded', 'denied', 'failed'])],
             'channel' => ['sometimes', 'string', Rule::in(['http', 'console'])],
             'actor_id' => ['sometimes', 'integer', 'min:1'],
-            'subject_type' => ['string', Rule::in(['staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test']), 'required_with:subject_id'],
+            'subject_type' => ['string', Rule::in(['staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order']), 'required_with:subject_id'],
             'subject_id' => ['sometimes', 'integer', 'min:1'],
             'from' => ['sometimes', 'date_format:Y-m-d'],
             'to' => ['sometimes', 'date_format:Y-m-d', Rule::when($this->filled('from'), 'after_or_equal:from')],

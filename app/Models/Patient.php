@@ -130,4 +130,9 @@ class Patient extends Model
             'version' => 'integer',
         ];
     }
+
+    public function investigationOrders(): HasMany
+    {
+        return $this->hasMany(InvestigationOrder::class);
+    }
 }

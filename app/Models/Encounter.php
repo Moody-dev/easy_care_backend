@@ -95,6 +95,11 @@ class Encounter extends Model
         return $this->hasMany(CareProgram::class);
     }
 
+    public function investigationOrders(): HasMany
+    {
+        return $this->hasMany(InvestigationOrder::class);
+    }
+
     protected function casts(): array
     {
         return ['opened_at' => 'immutable_datetime', 'closed_at' => 'immutable_datetime', 'version' => 'integer'];

@@ -36,6 +36,23 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::middleware(['can:patients.view', 'can:encounters.view', 'can:investigations.view'])->name('investigations.')->group(function (): void {
+                $controller = \App\Http\Controllers\Api\V1\InvestigationRequestController::class;
+                Route::get('investigations/options', [$controller, 'options'])->name('options');
+                Route::get('investigations/orders', [$controller, 'index'])->name('orders.index');
+                Route::get('investigations/queue', [$controller, 'queue'])->name('queue');
+                Route::post('encounters/{encounter}/investigations', [$controller, 'write'])->where('encounter', '[1-9][0-9]{0,17}')
+                    ->middleware(['can:investigations.request', 'throttle:clinical-writes'])->name('requests.store');
+                Route::prefix('investigations/orders/{investigationOrder}')->where(['investigationOrder' => '[1-9][0-9]{0,17}', 'investigationItem' => '[1-9][0-9]{0,17}'])
+                    ->group(function () use ($controller): void {
+                        Route::get('/', [$controller, 'show'])->name('orders.show');
+                        Route::get('history', [$controller, 'history'])->middleware('can:investigations.review')->name('orders.history');
+                        Route::get('items/{investigationItem}', [$controller, 'item'])->name('orders.item');
+                        foreach (['collect', 'process', 'cancel'] as $action) {
+                            Route::post('items/{investigationItem}/'.$action, [$controller, 'write'])->middleware('throttle:clinical-writes')->name('requests.'.$action);
+                        }
+                    });
+            });
             Route::prefix('investigations/catalog')->name('investigations.catalog.')->middleware('can:investigations.catalog.view')->group(function (): void {
                 $controller = \App\Http\Controllers\Api\V1\InvestigationCatalogController::class;
                 Route::get('options', [$controller, 'options'])->name('options');

@@ -17,6 +17,7 @@ class PatientMigrationTest extends TestCase
     public function test_patient_foundation_rolls_back_and_reapplies_without_changing_existing_staff_or_files(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $requests = require database_path('migrations/2026_11_16_023634_create_investigation_request_records.php');
         $admissionHistory = require database_path('migrations/2026_11_15_015445_create_admission_revision_records.php');
         $care = require database_path('migrations/2026_11_15_024759_create_care_program_records.php');
         $staff = User::factory()->create();
@@ -29,7 +30,8 @@ class PatientMigrationTest extends TestCase
         $clinical = require database_path('migrations/2026_11_12_042242_create_clinical_storage_tables.php');
         $review = require database_path('migrations/2026_11_12_052540_create_clinical_revision_records.php');
         $admissions = require database_path('migrations/2026_11_14_213944_create_admission_storage_tables.php');
-        $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'files', 'audit_events'], function () use ($migration, $lookup, $records, $visits, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care): void {
+        $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'files', 'audit_events'], function () use ($migration, $lookup, $records, $visits, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care, $requests): void {
+            $requests->down();
             $care->down();
             $admissionHistory->down();
             $admissions->down();
@@ -56,6 +58,7 @@ class PatientMigrationTest extends TestCase
             $admissionHistory->up();
             $care->up();
             $this->seed(DatabaseSeeder::class);
+            $requests->up();
         });
         $patient = Patient::factory()->create(['created_by' => $staff->id]);
         $this->assertDatabaseHas('patient_identifiers', ['patient_id' => $patient->id, 'identifier' => $patient->mrn]);

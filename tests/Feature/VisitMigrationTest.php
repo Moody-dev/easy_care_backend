@@ -20,6 +20,7 @@ class VisitMigrationTest extends TestCase
     public function test_visit_storage_rolls_back_and_reapplies_without_changing_existing_records_or_grants(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $requests = require database_path('migrations/2026_11_16_023634_create_investigation_request_records.php');
         $admissionHistory = require database_path('migrations/2026_11_15_015445_create_admission_revision_records.php');
         $care = require database_path('migrations/2026_11_15_024759_create_care_program_records.php');
         $staff = User::factory()->create();
@@ -31,7 +32,8 @@ class VisitMigrationTest extends TestCase
         $review = require database_path('migrations/2026_11_12_052540_create_clinical_revision_records.php');
         $admissions = require database_path('migrations/2026_11_14_213944_create_admission_storage_tables.php');
         $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'patients', 'patient_identifiers',
-            'patient_categories', 'files', 'audit_events', 'idempotency_requests'], function () use ($migration, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care): void {
+            'patient_categories', 'files', 'audit_events', 'idempotency_requests'], function () use ($migration, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care, $requests): void {
+            $requests->down();
             $care->down();
             $admissionHistory->down();
             $admissions->down();
@@ -54,6 +56,7 @@ class VisitMigrationTest extends TestCase
             foreach (['appointments', 'encounters', 'doctor_assignments'] as $table) {
                 $this->assertDatabaseCount($table, 0);
             }
+            $requests->up();
         });
         $booking = Appointment::factory()->registered($patient)->create(['booked_by' => $staff->id]);
         $booking->forceFill(['status' => 'attended', 'version' => 2])->save();
@@ -61,7 +64,7 @@ class VisitMigrationTest extends TestCase
         $assignment = DoctorAssignment::factory()->for($visit)->create(['doctor_id' => $staff->id, 'assigned_by' => $staff->id]);
         $this->assertTrue($visit->currentAssignment->is($assignment));
         $this->assertDatabaseHas('patients', ['id' => $patient->id, 'mrn' => $patient->mrn]);
-        $this->assertDatabaseCount('permissions', 59);
+        $this->assertDatabaseCount('permissions', 65);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 
