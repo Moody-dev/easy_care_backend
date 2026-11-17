@@ -17,6 +17,8 @@ class StaffMigrationTest extends TestCase
 
     public function test_existing_users_survive_upgrade_and_rollback(): void
     {
+        $stock = require database_path('migrations/2026_11_16_192621_create_medication_stock_foundations.php');
+        $stock->down();
         $migration = require database_path('migrations/2026_11_11_001420_create_staff_foundation_tables.php');
         $migration->down();
         $password = Hash::make('Original-secret-123!');
@@ -39,6 +41,8 @@ class StaffMigrationTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $id, 'name' => 'Existing Staff Member', 'password' => $password]);
         $migration->up();
         $this->assertTrue(Schema::hasTable('role_permissions'));
+        $stock->up();
+        $this->assertDatabaseCount('stock_stores', 0);
     }
 
     public function test_rollback_refuses_to_break_staff_with_no_email(): void

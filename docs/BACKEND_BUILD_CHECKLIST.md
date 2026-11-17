@@ -167,12 +167,16 @@ Task 35 verification: all 39 new MySQL cases and three affected parent-migration
 
 ## Stage 10: Build pharmacy, purchasing and stock control
 
-- [ ] **37. Create medication and stock foundations.** Implement drugs, base units and pack conversions, suppliers, stores, batches, prices, stock movements and balances. Agree rounding and valuation behavior where required.
+- [x] **37. Create medication and stock foundations.** Implement drugs, base units and pack conversions, suppliers, stores, batches, prices, stock movements and balances. Agree rounding and valuation behavior where required.
 - [ ] **38. Implement purchasing and stock operations.** Support receipts, department requisitions, approvals, transfers, adjustments, damage and expiry. Preserve invoice/batch references and reconcile balances with the stock ledger.
 - [ ] **39. Implement dispensing, returns and nursing administration.** Lock prescription quantities and selected stock; prevent expired issues, negative stock, over-dispensing and excessive returns. Record administered doses separately so nursing does not deduct issued stock again.
 - [ ] **40. Connect pharmacy and medication screens.** Verify purchase-to-dispense flows, partial fulfillment, returns and concurrent stock requests. Separate usable returns from damaged stock; add low-stock/expiry views.
 
 Stage complete when every stock change is traceable and two users cannot issue the same remaining stock.
+
+Task 37 implemented using the confirmed provisional rules: immutable drug/base-unit identities, versioned pack conversions and per-base-unit currency prices, attributed supplier/store masters, retained manufacturer batches, an append-only stock ledger and a read-only balance view. Exact integer millionths reject excess precision instead of silently rounding; drug-specific quantity precision is enforced. Composite references preserve drug/batch/pack identity. Exact one-time reversals retain originals and cannot remove stock already consumed. Guarded internal counters and MySQL parent locks protect current balances and version streams even after earlier transaction snapshots. No catalog, opening stock, prices, new permissions or default grants are seeded. Purchasing/catalog administration and stock-operation APIs follow in Task 38; prescription-linked dispensing/returns/administration remain Task 39. Automatic valuation, tax, currency conversion and financial rounding await hospital policy. The frontend stays disconnected. See [the storage relationships and contract](LOCAL_DEVELOPMENT.md#medication-and-stock-foundations).
+
+Task 37 verification: all 78 new cases were exercised on their applicable drivers. The final MySQL gate passed 80 cases/306 assertions, including two affected staff-migration checks and five real competing-write cases, with one SQLite-specific skip. The complete SQLite regression run passed 1,139 cases/11,237 assertions with sixty-five MySQL-only skips. All 26 affected PHP files passed syntax checks, and staged whitespace/publication checks passed. The additive local migration is applied with empty stock/catalog/head tables and unchanged seventy-one permissions, twenty-one grants, four baselines and seven categories; readiness is HTTP 200. The isolated MySQL test schema is cleared. All three pre-existing frontend edits remain byte-for-byte unchanged; no frontend code or connection setting changed.
 
 ## Stage 11: Build billing and insurance
 
@@ -214,7 +218,7 @@ Stage complete when the hospital has accepted the working release and can operat
 
 **Frontend integration is deferred at the user's request while backend implementation continues.** The frontend now uses an explicit disconnected demo with local dummy records. Prepared API clients, backend endpoints and the inactive hosted-routing template remain available for later reconnection; dummy records must never be imported into MySQL. Task 36 remains open, and further screen-integration tasks should wait for the user's decision to connect the systems.
 
-**Next backend implementation: Task 37 — medication and stock foundations.** Agree drugs, base units, pack conversions, suppliers, stores, batches, pricing and stock ledger rules before proceeding through purchasing and dispensing. Task 36 will later connect diagnostics and clinician result screens, preserving independent release, corrections, attachments, patient isolation and uncertain-save behavior. Stage 1/hospital form acceptance remains open; Task 11 still needs approval of its identity-verification and console-operator procedure.
+**Next backend implementation: Task 38 — purchasing and stock operations.** Build authorized catalog/supplier/store administration, receipts, department requisitions and approvals, transfers, adjustments, damage and expiry against Task 37's exact storage and immutable ledger. Preserve invoice/batch references, reconcile balances and agree workflow/approval and any required valuation/rounding rules. Task 39 follows with prescription-linked dispensing, returns and nursing administration. Frontend integration stays deferred, including Tasks 36 and 40. Stage 1/hospital form acceptance remains open; Task 11 still needs approval of its identity-verification and console-operator procedure.
 
 ## Reference documents
 

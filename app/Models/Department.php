@@ -17,4 +17,9 @@ class Department extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function stockStores(): HasMany
+    {
+        return $this->hasMany(StockStore::class);
+    }
 }

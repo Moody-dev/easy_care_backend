@@ -93,6 +93,16 @@ class User extends Authenticatable
         return $this->hasMany(ClinicalRecord::class, 'finalized_by');
     }
 
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class, 'created_by');
+    }
+
+    public function createdDrugs(): HasMany
+    {
+        return $this->hasMany(Drug::class, 'created_by');
+    }
+
     public function hasPermission(string $code): bool
     {
         return $this->is_active
