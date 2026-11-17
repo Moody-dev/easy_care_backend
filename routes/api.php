@@ -36,6 +36,44 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('stock')->name('stock.')->group(function (): void {
+                $controller = \App\Http\Controllers\Api\V1\StockController::class;
+                Route::middleware('can:stock.catalog.view')->group(function () use ($controller): void {
+                    Route::prefix('catalog/{catalog}')->where(['catalog' => 'units|drugs|packs|suppliers|stores|batches|prices', 'stockRecord' => '[1-9][0-9]{0,17}'])
+                        ->name('catalog.')->group(function () use ($controller): void {
+                            Route::get('/', [$controller, 'catalogIndex'])->name('index');
+                            Route::get('{stockRecord}', [$controller, 'catalogShow'])->name('show');
+                            Route::get('{stockRecord}/history', [$controller, 'catalogHistory'])->middleware('can:stock.review')->name('history');
+                            Route::post('/', [$controller, 'write'])->middleware(['can:stock.catalog.manage','throttle:stock-writes'])->name('store');
+                            Route::patch('{stockRecord}', [$controller, 'write'])->middleware(['can:stock.catalog.manage','throttle:stock-writes'])->name('update');
+                        });
+                    Route::get('stores/{stockStore}/access', [$controller, 'accesses'])->where('stockStore', '[1-9][0-9]{0,17}')
+                        ->middleware('can:stock.access.manage')->name('accesses');
+                    Route::get('stores/{stockStore}/access/{stockStaff}/history', [$controller, 'accessHistory'])
+                        ->where(['stockStore' => '[1-9][0-9]{0,17}', 'stockStaff' => '[1-9][0-9]{0,17}'])
+                        ->middleware(['can:stock.access.manage','can:stock.review'])->name('access-history');
+                    Route::post('stores/{stockStore}/access/{stockStaff}', [$controller, 'write'])
+                        ->where(['stockStore' => '[1-9][0-9]{0,17}', 'stockStaff' => '[1-9][0-9]{0,17}'])
+                        ->middleware(['can:stock.access.manage','throttle:stock-writes'])->name('access');
+                });
+                Route::middleware('can:stock.view')->group(function () use ($controller): void {
+                    Route::get('options', [$controller, 'options'])->name('options');
+                    Route::get('my-stores', [$controller, 'myStores'])->name('my-stores');
+                    Route::get('balances', [$controller, 'balances'])->name('balances');
+                    Route::get('movements', [$controller, 'movements'])->name('movements');
+                    Route::get('reconciliation', [$controller, 'reconciliation'])->middleware('can:stock.review')->name('reconciliation');
+                    Route::get('operations', [$controller, 'index'])->name('index');
+                    Route::post('operations', [$controller, 'write'])->middleware('throttle:stock-writes')->name('store');
+                    Route::prefix('operations/{stockOperation}')->where(['stockOperation' => '[1-9][0-9]{0,17}'])->group(function () use ($controller): void {
+                        Route::get('/', [$controller, 'show'])->name('show');
+                        Route::get('history', [$controller, 'history'])->middleware('can:stock.review')->name('history');
+                        Route::patch('/', [$controller, 'write'])->middleware('throttle:stock-writes')->name('update');
+                        foreach (['submit','approve','reject','cancel'] as $action) {
+                            Route::post($action, [$controller, 'write'])->middleware('throttle:stock-writes')->name($action);
+                        }
+                    });
+                });
+            });
             Route::middleware(['can:patients.view', 'can:encounters.view', 'can:investigations.view', 'can:investigations.results.view'])
                 ->name('investigations.results.')->group(function (): void {
                     $controller = \App\Http\Controllers\Api\V1\InvestigationResultController::class;

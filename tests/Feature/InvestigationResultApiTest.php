@@ -303,7 +303,7 @@ class InvestigationResultApiTest extends TestCase
         $this->author->forceFill(['is_active' => false])->save();
         $this->getJson($this->path($draft))->assertUnauthorized();
         $this->assertDatabaseCount('investigation_results', 1);
-        $this->assertDatabaseCount('permissions', 71);
+        $this->assertDatabaseCount('permissions', 80);
         $this->assertDatabaseCount('role_permissions', 21 + 8 + 13);
     }
 

@@ -98,6 +98,11 @@ class User extends Authenticatable
         return $this->hasMany(StockMovement::class, 'created_by');
     }
 
+    public function stockStoreAccesses(): HasMany
+    {
+        return $this->hasMany(StockStoreAccess::class, 'user_id');
+    }
+
     public function createdDrugs(): HasMany
     {
         return $this->hasMany(Drug::class, 'created_by');

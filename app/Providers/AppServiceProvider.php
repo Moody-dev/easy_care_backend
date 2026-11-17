@@ -37,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Department::class, DepartmentPolicy::class);
         Gate::policy(Patient::class, PatientPolicy::class);
 
+        RateLimiter::for('stock-writes', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by('stock-writes:'.$request->user('web')?->id.'|'.$request->ip()));
+
         RateLimiter::for('clinical-writes', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('clinical-writes:'.$request->user('web')?->id.'|'.$request->ip()));
 

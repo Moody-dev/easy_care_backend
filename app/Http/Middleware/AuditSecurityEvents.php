@@ -79,6 +79,22 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route, 'api.v1.stock.') && $status >= 400) {
+            $catalog = str_starts_with($route, 'api.v1.stock.catalog.') || str_ends_with($route, '.access') || str_ends_with($route, '.accesses') || str_ends_with($route, '.access-history');
+            $suffix = substr($route, strrpos($route, '.') + 1);
+            $stockAction = match ($suffix) {
+                'store' => $catalog ? 'catalog_changed' : 'created', 'update' => $catalog ? 'catalog_changed' : 'updated',
+                'submit' => 'submitted', 'approve' => 'posted', 'reject' => 'rejected', 'cancel' => 'cancelled',
+                'access' => 'access_changed', 'history', 'access-history' => 'history_viewed', 'reconciliation' => 'reconciled',
+                'index', 'options', 'balances', 'movements', 'my-stores', 'accesses' => 'listed', default => 'viewed',
+            };
+            $target = $request->route($catalog ? 'stockRecord' : 'stockOperation');
+            $this->audit->record('stock.'.$stockAction, $request->user('web')?->id, $catalog ? 'stock_catalog' : 'stock_operation',
+                is_string($target) && ctype_digit($target) ? (int) $target : null, [],
+                in_array($status, [401,403,404,419], true) ? 'denied' : 'failed', httpStatus: $status);
+
+            return $response;
+        }
         if (str_starts_with($route, 'api.v1.investigations.results.') && $status >= 400) {
             $suffix = substr($route, strrpos($route, '.') + 1);
             $action = \App\Services\InvestigationResults::ACTIONS[$suffix] ?? match ($suffix) {

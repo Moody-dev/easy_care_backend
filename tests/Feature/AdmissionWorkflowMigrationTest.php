@@ -39,7 +39,7 @@ class AdmissionWorkflowMigrationTest extends TestCase
         });
         $this->assertDatabaseCount('admission_revisions', 0);
         $this->assertDatabaseCount('current_bed_occupancies', 1);
-        $this->assertDatabaseCount('permissions', 71);
+        $this->assertDatabaseCount('permissions', 80);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
     }

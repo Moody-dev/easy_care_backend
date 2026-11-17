@@ -20,6 +20,11 @@ class StockStore extends Model
 
     public const KINDS = ['main', 'dispensary', 'department'];
 
+    public function accesses(): HasMany
+    {
+        return $this->hasMany(StockStoreAccess::class, 'store_id');
+    }
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
