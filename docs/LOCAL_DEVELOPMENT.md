@@ -1387,6 +1387,16 @@ Task 38 verification: forty-four new cases cover catalog publication and private
 
 Final publication checks passed staged whitespace, credential and publication scans. The isolated MySQL test database has zero staff, patients, drugs, stock documents, movements and store grants after verification. The backend branch was synchronized with its remote before publication, and the three existing frontend edits retain their original hashes. No frontend build/browser acceptance is claimed for this backend-only task.
 
+## Billing storage and exact money
+
+Task 41 adds twelve append-only billing tables: effective-dated `service_prices`, patient-owned NGN `billing_accounts`, confirmed `billing_performed_services`, `billing_invoices`, frozen `billing_invoice_items`, final `billing_invoice_posts`, externally handled payment `billing_receipts`, `billing_allocations`, reasoned credit/refund `billing_changes`, independent `billing_change_reviews`, retained `billing_allocation_releases` and ordered `billing_events`. Existing immutable service identities also admit consultation, procedure, ward, registration and other hospital-approved service categories. Existing drug selling-price versions remain the medication price source.
+
+The confirmed provisional money rule stores final charge/payment/allocation/refund amounts in exact integer kobo. Unit prices and quantities retain up to six decimal places; `BillingMoney` multiplies their decimal digits without binary floats or integer-product overflow and rounds each complete charge once to kobo, half up. Individual final amounts support up to NGN 999,999,999,999.99. No currency conversion, tax, discount, valuation method or sample tariff is seeded. Currency is NGN for this implementation.
+
+Invoice lines retain source identity, selected price version, quantity, unit price, rounded amount and a historical JSON snapshot. A unique source key prevents rebilling that source under a different submission or invoice. Posting seals the expected line count and total; additional lines cannot be appended after the seal. Receipts belong to one patient's account; cross-patient allocations are rejected. Credit/refund targets retain their original line/receipt, and independent decisions cannot rewrite original records. All twelve tables retain actor, server recording time and reason, with protected update/deletion paths.
+
+The platform does not collect payments or send refunds. Cashiers handle cash, POS, bank transfer or other methods outside it. Receipt storage retains the actual paid time separately from entry time, payer name/phone, method, physical transaction/reference details, staff confirmation and the recording cashier. Subsequent workflow APIs will record those events and calculate balances; they will not initiate bank/POS activity or treat an entered reference as automatic bank verification. Task 42 supplies those authorized workflows. Hospital final operating-policy acceptance remains pending.
+
 ## Dispensing, medication returns and nursing administration
 
 Task 39 adds backend-only medication workflows using the confirmed provisional rules. The frontend remains owned by its frontend team; this task changes no frontend code, design, sample data or connection settings. Hospital catalog and operating-policy acceptance remain pending.

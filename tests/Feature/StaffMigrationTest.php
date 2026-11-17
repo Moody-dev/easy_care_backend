@@ -18,7 +18,9 @@ class StaffMigrationTest extends TestCase
     public function test_existing_users_survive_upgrade_and_rollback(): void
     {
         $operations = require database_path('migrations/2026_11_17_030741_create_stock_operation_records.php');
+        $billing = require database_path('migrations/2026_11_17_115716_create_billing_foundations.php');
         $medications = require database_path('migrations/2026_11_17_110715_create_medication_fulfillment_records.php');
+        $billing->down();
         $medications->down();
         $operations->down();
         $stock = require database_path('migrations/2026_11_16_192621_create_medication_stock_foundations.php');
@@ -48,6 +50,7 @@ class StaffMigrationTest extends TestCase
         $stock->up();
         $operations->up();
         $medications->up();
+        $billing->up();
         $this->assertDatabaseCount('stock_stores', 0);
     }
 

@@ -21,11 +21,13 @@ class StockMigrationTest extends TestCase
         $entry = ClinicalEntry::factory()->create();
         StockMovement::factory()->create();
         $operations = require database_path('migrations/2026_11_17_030741_create_stock_operation_records.php');
+        $billing = require database_path('migrations/2026_11_17_115716_create_billing_foundations.php');
         $medications = require database_path('migrations/2026_11_17_110715_create_medication_fulfillment_records.php');
         $migration = require database_path('migrations/2026_11_16_192621_create_medication_stock_foundations.php');
         $this->assertTablesUnchanged(['users', 'roles', 'departments', 'permissions', 'role_permissions', 'permission_baselines', 'patient_categories',
             'patients', 'appointments', 'encounters', 'clinical_records', 'clinical_entries', 'clinical_templates', 'investigation_items', 'investigation_results'],
-            function () use ($migration, $operations, $medications): void {
+            function () use ($migration, $operations, $medications, $billing): void {
+                $billing->down();
                 $medications->down();
                 $operations->down();
                 $migration->down();
@@ -37,6 +39,7 @@ class StockMigrationTest extends TestCase
                 }
                 $operations->up();
                 $medications->up();
+                $billing->up();
             });
         $this->seed(DatabaseSeeder::class);
         $this->assertDatabaseCount('drugs', 0);
