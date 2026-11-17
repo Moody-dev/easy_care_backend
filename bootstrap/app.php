@@ -21,6 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (QueryException $exception): ?bool {
+            if (request()->is('api/v1/billing', 'api/v1/billing/*')) {
+                logger()->error('A billing database operation failed.');
+
+                return false;
+            }
             if (request()->is('api/v1/medications', 'api/v1/medications/*')) {
                 logger()->error('A medication workflow database operation failed.');
 

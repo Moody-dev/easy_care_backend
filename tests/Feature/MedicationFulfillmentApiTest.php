@@ -17,6 +17,22 @@ class MedicationFulfillmentApiTest extends MedicationFulfillmentTestCase
 {
     use RefreshDatabase;
 
+    public function test_billing_uses_the_original_dispense_and_approved_selling_price_without_deducting_stock_again(): void
+    {
+        $this->grantRolePermissions('pharmacy', ['billing.view', 'billing.invoices.post']);
+        $price = \App\Models\DrugPrice::factory()->create(['drug_id' => $this->batch->drug_id, 'amount_micros' => 1005000]);
+        $this->publishFixture('prices', $price);
+        $issued = $this->issue($this->authorizeLine()->assertCreated()->json('data'))->assertCreated()->json('data');
+        $path = '/api/v1/billing/patients/'.$this->visit->patient_id.'/invoices';
+        $data = ['account_version' => 0, 'encounter_id' => $this->visit->id, 'encounter_version' => 1, 'self_pay_confirmed' => true,
+            'sources' => [['type' => 'dispense', 'id' => $issued['last_record_id'], 'price_id' => $price->id]],
+            'current_password' => self::STAFF_TEST_PASSWORD, 'reason' => 'Synthetic issued medication billing'];
+        $this->postCommand($path, $data)->assertCreated()->assertJsonPath('data.totals.charges', '4.02');
+        $data['account_version'] = 1;
+        $this->postCommand($path, $data)->assertConflict()->assertJsonPath('code', 'billing_source_charged');
+        $this->assertDatabaseCount('stock_movements', 2);
+    }
+
     public function test_partial_issues_preserve_authorized_identity_and_never_exceed_the_cap(): void
     {
         $authorization = $this->authorizeLine()->assertCreated()->json('data');

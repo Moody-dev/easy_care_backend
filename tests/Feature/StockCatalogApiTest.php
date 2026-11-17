@@ -52,7 +52,7 @@ class StockCatalogApiTest extends TestCase
         foreach (['drugs','stock_units','drug_prices','stock_operations','stock_store_accesses'] as $table) {
             $this->assertDatabaseCount($table, 0);
         }
-        $this->assertDatabaseCount('permissions', 88);
+        $this->assertDatabaseCount('permissions', 99);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertSame(0, DB::table('role_permissions')->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')->where('permissions.code', 'like', 'stock.%')->count());
     }

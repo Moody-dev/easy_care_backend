@@ -33,7 +33,7 @@ class MedicationFulfillmentMigrationTest extends TestCase
             });
         $this->assertNotNull($prescription->fresh());
         $this->assertNotNull($movement->fresh());
-        $this->assertDatabaseCount('permissions', 88);
+        $this->assertDatabaseCount('permissions', 99);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
     }

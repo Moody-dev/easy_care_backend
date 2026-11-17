@@ -68,6 +68,20 @@ class InvestigationResultApiTest extends TestCase
         $this->actingAs($user);
     }
 
+    public function test_billing_accepts_only_completed_investigations_and_preserves_result_privacy(): void
+    {
+        $this->grantRolePermissions('diagnostics-and-radiologist', ['billing.view', 'billing.invoices.post']);
+        $price = \App\Models\ServicePrice::factory()->create(['service_id' => $this->item->test->service_id, 'amount_micros' => 120000000]);
+        $path = '/api/v1/billing/patients/'.$this->visit->patient_id.'/invoices';
+        $data = ['account_version' => 0, 'encounter_id' => $this->visit->id, 'encounter_version' => 1, 'self_pay_confirmed' => true,
+            'sources' => [['type' => 'investigation', 'id' => $this->item->id, 'price_id' => $price->id]],
+            'reason' => 'Synthetic completed investigation charge', 'current_password' => self::STAFF_TEST_PASSWORD];
+        $this->postCommand($path, $data)->assertConflict()->assertJsonPath('code', 'billing_source_incomplete');
+        $this->release();
+        $this->postCommand($path, $data)->assertCreated()->assertJsonPath('data.totals.charges', '120.00');
+        $this->assertStringNotContainsString('Private result', DB::table('billing_invoice_items')->sole()->snapshot);
+    }
+
     private function path(?array $result = null): string
     {
         return '/api/v1/investigations/items/'.$this->item->id.'/results'.($result === null ? '' : '/'.$result['id']);
@@ -303,7 +317,7 @@ class InvestigationResultApiTest extends TestCase
         $this->author->forceFill(['is_active' => false])->save();
         $this->getJson($this->path($draft))->assertUnauthorized();
         $this->assertDatabaseCount('investigation_results', 1);
-        $this->assertDatabaseCount('permissions', 88);
+        $this->assertDatabaseCount('permissions', 99);
         $this->assertDatabaseCount('role_permissions', 21 + 8 + 13);
     }
 

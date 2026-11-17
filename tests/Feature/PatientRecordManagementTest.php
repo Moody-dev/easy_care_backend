@@ -449,6 +449,21 @@ class PatientRecordManagementTest extends TestCase
         return Patient::factory()->create(array_replace(['created_by' => $this->requester->id, 'category_id' => PatientCategory::where('code', 'private')->sole()->id], $changes));
     }
 
+    public function test_merging_a_source_with_financial_records_is_blocked_without_reassigning_its_funds(): void
+    {
+        $source = $this->patient();
+        $target = $this->patient();
+        $account = \App\Models\BillingAccount::factory()->create(['patient_id' => $source->id]);
+        $receipt = \App\Models\BillingReceipt::factory()->create(['account_id' => $account->id]);
+        $proposal = $this->propose($source, $target);
+        $this->withSession(['password_hash_web' => $this->reviewer->password])->actingAs($this->reviewer);
+        $this->review($source, $proposal, 'approve')->assertConflict()->assertJsonPath('code', 'merge_financial_history');
+        $this->assertDatabaseCount('patient_merges', 0);
+        $this->assertDatabaseHas('billing_accounts', ['id' => $account->id, 'patient_id' => $source->id]);
+        $this->assertDatabaseHas('billing_receipts', ['id' => $receipt->id, 'amount_kobo' => 10000]);
+        $this->assertSame('active', $source->fresh()->access_status);
+    }
+
     private function url(Patient $patient, string $path): string
     {
         return '/api/v1/patients/'.$patient->id.'/'.$path;

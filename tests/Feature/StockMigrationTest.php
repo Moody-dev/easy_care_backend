@@ -27,6 +27,8 @@ class StockMigrationTest extends TestCase
         $this->assertTablesUnchanged(['users', 'roles', 'departments', 'permissions', 'role_permissions', 'permission_baselines', 'patient_categories',
             'patients', 'appointments', 'encounters', 'clinical_records', 'clinical_entries', 'clinical_templates', 'investigation_items', 'investigation_results'],
             function () use ($migration, $operations, $medications, $billing): void {
+                $billingWorkflow = require database_path('migrations/2026_11_17_121111_add_billing_workflow_guards.php');
+                $billingWorkflow->down();
                 $billing->down();
                 $medications->down();
                 $operations->down();
@@ -40,11 +42,12 @@ class StockMigrationTest extends TestCase
                 $operations->up();
                 $medications->up();
                 $billing->up();
+                $billingWorkflow->up();
             });
         $this->seed(DatabaseSeeder::class);
         $this->assertDatabaseCount('drugs', 0);
         $this->assertDatabaseCount('stock_movements', 0);
-        $this->assertDatabaseCount('permissions', 88);
+        $this->assertDatabaseCount('permissions', 99);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
         $this->assertNotNull($entry->fresh());

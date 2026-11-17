@@ -39,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('stock-writes', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('stock-writes:'.$request->user('web')?->id.'|'.$request->ip()));
+        RateLimiter::for('billing-writes', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by('billing-writes:'.$request->user('web')?->id.'|'.$request->ip()));
 
         RateLimiter::for('clinical-writes', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('clinical-writes:'.$request->user('web')?->id.'|'.$request->ip()));

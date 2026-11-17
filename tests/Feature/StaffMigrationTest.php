@@ -20,6 +20,8 @@ class StaffMigrationTest extends TestCase
         $operations = require database_path('migrations/2026_11_17_030741_create_stock_operation_records.php');
         $billing = require database_path('migrations/2026_11_17_115716_create_billing_foundations.php');
         $medications = require database_path('migrations/2026_11_17_110715_create_medication_fulfillment_records.php');
+        $billingWorkflow = require database_path('migrations/2026_11_17_121111_add_billing_workflow_guards.php');
+        $billingWorkflow->down();
         $billing->down();
         $medications->down();
         $operations->down();
@@ -51,6 +53,7 @@ class StaffMigrationTest extends TestCase
         $operations->up();
         $medications->up();
         $billing->up();
+        $billingWorkflow->up();
         $this->assertDatabaseCount('stock_stores', 0);
     }
 

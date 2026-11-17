@@ -63,14 +63,17 @@ class BillingFoundationTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $service = Service::factory()->create();
         $migration = require database_path('migrations/2026_11_17_115716_create_billing_foundations.php');
-        $this->assertTablesUnchanged(['services','users','patients','permissions','role_permissions','permission_baselines','stock_movements','clinical_records'], function () use ($migration): void {
+        $workflow = require database_path('migrations/2026_11_17_121111_add_billing_workflow_guards.php');
+        $this->assertTablesUnchanged(['services','users','patients','permissions','role_permissions','permission_baselines','stock_movements','clinical_records'], function () use ($migration, $workflow): void {
+            $workflow->down();
             $migration->down();
             $this->assertFalse(Schema::hasTable('billing_accounts'));
             $migration->up();
+            $workflow->up();
             $this->assertDatabaseCount('billing_accounts', 0);
         });
         $this->assertNotNull($service->fresh());
-        $this->assertDatabaseCount('permissions', 88);
+        $this->assertDatabaseCount('permissions', 99);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

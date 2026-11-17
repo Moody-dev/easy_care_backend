@@ -36,6 +36,30 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('billing')->name('billing.')->group(function (): void {
+                $controller = \App\Http\Controllers\Api\V1\BillingController::class;
+                Route::get('options', [$controller, 'options'])->middleware('can:billing.view')->name('options');
+                Route::prefix('catalog')->middleware('can:billing.catalog.view')->group(function () use ($controller): void {
+                    Route::get('services', [$controller, 'catalog'])->name('catalog.index');
+                    Route::get('services/{billingService}/prices', [$controller, 'catalog'])->where('billingService', '[1-9][0-9]{0,17}')->name('catalog.prices');
+                    Route::post('services', [$controller, 'write'])->middleware(['can:billing.catalog.manage','throttle:billing-writes'])->name('service');
+                    Route::post('services/{billingService}/prices', [$controller, 'write'])->where('billingService', '[1-9][0-9]{0,17}')
+                        ->middleware(['can:billing.catalog.manage','throttle:billing-writes'])->name('price');
+                });
+                Route::prefix('patients/{patient}')->where(['patient' => '[1-9][0-9]{0,17}', 'billingChange' => '[1-9][0-9]{0,17}', 'billingInvoice' => '[1-9][0-9]{0,17}'])
+                    ->middleware(['can:patients.view','can:billing.view'])->group(function () use ($controller): void {
+                        Route::get('/', [$controller, 'show'])->name('show');
+                        Route::get('history', [$controller, 'records'])->defaults('kind', 'history')->middleware('can:billing.review')->name('history');
+                        Route::get('reconciliation', [$controller, 'reconciliation'])->middleware('can:billing.review')->name('reconciliation');
+                        Route::get('invoices/{billingInvoice}', [$controller, 'invoice'])->name('invoice.show');
+                        Route::get('sources/{sourceKind}', [$controller, 'sources'])->where('sourceKind', 'performed|investigation|dispense')->name('sources');
+                        Route::get('{kind}', [$controller, 'records'])->where('kind', 'invoices|receipts|changes|performed-services|allocations|allocation-releases')->name('records');
+                        foreach (['performed-services' => 'performed', 'invoices' => 'invoice', 'receipts' => 'receipt', 'allocations' => 'allocate',
+                            'credits' => 'credit-request', 'refunds' => 'refund-request', 'changes/{billingChange}/approve' => 'approve', 'changes/{billingChange}/reject' => 'reject'] as $path => $action) {
+                            Route::post($path, [$controller, 'write'])->middleware(['can:'.\App\Services\BillingWorkflows::PERMISSIONS[$action], 'throttle:billing-writes'])->name($action);
+                        }
+                    });
+            });
             Route::prefix('medications')->name('medications.')->middleware(['can:patients.view', 'can:encounters.view', 'can:prescriptions.view', 'can:medications.view'])
                 ->group(function (): void {
                     $controller = \App\Http\Controllers\Api\V1\MedicationController::class;

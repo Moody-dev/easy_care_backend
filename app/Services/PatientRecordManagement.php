@@ -222,6 +222,9 @@ class PatientRecordManagement
             $this->version($target->version, $proposal->target_version);
             $sourceIds = $this->lineage($patient->id, true);
             $targetIds = $this->lineage($target->id);
+            if (\App\Models\BillingAccount::query()->whereIn('patient_id', $sourceIds)->lockForUpdate()->first() !== null) {
+                throw new WriteConflict('merge_financial_history', 'This source identity has financial records. An approved financial identity-reconciliation workflow is required before merging it.');
+            }
             if (Appointment::whereIn('patient_id', $sourceIds)->whereIn('status', ['booked', 'confirmed'])->exists()) {
                 throw new WriteConflict('merge_appointments_pending', 'Resolve active bookings on the source patient before approving this merge.');
             }
