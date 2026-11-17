@@ -46,7 +46,8 @@ class BillingController extends Controller
             $audit->record('billing.viewed', $request->user('web')->id, 'billing_account', $account?->id);
             if ($account === null) {
                 return response()->json(['data' => ['id' => null, 'patient_id' => $patient->id, 'version' => 0, 'currency' => 'NGN',
-                    'totals' => array_fill_keys(['charges','credited','allocated','outstanding','received','refunded','refund_reserved','available_credit'], '0.00'),
+                    'totals' => array_fill_keys(['charges','credited','allocated','outstanding','received','refunded','refund_reserved','available_credit','patient_charges',
+                        'insurer_liability','insurer_approved','insurer_settled','insurer_reserved','insurer_unreviewed','insurer_disputed','insurer_outstanding'], '0.00'),
                     'payments_processed_by_platform' => false]]);
             }
 

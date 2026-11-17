@@ -150,6 +150,9 @@ class BillingWorkflows
             $credit = $action === 'credit-request';
             $target = $credit ? $state['items']->get($data['item_id']) : $state['receipts']->get($data['receipt_id']);
             abort_if($target === null, 404);
+            if ($credit && DB::table('hmo_invoice_shares')->where('item_id', $target->id)->lockForUpdate()->first() !== null) {
+                throw new WriteConflict('hmo_payer_correction_required', 'This charge has a frozen payer split. An approved payer-aware financial correction is required; self-pay credits cannot change HMO liability.');
+            }
             $available = $credit ? $state['itemData'][$target->id]['available'] : $state['receiptData'][$target->id]['available'];
             if ($amount > $available) {
                 throw new WriteConflict('billing_change_exceeded', 'This request exceeds the unreserved charge or unallocated receipt credit.');
@@ -243,6 +246,35 @@ class BillingWorkflows
     /** @return array<string, mixed> */
     public function source(BillingAccount $account, Encounter $visit, string $kind, int $id, CarbonImmutable $time, int $expectedPrice): array
     {
+        ['serviceId'=>$serviceId, 'drugId'=>$drugId, 'quantity'=>$quantity, 'occurred'=>$occurred, 'snapshot'=>$snapshot, 'key'=>$key]
+            = $this->sourceFacts($account, $visit, $kind, $id);
+        if ($serviceId !== null) {
+            $price = ServicePrice::query()->where('service_id', $serviceId)->where('effective_at', '<=', $occurred)
+                ->orderByDesc('effective_at')->orderByDesc('version')->lockForUpdate()->first();
+            if ($price === null || ! $price->is_active) {
+                throw new WriteConflict('billing_price_missing', 'No active approved service price applies at the actual service time.');
+            }
+            $description = $price->service->name;
+        } else {
+            $price = DrugPrice::query()->where('drug_id', $drugId)->where('kind', 'selling')->where('currency', 'NGN')
+                ->where('effective_at', '<=', $occurred)->orderByDesc('effective_at')->orderByDesc('version')->lockForUpdate()->first();
+            if ($price === null || ! StockCatalog::approved('prices', $price)) {
+                throw new WriteConflict('billing_price_missing', 'No approved NGN selling price applies at the original issue time.');
+            }
+            $description = mb_substr($price->drug->name, 0, 191);
+        }
+        $this->authority->version($price->id, $expectedPrice);
+        $snapshot += ['service_id' => $serviceId, 'drug_id' => $drugId, 'occurred_at' => CarbonImmutable::parse($occurred, 'UTC')->toISOString(), 'price_version' => $price->version,
+            'currency' => 'NGN', 'rounding' => 'line_half_up_2dp', 'self_pay_confirmed' => true];
+
+        return ['source_type' => $kind, 'source_id' => $id, 'source_key' => $key, 'service_price_id' => $serviceId === null ? null : $price->id,
+            'drug_price_id' => $drugId === null ? null : $price->id, 'corrects_item_id' => null, 'quantity_micros' => $quantity,
+            'unit_price_micros' => $price->amount_micros, 'amount_kobo' => $this->lineAmount($price->amount_micros, $quantity),
+            'description' => $description, 'snapshot' => $snapshot];
+    }
+
+    public function sourceFacts(BillingAccount $account, Encounter $visit, string $kind, int $id): array
+    {
         $serviceId = $drugId = null;
         $snapshot = ['source_type' => $kind, 'source_id' => $id, 'encounter_id' => $visit->id];
         if ($kind === 'performed') {
@@ -276,32 +308,10 @@ class BillingWorkflows
         if (DB::table('billing_invoice_items')->where('source_key', $key)->lockForUpdate()->first() !== null) {
             throw new WriteConflict('billing_source_charged', 'This source already has a retained charge. Use a reasoned credit/correction.');
         }
-        if ($serviceId !== null) {
-            $price = ServicePrice::query()->where('service_id', $serviceId)->where('effective_at', '<=', $occurred)
-                ->orderByDesc('effective_at')->orderByDesc('version')->lockForUpdate()->first();
-            if ($price === null || ! $price->is_active) {
-                throw new WriteConflict('billing_price_missing', 'No active approved service price applies at the actual service time.');
-            }
-            $description = $price->service->name;
-        } else {
-            $price = DrugPrice::query()->where('drug_id', $drugId)->where('kind', 'selling')->where('currency', 'NGN')
-                ->where('effective_at', '<=', $occurred)->orderByDesc('effective_at')->orderByDesc('version')->lockForUpdate()->first();
-            if ($price === null || ! StockCatalog::approved('prices', $price)) {
-                throw new WriteConflict('billing_price_missing', 'No approved NGN selling price applies at the original issue time.');
-            }
-            $description = mb_substr($price->drug->name, 0, 191);
-        }
-        $this->authority->version($price->id, $expectedPrice);
-        $snapshot += ['service_id' => $serviceId, 'drug_id' => $drugId, 'occurred_at' => CarbonImmutable::parse($occurred, 'UTC')->toISOString(), 'price_version' => $price->version,
-            'currency' => 'NGN', 'rounding' => 'line_half_up_2dp', 'self_pay_confirmed' => true];
-
-        return ['source_type' => $kind, 'source_id' => $id, 'source_key' => $key, 'service_price_id' => $serviceId === null ? null : $price->id,
-            'drug_price_id' => $drugId === null ? null : $price->id, 'corrects_item_id' => null, 'quantity_micros' => $quantity,
-            'unit_price_micros' => $price->amount_micros, 'amount_kobo' => $this->lineAmount($price->amount_micros, $quantity),
-            'description' => $description, 'snapshot' => $snapshot];
+        return compact('serviceId','drugId','quantity','occurred','snapshot','key');
     }
 
-    private function postInvoice(BillingAccount $account, int $encounterId, array $lines, array $signature): int
+    public function postInvoice(BillingAccount $account, int $encounterId, array $lines, array $signature): int
     {
         $total = array_sum(array_column($lines, 'amount_kobo'));
         $this->range($total);

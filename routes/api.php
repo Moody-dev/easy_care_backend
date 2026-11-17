@@ -36,6 +36,37 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('hmo')->name('hmo.')->group(function (): void {
+                $controller = \App\Http\Controllers\Api\V1\HmoController::class;
+                Route::get('options', [$controller, 'options'])->middleware('can:hmo.catalog.view')->name('options');
+                foreach (['providers'=>'provider','plans'=>'plan','imports'=>'tariff','remittances'=>'remittance'] as $plural=>$singular) {
+                    $permission = $plural === 'remittances' ? 'hmo.view' : 'hmo.catalog.view';
+                    Route::get($plural, [$controller, 'catalog'])->defaults('catalogKind', $plural)->middleware('can:'.$permission)->name($plural.'.index');
+                    Route::get($plural.'/{hmoRecord}', [$controller, 'catalogShow'])->defaults('resourceKind', $singular)
+                        ->whereNumber('hmoRecord')->middleware('can:'.$permission)->name($plural.'.show');
+                }
+                Route::post('imports/validate', [$controller, 'validateCsv'])->middleware(['can:hmo.catalog.view','can:hmo.tariffs.import','throttle:hmo-writes'])->name('csv.validate');
+                Route::get('imports/{hmoRecord}/rows', [$controller, 'tariffRows'])->whereNumber('hmoRecord')->middleware('can:hmo.catalog.view')->name('tariffs.rows');
+                Route::get('imports/{hmoRecord}/source', [$controller, 'csvSource'])->whereNumber('hmoRecord')->middleware('can:hmo.catalog.view')->name('tariffs.source');
+                foreach (['providers'=>'provider-create','providers/{hmoRecord}/revisions'=>'provider-update','plans'=>'plan-create','plans/{hmoRecord}/revisions'=>'plan-update',
+                    'imports'=>'tariff-import','imports/{hmoRecord}/review'=>'tariff-review','remittances'=>'remittance-create','remittances/{hmoRecord}/review'=>'remittance-review'] as $path=>$action) {
+                    Route::post($path, [$controller, 'write'])->whereNumber('hmoRecord')
+                        ->middleware(['can:'.\App\Services\HmoWorkflows::PERMISSIONS[$action],'throttle:hmo-writes'])->name($action);
+                }
+                Route::prefix('patients/{patient}')->where(['patient'=>'[1-9][0-9]{0,17}','hmoRecord'=>'[1-9][0-9]{0,17}'])
+                    ->middleware(['can:patients.view','can:billing.view','can:hmo.view'])->group(function () use ($controller): void {
+                        foreach (['coverages','preauthorizations','revocations','claims','submissions','decisions','shares','allocations','reviews'] as $kind) {
+                            Route::get($kind, [$controller, 'records'])->defaults('kind', $kind)->name($kind.'.index');
+                        }
+                        Route::get('claims/{hmoRecord}', [$controller, 'claim'])->name('claim.show');
+                        Route::get('reconciliation', [$controller, 'reconciliation'])->middleware('can:hmo.review')->name('reconciliation');
+                        foreach (['coverages'=>'coverage-create','coverages/{hmoRecord}/revoke'=>'coverage-revoke','preauthorizations'=>'preauth-create',
+                            'preauthorizations/{hmoRecord}/revoke'=>'preauth-revoke','invoices'=>'invoice','claims'=>'claim-submit','claims/{hmoRecord}/resubmit'=>'claim-resubmit',
+                            'decisions'=>'decision-record','decisions/{hmoRecord}/review'=>'decision-review','allocations'=>'allocation-record','allocations/{hmoRecord}/review'=>'allocation-review'] as $path=>$action) {
+                            Route::post($path, [$controller, 'write'])->middleware(['can:'.\App\Services\HmoWorkflows::PERMISSIONS[$action],'throttle:hmo-writes'])->name($action);
+                        }
+                    });
+            });
             Route::prefix('billing')->name('billing.')->group(function (): void {
                 $controller = \App\Http\Controllers\Api\V1\BillingController::class;
                 Route::get('options', [$controller, 'options'])->middleware('can:billing.view')->name('options');

@@ -15,12 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trimStrings(except: ['csv_content']);
         $middleware->prependToGroup('api', \App\Http\Middleware\AuditSecurityEvents::class);
         $middleware->appendToGroup('api', 'throttle:api');
         $middleware->redirectGuestsTo(fn (Request $request): ?string => $request->is('api', 'api/*') ? null : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (QueryException $exception): ?bool {
+            if (request()->is('api/v1/hmo','api/v1/hmo/*')) { logger()->error('An HMO database operation failed.'); return false; }
             if (request()->is('api/v1/billing', 'api/v1/billing/*')) {
                 logger()->error('A billing database operation failed.');
 

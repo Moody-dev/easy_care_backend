@@ -28,6 +28,8 @@ class StockMigrationTest extends TestCase
             'patients', 'appointments', 'encounters', 'clinical_records', 'clinical_entries', 'clinical_templates', 'investigation_items', 'investigation_results'],
             function () use ($migration, $operations, $medications, $billing): void {
                 $billingWorkflow = require database_path('migrations/2026_11_17_121111_add_billing_workflow_guards.php');
+                $hmoMigration = require database_path('migrations/2026_11_17_152355_create_hmo_workflow_records.php');
+                $hmoMigration->down();
                 $billingWorkflow->down();
                 $billing->down();
                 $medications->down();
@@ -43,11 +45,12 @@ class StockMigrationTest extends TestCase
                 $medications->up();
                 $billing->up();
                 $billingWorkflow->up();
+                $hmoMigration->up();
             });
         $this->seed(DatabaseSeeder::class);
         $this->assertDatabaseCount('drugs', 0);
         $this->assertDatabaseCount('stock_movements', 0);
-        $this->assertDatabaseCount('permissions', 99);
+        $this->assertDatabaseCount('permissions', 113);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
         $this->assertNotNull($entry->fresh());

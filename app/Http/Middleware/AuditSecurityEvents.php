@@ -79,6 +79,15 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route, 'api.v1.hmo.') && $status >= 400) {
+            $suffix = substr($route, strrpos($route, '.') + 1);
+            $action = isset(\App\Services\HmoWorkflows::PERMISSIONS[$suffix]) ? $suffix : 'viewed';
+            $this->audit->record('hmo.'.$action, $request->user('web')?->id,
+                $request->route('patient') === null ? 'hmo_catalog' : 'hmo_account',
+                outcome: $status >= 500 ? 'failed' : 'denied', httpStatus: $status);
+
+            return $response;
+        }
         if (str_starts_with($route, 'api.v1.billing.') && $status >= 400) {
             $suffix = substr($route, strrpos($route, '.') + 1);
             $action = isset(\App\Services\BillingWorkflows::PERMISSIONS[$suffix]) ? $suffix : 'viewed';

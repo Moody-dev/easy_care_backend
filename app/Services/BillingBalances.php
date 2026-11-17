@@ -56,8 +56,11 @@ class BillingBalances
                 $receiptData[$change->receipt_id][$decision === 'approved' ? 'refunded' : 'reserved'] += $amount;
             }
         }
-        foreach ($invoiceData as &$invoice) {
-            $invoice['due'] = $invoice['total'] - $invoice['credited'] - $invoice['allocated'];
+        $hmo = app(HmoBalances::class)->account($account, $lock);
+        foreach ($invoiceData as $invoiceId => &$invoice) {
+            $invoice['insurer_liability'] = $hmo['invoiceData'][$invoiceId] ?? 0;
+            $invoice['patient_charge'] = $invoice['total'] - $invoice['insurer_liability'];
+            $invoice['due'] = $invoice['patient_charge'] - $invoice['credited'] - $invoice['allocated'];
         }
         unset($invoice);
         foreach ($receiptData as &$receipt) {
@@ -68,6 +71,8 @@ class BillingBalances
             'allocated' => array_sum(array_column($invoiceData, 'allocated')), 'outstanding' => array_sum(array_column($invoiceData, 'due')),
             'received' => array_sum(array_column($receiptData, 'amount')), 'refunded' => array_sum(array_column($receiptData, 'refunded')),
             'refund_reserved' => array_sum(array_column($receiptData, 'reserved')), 'available_credit' => array_sum(array_column($receiptData, 'available'))];
+        $totals += $hmo['totals'];
+        $totals['patient_charges'] = $totals['charges'] - $totals['insurer_liability'];
         foreach ($totals as $value) {
             if (! is_int($value) || abs($value) > BillingMoney::MAX) {
                 throw new WriteConflict('billing_amount_range', 'This account exceeds the supported exact monetary range.');

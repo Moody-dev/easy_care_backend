@@ -50,7 +50,7 @@ class AdmissionMigrationTest extends TestCase
         $this->assertDatabaseCount('wards', 0);
         $this->assertDatabaseCount('bed_allocations', 0);
         $this->seed(DatabaseSeeder::class);
-        $this->assertDatabaseCount('permissions', 99);
+        $this->assertDatabaseCount('permissions', 113);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
         $this->assertSame('entry', $entry->record->fresh()->kind);
