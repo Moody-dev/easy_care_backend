@@ -9,6 +9,8 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
+        'medication.authorize', 'medication.dispense', 'medication.return-request', 'medication.return-approve',
+        'medication.return-reject', 'medication.administer', 'medication.correct', 'medication.listed', 'medication.viewed', 'medication.history_viewed',
         'stock.catalog_changed', 'stock.access_changed', 'stock.created', 'stock.updated', 'stock.submitted',
         'stock.posted', 'stock.rejected', 'stock.cancelled', 'stock.listed', 'stock.viewed', 'stock.history_viewed', 'stock.reconciled',
         'investigation.result_created', 'investigation.result_updated', 'investigation.result_submitted', 'investigation.result_verified',
@@ -54,7 +56,7 @@ class AuditTrail
         if (! in_array($action, self::ACTIONS, true)
             || ! in_array($outcome, ['succeeded', 'denied', 'failed'], true)
             || ! in_array($channel, ['http', 'console'], true)
-            || ! in_array($subjectType, ['stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
+            || ! in_array($subjectType, ['medication', 'stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
             throw new InvalidArgumentException('Unknown audit event classification.');
         }
 
@@ -84,6 +86,8 @@ class AuditTrail
     private function validateSummary(string $action, array $summary): void
     {
         $allowed = match ($action) {
+            'medication.authorize', 'medication.dispense', 'medication.return-request', 'medication.return-approve',
+            'medication.return-reject', 'medication.administer', 'medication.correct' => ['version', 'record_id'],
             'stock.catalog_changed', 'stock.access_changed', 'stock.created', 'stock.updated', 'stock.submitted',
             'stock.posted', 'stock.rejected', 'stock.cancelled' => ['version', 'record_id'],
             'investigation.result_created', 'investigation.result_updated', 'investigation.result_submitted', 'investigation.result_verified',

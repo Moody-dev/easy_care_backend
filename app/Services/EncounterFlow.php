@@ -83,6 +83,7 @@ class EncounterFlow
             $assignment = $visit->assignments()->current()->lockForUpdate()->first();
             $time = now('UTC');
             if (in_array($action, ['complete', 'cancel'], true)) {
+                app(MedicationFulfillment::class)->assertVisitCanEnd($visit);
                 $lastResult = \App\Models\InvestigationResult::query()->where('encounter_id', $visit->id)->max('last_changed_at');
                 if ($lastResult !== null && $time->lessThan(\Carbon\CarbonImmutable::parse($lastResult, 'UTC'))) {
                     throw new WriteConflict('encounter_clock_conflict', 'The server time precedes a saved investigation result. Check the server clock.');

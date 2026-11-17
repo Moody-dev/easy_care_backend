@@ -253,7 +253,7 @@ class PrescriptionApiTest extends TestCase
         $this->as($this->createStaffWithRole('admin'));
         $this->getJson('/api/v1/prescriptions/options')->assertForbidden();
         $this->create()->assertForbidden();
-        $this->assertDatabaseCount('permissions', 80);
+        $this->assertDatabaseCount('permissions', 88);
     }
 
     public function test_unicode_text_respects_both_character_and_storage_byte_limits(): void

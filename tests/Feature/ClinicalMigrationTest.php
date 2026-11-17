@@ -60,7 +60,7 @@ class ClinicalMigrationTest extends TestCase
         foreach ($tables as $table) {
             $this->assertDatabaseCount($table, 0);
         }
-        $this->assertDatabaseCount('permissions', 80);
+        $this->assertDatabaseCount('permissions', 88);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
     }

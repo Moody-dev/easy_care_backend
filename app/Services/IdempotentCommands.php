@@ -36,7 +36,7 @@ class IdempotentCommands
         'api.v1.patients.store', 'api.v1.patients.update',
     ];
 
-    public function __construct(private WriteTransactions $transactions, private ProtectedFiles $files, private AuditTrail $audit, private PatientRecordManagement $records, private AppointmentBookings $bookings, private EncounterFlow $encounters, private ClinicalRecords $clinical, private AdmissionFlow $admissions, private CarePrograms $care, private InvestigationRequests $investigations, private InvestigationResults $results, private StockOperations $stock) {}
+    public function __construct(private WriteTransactions $transactions, private ProtectedFiles $files, private AuditTrail $audit, private PatientRecordManagement $records, private AppointmentBookings $bookings, private EncounterFlow $encounters, private ClinicalRecords $clinical, private AdmissionFlow $admissions, private CarePrograms $care, private InvestigationRequests $investigations, private InvestigationResults $results, private StockOperations $stock, private MedicationFulfillment $medications) {}
 
     /** @param Closure(): JsonResponse $operation */
     public function run(Request $request, Closure $operation): JsonResponse
@@ -51,7 +51,8 @@ class IdempotentCommands
         $resultWrite = InvestigationResults::isCommand($route);
         $investigationWrite = InvestigationRequests::isCommand($route) || $resultWrite;
         $stockWrite = StockOperations::isCommand($route);
-        if (! in_array($route, self::ROUTES, true) && ! $recordWrite && ! $appointmentWrite && ! $encounterWrite && ! $clinicalWrite && ! $admissionWrite && ! $careWrite && ! $investigationWrite && ! $stockWrite) {
+        $medicationWrite = MedicationFulfillment::isCommand($route);
+        if (! in_array($route, self::ROUTES, true) && ! $recordWrite && ! $appointmentWrite && ! $encounterWrite && ! $clinicalWrite && ! $admissionWrite && ! $careWrite && ! $investigationWrite && ! $stockWrite && ! $medicationWrite) {
             throw new LogicException('A write route must define its command outcome and authorization.');
         }
         $key = $request->header('Idempotency-Key');
@@ -82,6 +83,9 @@ class IdempotentCommands
             $target = ['catalog' => $request->route('catalog'), 'record' => $request->route('stockRecord'),
                 'operation' => $request->route('stockOperation'), 'store' => $request->route('stockStore'), 'staff' => $request->route('stockStaff')];
         }
+        if ($medicationWrite) {
+            $target = ['medication' => $request->route('medication')];
+        }
         $hash = $this->digest(json_encode($this->canonical([
             'target' => $target,
             'data' => $request->except('current_password'),
@@ -89,10 +93,10 @@ class IdempotentCommands
         $keyHash = hash('sha256', $key);
 
         try {
-            return $this->transactions->run(function () use ($request, $operation, $route, $fileWrite, $patientWrite, $recordWrite, $appointmentWrite, $encounterWrite, $clinicalWrite, $admissionWrite, $careWrite, $investigationWrite, $resultWrite, $stockWrite, $hash, $keyHash): JsonResponse {
+            return $this->transactions->run(function () use ($request, $operation, $route, $fileWrite, $patientWrite, $recordWrite, $appointmentWrite, $encounterWrite, $clinicalWrite, $admissionWrite, $careWrite, $investigationWrite, $resultWrite, $stockWrite, $medicationWrite, $hash, $keyHash): JsonResponse {
                 // Current staff writes share this lock with console grants and recovery.
                 abort_if(Permission::query()->where('code', 'staff.manage')->lockForUpdate()->first() === null, 503);
-                if ($patientWrite || $appointmentWrite || $encounterWrite || $clinicalWrite || $admissionWrite || $careWrite || $investigationWrite) {
+                if ($patientWrite || $appointmentWrite || $encounterWrite || $clinicalWrite || $admissionWrite || $careWrite || $investigationWrite || $medicationWrite) {
                     abort_if(Permission::query()->where('code', 'patients.create')->lockForUpdate()->first() === null, 503);
                 }
                 $requestActor = $request->user('web');
@@ -118,6 +122,9 @@ class IdempotentCommands
                 if ($stockWrite) {
                     $resourceType = StockOperations::isCatalog($request) ? 'stock_catalog' : 'stock_operation';
                 }
+                if ($medicationWrite) {
+                    $resourceType = 'medication';
+                }
                 DB::table('idempotency_requests')->where('id', $id)->update([
                     'status' => 'completed', 'response_code' => $response->getStatusCode(),
                     'resource_type' => $resourceType ?? ($clinicalWrite ? (ClinicalRecords::isPrescription($request) ? 'prescription' : 'clinical') : ($encounterWrite ? 'encounter' : ($appointmentWrite ? 'appointment' : ($recordWrite ? 'patient_record' : ($patientWrite ? 'patient' : ($fileWrite ? 'file' : 'staff')))))), 'resource_id' => $resource['id'],
@@ -141,6 +148,11 @@ class IdempotentCommands
     private function authorize(Request $request, User $actor, bool $fileWrite): void
     {
         abort_unless($actor->is_active, 403);
+        if (MedicationFulfillment::isCommand($request->route()->getName())) {
+            $this->medications->authorize($request, $actor);
+
+            return;
+        }
         if (StockOperations::isCommand($request->route()->getName())) {
             $this->stock->authorize($request, $actor);
 
@@ -235,7 +247,9 @@ class IdempotentCommands
         $clinicalWrite = ClinicalRecords::isCommand($request->route()->getName());
         $admissionWrite = AdmissionFlow::isCommand($request->route()->getName());
         $careWrite = CarePrograms::isCommand($request->route()->getName());
-        if (StockOperations::isCommand($request->route()->getName())) {
+        if (MedicationFulfillment::isCommand($request->route()->getName())) {
+            $response = $this->medications->replay($request, $actor, $record);
+        } elseif (StockOperations::isCommand($request->route()->getName())) {
             $response = $this->stock->replay($request, $actor, $record);
         } elseif (InvestigationResults::isCommand($request->route()->getName())) {
             $response = $this->results->replay($request, $actor, $record);
@@ -290,6 +304,9 @@ class IdempotentCommands
                         : ($patientWrite ? 'patient' : ($fileWrite ? 'file' : 'staff'))))))));
         if (StockOperations::isCommand($request->route()->getName())) {
             $replaySubject = StockOperations::isCatalog($request) ? 'stock_catalog' : 'stock_operation';
+        }
+        if (MedicationFulfillment::isCommand($request->route()->getName())) {
+            $replaySubject = 'medication';
         }
         $this->audit->record('command.replayed', $actor->id, $replaySubject,
             $careWrite && $request->route('careProgram') !== null ? (int) $request->route('careProgram') : (int) $record->resource_id);

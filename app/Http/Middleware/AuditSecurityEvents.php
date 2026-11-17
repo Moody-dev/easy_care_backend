@@ -79,6 +79,17 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route, 'api.v1.medications.') && $status >= 400) {
+            $suffix = substr($route, strrpos($route, '.') + 1);
+            $action = isset(\App\Services\MedicationFulfillment::PERMISSIONS[$suffix]) ? $suffix
+                : ($suffix === 'history' ? 'history_viewed' : ($suffix === 'index' || $suffix === 'options' ? 'listed' : 'viewed'));
+            $target = $request->route('medication');
+            $this->audit->record('medication.'.$action, $request->user('web')?->id, 'medication',
+                is_string($target) && ctype_digit($target) ? (int) $target : null,
+                outcome: $status >= 500 ? 'failed' : 'denied', httpStatus: $status);
+
+            return $response;
+        }
         if (str_starts_with($route, 'api.v1.stock.') && $status >= 400) {
             $catalog = str_starts_with($route, 'api.v1.stock.catalog.') || str_ends_with($route, '.access') || str_ends_with($route, '.accesses') || str_ends_with($route, '.access-history');
             $suffix = substr($route, strrpos($route, '.') + 1);

@@ -1387,6 +1387,48 @@ Task 38 verification: forty-four new cases cover catalog publication and private
 
 Final publication checks passed staged whitespace, credential and publication scans. The isolated MySQL test database has zero staff, patients, drugs, stock documents, movements and store grants after verification. The backend branch was synchronized with its remote before publication, and the three existing frontend edits retain their original hashes. No frontend build/browser acceptance is claimed for this backend-only task.
 
+## Dispensing, medication returns and nursing administration
+
+Task 39 adds backend-only medication workflows using the confirmed provisional rules. The frontend remains owned by its frontend team; this task changes no frontend code, design, sample data or connection settings. Hospital catalog and operating-policy acceptance remain pending.
+
+Eight opt-in permissions (`medications.view`, `.authorize`, `.dispense`, `.returns.request`, `.returns.approve`, `.administer`, `.correct` and `.review`) extend the permission catalog to eighty-eight codes. The twenty-one default grants and four baseline markers stay unchanged. All patient-specific reads also require existing patient, encounter and prescription visibility. Restricted or merged patients remain hidden. Closed/cancelled visits are read-only for new actions; retained history remains visible within existing access rules.
+
+Six additive, append-only tables retain the relationships:
+
+| Table | Relationship and purpose |
+| --- | --- |
+| `medication_authorizations` | One signed catalog authorization per original prescription item, linked to its drug and the current doctor's assignment/version; stores the original instructions, catalog snapshot and maximum base quantity. |
+| `medication_dispenses` | Multiple partial issues per authorization; each binds its original batch/store, exact quantity and unique negative stock movement. |
+| `medication_returns` | Reasoned requests against an original dispense; retain quantity, disposition and explicit usability confirmation. |
+| `medication_return_reviews` | One independent approval/rejection per return request; usable approvals bind a unique positive movement in the original store/batch. |
+| `medication_administrations` | Actual base quantities used from a specific issue, observation time and nurse signature; a correction references one preceding entry without rewriting it. |
+| `medication_events` | Ordered private action/version history for each authorization, with typed action record references, actor, server time and reason. |
+
+Every signed action requires the current password, `Idempotency-Key`, `encounter_version` and a reason. Later actions also require the authorization's latest `version`. The current doctor explicitly confirms the catalog drug and maximum base quantity against the saved, current signed active prescription, preserving the original staff-entered text. No medication-name matching, unit inference, dose recommendation, automatic pricing or financial valuation occurs. The authorization requires `prescription_item_id`, `prescription_version`, `drug_id`, `drug_version`, `assignment_id`, `assignment_version` and `maximum_quantity`.
+
+Quantities are exact decimal strings in the approved drug's base unit, at its configured precision and at most six decimal places. Dispensing requires a selected approved, unexpired batch, explicit current store access and expected `store_version`, `drug_version` and `balance_version`. Gross cumulative issues cannot exceed the doctor's signed maximum; returns do not reset this allowance. Each issue deducts stock once. A finalized prescription replacement stops new issues against its predecessor. If a predecessor has already issued medication, catalog authorization of its replacement is rejected instead of silently resetting quantities or guessing how corrected/reordered lines correspond; further supply needs an explicitly reviewed new prescription order.
+
+Requested returns immediately reserve their quantities against further returns or administration. They cannot exceed the original issue less previously reserved/returned and currently administered quantities. A different authorized staff member approves or rejects the request with password confirmation and current store access. Only explicitly confirmed `usable`, unexpired returns restore availability in the original store and batch. `damaged` and `expired` approvals preserve physical-return history without an incoming stock movement; they must not be entered again as store damage/expiry deductions because their original issue already removed them. Expiry uses Africa/Lagos and rejects usable stock expiring today or earlier. A usable request that expires while awaiting review must be rejected and replaced with the correct disposition. Rejection releases the reserved quantity. Pending returns block visit completion/cancellation until independently reviewed.
+
+Nurses record an actual `quantity`, explicit-offset `observed_at` and `dispense_id`. Observation cannot precede issue, be in the future or describe positive administration on/after batch expiry. New administrations require a current signed active order. No stock deduction occurs. Corrections require the original nurse, separate correction permission, the current `administration_id` and a reason; zero quantity is allowed to correct an entry made in error. Only the latest correction counts toward consumption, and no correction may exceed the remaining issued quantity after returns and other administrations. No automatic schedule or dose calculation is introduced.
+
+The endpoint group is `/api/v1/medications`:
+
+| Method and suffix | Purpose |
+| --- | --- |
+| `GET /`, `GET /options` | Bounded authorization list (`encounter_id` optional) and explicit workflow options. |
+| `POST /authorizations` | Current-doctor signed catalog authorization. |
+| `GET /{medication}` | Authorization snapshot, latest aggregate version/action and exact issued/remaining allowance. |
+| `GET /{medication}/dispenses`, `/returns`, `/administrations` | Paginated private operational records; nursing corrections and return decisions remain visible. |
+| `GET /{medication}/history` | Paginated private event history, requiring review permission. |
+| `POST /{medication}/dispense` | Append one partial issue and its stock deduction. |
+| `POST /{medication}/return-request`, `/return-approve`, `/return-reject` | Reserve a return quantity and save the independent decision. |
+| `POST /{medication}/administer`, `/correct` | Sign actual administration or append an owned correction. |
+
+Writes return the authorization resource with `last_action` and `last_record_id`; the action determines whether that ID identifies the authorization, issue, return request, review or administration entry. All child IDs are scoped back to the selected authorization. No stock cost appears in patient medication reads. Existing command receipts recheck current permissions, passwords, patient visibility, clinical role and store access before confirming a completed request. Stale versions or changed submissions cannot create extra events or movements. Parent locks and current locking reads protect allowance, physical disposition and batch balances even after earlier MySQL snapshots. Stock, private history, general audit and command completion commit or roll back together. General audit contains only safe IDs/version metadata; database errors are sanitized before logging.
+
+Task 39 verification: the final full SQLite run passed 1,217 cases/12,128 assertions with seventy-six MySQL-only skips; the malformed-ID boundary passed separately on both SQLite and MySQL (one case/sixteen assertions per driver). MySQL affected API/migration gates passed 31 cases/370 assertions, followed by nine final concurrency/closure/logging/rollback cases/131 assertions. Five real competing transaction checks cover exact duplicate issues, competing prescription allowance, separate prescriptions competing for one batch balance, administration versus return requests and independent return approval. The local additive migration is applied with empty operational tables, eighty-eight permissions, unchanged twenty-one grants/four baselines/seven categories and HTTP 200 readiness. All 47 affected PHP files passed syntax checks; whitespace and publication checks passed. The isolated MySQL schema has no retained operational fixtures. The frontend and its pre-existing local script edit are unchanged. Hospital policy acceptance and future frontend integration remain open.
+
 ## Medication and stock foundations
 
 Task 37 adds storage and relationships for the pharmacy domain. It does not activate frontend integration or expose a stock-write API. Task 38 owns authorized catalog/purchasing/receipt/requisition/transfer/adjustment workflows, command confirmation and audit integration; Task 39 owns prescription-linked dispensing, return limits, expired-issue protection and separate nursing administration. Existing staff-entered prescriptions remain unchanged. No drugs, units, packs, suppliers, stores, batches, prices or opening stock are seeded, and permissions/default grants remain unchanged. The hospital must approve its actual medication identities, conversions and prices; frontend sample names/categories/calculations are not imported as clinical or accounting rules.

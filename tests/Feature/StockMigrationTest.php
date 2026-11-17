@@ -21,10 +21,12 @@ class StockMigrationTest extends TestCase
         $entry = ClinicalEntry::factory()->create();
         StockMovement::factory()->create();
         $operations = require database_path('migrations/2026_11_17_030741_create_stock_operation_records.php');
+        $medications = require database_path('migrations/2026_11_17_110715_create_medication_fulfillment_records.php');
         $migration = require database_path('migrations/2026_11_16_192621_create_medication_stock_foundations.php');
         $this->assertTablesUnchanged(['users', 'roles', 'departments', 'permissions', 'role_permissions', 'permission_baselines', 'patient_categories',
             'patients', 'appointments', 'encounters', 'clinical_records', 'clinical_entries', 'clinical_templates', 'investigation_items', 'investigation_results'],
-            function () use ($migration, $operations): void {
+            function () use ($migration, $operations, $medications): void {
+                $medications->down();
                 $operations->down();
                 $migration->down();
                 $this->assertFalse(Schema::hasView('stock_balances'));
@@ -34,11 +36,12 @@ class StockMigrationTest extends TestCase
                     $this->assertDatabaseCount($table, 0);
                 }
                 $operations->up();
+                $medications->up();
             });
         $this->seed(DatabaseSeeder::class);
         $this->assertDatabaseCount('drugs', 0);
         $this->assertDatabaseCount('stock_movements', 0);
-        $this->assertDatabaseCount('permissions', 80);
+        $this->assertDatabaseCount('permissions', 88);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
         $this->assertNotNull($entry->fresh());

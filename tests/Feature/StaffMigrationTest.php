@@ -18,6 +18,8 @@ class StaffMigrationTest extends TestCase
     public function test_existing_users_survive_upgrade_and_rollback(): void
     {
         $operations = require database_path('migrations/2026_11_17_030741_create_stock_operation_records.php');
+        $medications = require database_path('migrations/2026_11_17_110715_create_medication_fulfillment_records.php');
+        $medications->down();
         $operations->down();
         $stock = require database_path('migrations/2026_11_16_192621_create_medication_stock_foundations.php');
         $stock->down();
@@ -45,6 +47,7 @@ class StaffMigrationTest extends TestCase
         $this->assertTrue(Schema::hasTable('role_permissions'));
         $stock->up();
         $operations->up();
+        $medications->up();
         $this->assertDatabaseCount('stock_stores', 0);
     }
 

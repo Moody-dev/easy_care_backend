@@ -36,6 +36,23 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('medications')->name('medications.')->middleware(['can:patients.view', 'can:encounters.view', 'can:prescriptions.view', 'can:medications.view'])
+                ->group(function (): void {
+                    $controller = \App\Http\Controllers\Api\V1\MedicationController::class;
+                    Route::get('options', [$controller, 'options'])->name('options');
+                    Route::get('/', [$controller, 'index'])->name('index');
+                    Route::post('authorizations', [$controller, 'write'])->middleware(['can:medications.authorize', 'throttle:stock-writes'])->name('authorize');
+                    Route::prefix('{medication}')->where(['medication' => '[1-9][0-9]{0,17}'])->group(function () use ($controller): void {
+                        Route::get('/', [$controller, 'show'])->name('show');
+                        Route::get('history', [$controller, 'records'])->defaults('kind', 'history')->middleware('can:medications.review')->name('history');
+                        Route::get('{kind}', [$controller, 'records'])->where('kind', 'dispenses|returns|administrations')->name('records');
+                        foreach (\App\Services\MedicationFulfillment::PERMISSIONS as $action => $permission) {
+                            if ($action !== 'authorize') {
+                                Route::post($action, [$controller, 'write'])->middleware(['can:'.$permission, 'throttle:stock-writes'])->name($action);
+                            }
+                        }
+                    });
+                });
             Route::prefix('stock')->name('stock.')->group(function (): void {
                 $controller = \App\Http\Controllers\Api\V1\StockController::class;
                 Route::middleware('can:stock.catalog.view')->group(function () use ($controller): void {
