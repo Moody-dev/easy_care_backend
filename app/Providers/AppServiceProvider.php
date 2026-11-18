@@ -41,6 +41,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('stock-writes', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('stock-writes:'.$request->user('web')?->id.'|'.$request->ip()));
+        RateLimiter::for('exports', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('exports:'.$request->user('web')?->id.'|'.$request->ip()));
         RateLimiter::for('reports', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('reports:'.$request->user('web')?->id.'|'.$request->ip()));
         RateLimiter::for('reminder-writes', fn (Request $request): Limit => Limit::perMinute(60)

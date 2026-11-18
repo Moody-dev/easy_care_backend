@@ -12,6 +12,23 @@ class ReportInventoryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_ledger_export_includes_all_pages_and_store_revocation_blocks_its_download(): void
+    {
+        $this->freezeTime(); $this->seed(DatabaseSeeder::class);
+        $this->grantRolePermissions('pharmacy',['reports.inventory','stock.view','exports.generate','exports.download']);
+        $actor=$this->createStaffWithRole('pharmacy');
+        $first=StockMovement::factory()->create(['created_by'=>$actor->id]);
+        $access=StockStoreAccess::factory()->create(['user_id'=>$actor->id,'store_id'=>$first->store_id]);
+        StockMovement::factory()->count(100)->create(['store_id'=>$first->store_id,'batch_id'=>$first->batch_id,'drug_id'=>$first->drug_id,'created_by'=>$actor->id]);
+        $this->actingAs($actor);
+        $id=$this->postCommand('/api/v1/exports',['kind'=>'report','report_key'=>'movements','format'=>'csv','filters'=>[]])->assertCreated()->json('data.id');
+        $csv=$this->get('/api/v1/exports/'.$id.'/download')->assertOk()->getContent();
+        $this->assertStringContainsString('data.total,101',$csv);
+        $this->assertStringContainsString('data.records.100.id,'.$first->id,$csv);
+        $access->forceFill(['is_active'=>false,'version'=>2])->save();
+        $this->getJson('/api/v1/exports/'.$id.'/download')->assertConflict();
+    }
+
     public function test_stock_reports_include_only_granted_stores_and_never_sum_different_drug_units(): void
     {
         $this->freezeTime();

@@ -44,7 +44,7 @@ class InvestigationCatalogTest extends TestCase
         $this->assertDatabaseCount('investigation_tests', 0);
         $this->assertDatabaseCount('investigation_schemas', 0);
         $this->assertDatabaseCount('services', 0);
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
         $this->assertDatabaseCount('permission_baselines', 4);
         $this->assertFalse($admin->hasPermission('investigations.catalog.publish'));
     }

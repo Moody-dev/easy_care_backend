@@ -41,7 +41,7 @@ class InvestigationRequestMigrationTest extends TestCase
         foreach (['investigation_orders', 'investigation_items', 'investigation_revisions'] as $table) {
             $this->assertDatabaseCount($table, 0);
         }
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

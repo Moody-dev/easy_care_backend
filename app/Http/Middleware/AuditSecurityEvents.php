@@ -79,6 +79,12 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (str_starts_with($route,'api.v1.exports.') && $status>=400) {
+            $action=match (substr($route,strrpos($route,'.')+1)) { 'store'=>'generated','download'=>'downloaded','print'=>'printed',default=>'viewed' };
+            $this->audit->record('export.'.$action,$request->user('web')?->id,'document_export',
+                outcome:$status>=500?'failed':'denied',httpStatus:$status);
+            return $response;
+        }
         if (($route==='api.v1.dashboard' || str_starts_with($route,'api.v1.reports.')) && $status>=400) {
             $this->audit->record($route==='api.v1.dashboard'?'dashboard.viewed':'report.viewed',$request->user('web')?->id,'business_report',
                 outcome:$status>=500?'failed':'denied',httpStatus:$status);

@@ -82,6 +82,28 @@ class InvestigationResultApiTest extends TestCase
         $this->assertStringNotContainsString('Private result', DB::table('billing_invoice_items')->sole()->snapshot);
     }
 
+    public function test_printable_results_require_release_and_old_copies_stop_after_a_correction_is_released(): void
+    {
+        $this->grantRolePermissions('doctor',['exports.generate','exports.download']);
+        $draft=$this->draft();
+        $this->login($this->doctor);
+        $input=['kind'=>'result','source_id'=>$draft['id'],'format'=>'html'];
+        $this->postCommand('/api/v1/exports',$input)->assertNotFound();
+        $this->login($this->author); $original=$this->release($this->submit($draft));
+        $this->login($this->doctor);
+        $copy=$this->postCommand('/api/v1/exports',$input)->assertCreated()->json('data.id');
+        $printed=$this->get('/api/v1/exports/'.$copy.'/print')->assertOk();
+        $this->assertStringContainsString('Synthetic result test',$printed->getContent());
+        $this->assertStringNotContainsString('/files/',$printed->getContent());
+        $this->login($this->author);
+        $replacement=$this->postCommand($this->path($original).'/amend',$this->entry(['value'=>42])+['version'=>$original['version']])->assertCreated()->json('data');
+        $this->login($this->doctor);
+        $this->get('/api/v1/exports/'.$copy.'/print')->assertOk();
+        $this->login($this->author); $this->release($this->submit($replacement));
+        $this->login($this->doctor);
+        $this->getJson('/api/v1/exports/'.$copy.'/download')->assertNotFound();
+    }
+
     private function path(?array $result = null): string
     {
         return '/api/v1/investigations/items/'.$this->item->id.'/results'.($result === null ? '' : '/'.$result['id']);
@@ -317,7 +339,7 @@ class InvestigationResultApiTest extends TestCase
         $this->author->forceFill(['is_active' => false])->save();
         $this->getJson($this->path($draft))->assertUnauthorized();
         $this->assertDatabaseCount('investigation_results', 1);
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
         $this->assertDatabaseCount('role_permissions', 21 + 8 + 13);
     }
 

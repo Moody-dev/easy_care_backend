@@ -21,11 +21,15 @@ class ReportRequest extends FormRequest
 
     public function rules(): array
     {
+        return self::rulesFor($this->route()->getName()==='api.v1.dashboard'?'dashboard':$this->route('kind'));
+    }
+
+    public static function rulesFor(string $kind): array
+    {
         $date=['required','date_format:Y-m-d','after_or_equal:1000-01-02','before_or_equal:9999-12-30'];
         $id=['sometimes','integer','min:1','max:999999999999999999'];
-        $kind=$this->route('kind');
         $rules=['from_date'=>$date,'to_date'=>[...$date,'after_or_equal:from_date']];
-        if ($this->route()->getName()==='api.v1.dashboard') { return $rules; }
+        if ($kind==='dashboard') { return $rules; }
         if (in_array($kind,['activity','trend','accounts','billing','hmo'],true)) { $rules['patient_id']=$id; }
         if (in_array($kind,['activity','trend'],true)) { $rules+=['encounter_id'=>$id,'doctor_id'=>$id]; }
         if ($kind==='trend') {

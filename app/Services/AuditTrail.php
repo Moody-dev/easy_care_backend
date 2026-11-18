@@ -9,6 +9,7 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
+        'export.generated','export.viewed','export.downloaded','export.printed',
         'dashboard.viewed','report.viewed',
         'reminder.created','reminder.updated','reminder.cancelled','reminder.viewed','reminder.processed',
         'notification.read','notification.unread','notification.snoozed','notification.viewed',
@@ -66,7 +67,7 @@ class AuditTrail
         if (! in_array($action, self::ACTIONS, true)
             || ! in_array($outcome, ['succeeded', 'denied', 'failed'], true)
             || ! in_array($channel, ['http', 'console'], true)
-            || ! in_array($subjectType, ['business_report', 'reminder', 'notification', 'hmo_catalog', 'hmo_account', 'billing_catalog', 'billing_account', 'medication', 'stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
+            || ! in_array($subjectType, ['document_export', 'business_report', 'reminder', 'notification', 'hmo_catalog', 'hmo_account', 'billing_catalog', 'billing_account', 'medication', 'stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
             throw new InvalidArgumentException('Unknown audit event classification.');
         }
 

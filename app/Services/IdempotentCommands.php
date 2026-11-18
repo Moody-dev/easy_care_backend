@@ -36,7 +36,7 @@ class IdempotentCommands
         'api.v1.patients.store', 'api.v1.patients.update',
     ];
 
-    public function __construct(private WriteTransactions $transactions, private ProtectedFiles $files, private AuditTrail $audit, private PatientRecordManagement $records, private AppointmentBookings $bookings, private EncounterFlow $encounters, private ClinicalRecords $clinical, private AdmissionFlow $admissions, private CarePrograms $care, private InvestigationRequests $investigations, private InvestigationResults $results, private StockOperations $stock, private MedicationFulfillment $medications, private BillingWorkflows $billing, private HmoWorkflows $hmo, private ReminderWorkflows $reminders) {}
+    public function __construct(private WriteTransactions $transactions, private ProtectedFiles $files, private AuditTrail $audit, private PatientRecordManagement $records, private AppointmentBookings $bookings, private EncounterFlow $encounters, private ClinicalRecords $clinical, private AdmissionFlow $admissions, private CarePrograms $care, private InvestigationRequests $investigations, private InvestigationResults $results, private StockOperations $stock, private MedicationFulfillment $medications, private BillingWorkflows $billing, private HmoWorkflows $hmo, private ReminderWorkflows $reminders, private DocumentExports $exports) {}
 
     /** @param Closure(): JsonResponse $operation */
     public function run(Request $request, Closure $operation): JsonResponse
@@ -55,7 +55,8 @@ class IdempotentCommands
         $billingWrite = BillingWorkflows::isCommand($route);
         $hmoWrite = HmoWorkflows::isCommand($route);
         $reminderWrite = ReminderWorkflows::isCommand($route);
-        if (! in_array($route, self::ROUTES, true) && ! $recordWrite && ! $appointmentWrite && ! $encounterWrite && ! $clinicalWrite && ! $admissionWrite && ! $careWrite && ! $investigationWrite && ! $stockWrite && ! $medicationWrite && ! $billingWrite && ! $hmoWrite && ! $reminderWrite) {
+        $exportWrite = DocumentExports::isCommand($route);
+        if (! in_array($route, self::ROUTES, true) && ! $recordWrite && ! $appointmentWrite && ! $encounterWrite && ! $clinicalWrite && ! $admissionWrite && ! $careWrite && ! $investigationWrite && ! $stockWrite && ! $medicationWrite && ! $billingWrite && ! $hmoWrite && ! $reminderWrite && ! $exportWrite) {
             throw new LogicException('A write route must define its command outcome and authorization.');
         }
         $key = $request->header('Idempotency-Key');
@@ -101,10 +102,10 @@ class IdempotentCommands
         $keyHash = hash('sha256', $key);
 
         try {
-            return $this->transactions->run(function () use ($request, $operation, $route, $fileWrite, $patientWrite, $recordWrite, $appointmentWrite, $encounterWrite, $clinicalWrite, $admissionWrite, $careWrite, $investigationWrite, $resultWrite, $stockWrite, $medicationWrite, $billingWrite, $hmoWrite, $reminderWrite, $hash, $keyHash): JsonResponse {
+            return $this->transactions->run(function () use ($request, $operation, $route, $fileWrite, $patientWrite, $recordWrite, $appointmentWrite, $encounterWrite, $clinicalWrite, $admissionWrite, $careWrite, $investigationWrite, $resultWrite, $stockWrite, $medicationWrite, $billingWrite, $hmoWrite, $reminderWrite, $exportWrite, $hash, $keyHash): JsonResponse {
                 // Current staff writes share this lock with console grants and recovery.
                 abort_if(Permission::query()->where('code', 'staff.manage')->lockForUpdate()->first() === null, 503);
-                if ($patientWrite || $appointmentWrite || $encounterWrite || $clinicalWrite || $admissionWrite || $careWrite || $investigationWrite || $medicationWrite || $billingWrite || $hmoWrite || $reminderWrite) {
+                if ($patientWrite || $appointmentWrite || $encounterWrite || $clinicalWrite || $admissionWrite || $careWrite || $investigationWrite || $medicationWrite || $billingWrite || $hmoWrite || $reminderWrite || $exportWrite) {
                     abort_if(Permission::query()->where('code', 'patients.create')->lockForUpdate()->first() === null, 503);
                 }
                 $requestActor = $request->user('web');
@@ -136,6 +137,7 @@ class IdempotentCommands
                 if ($billingWrite) {
                     $resourceType = BillingWorkflows::isCatalog($request) ? 'billing_catalog' : 'billing_account';
                 }
+                if ($exportWrite) { $resourceType = 'document_export'; }
                 if ($reminderWrite) { $resourceType = ReminderWorkflows::isNotification($request) ? 'notification' : 'reminder'; }
                 if ($hmoWrite) { $resourceType = HmoWorkflows::isCatalog($request) ? 'hmo_catalog' : 'hmo_account'; }
                 DB::table('idempotency_requests')->where('id', $id)->update([
@@ -161,6 +163,7 @@ class IdempotentCommands
     private function authorize(Request $request, User $actor, bool $fileWrite): void
     {
         abort_unless($actor->is_active, 403);
+        if (DocumentExports::isCommand($request->route()->getName())) { $this->exports->authorize($request,$actor); return; }
         if (ReminderWorkflows::isCommand($request->route()->getName())) { $this->reminders->authorize($request,$actor); return; }
         if (HmoWorkflows::isCommand($request->route()->getName())) { $this->hmo->authorize($request,$actor); return; }
         if (BillingWorkflows::isCommand($request->route()->getName())) {
@@ -267,7 +270,9 @@ class IdempotentCommands
         $clinicalWrite = ClinicalRecords::isCommand($request->route()->getName());
         $admissionWrite = AdmissionFlow::isCommand($request->route()->getName());
         $careWrite = CarePrograms::isCommand($request->route()->getName());
-        if (ReminderWorkflows::isCommand($request->route()->getName())) {
+        if (DocumentExports::isCommand($request->route()->getName())) {
+            $response = $this->exports->replay($request,$actor,$record);
+        } elseif (ReminderWorkflows::isCommand($request->route()->getName())) {
             $response = $this->reminders->replay($request,$actor,$record);
         } elseif (HmoWorkflows::isCommand($request->route()->getName())) {
             $response = $this->hmo->replay($request,$actor,$record);
@@ -339,6 +344,7 @@ class IdempotentCommands
         }
         if (HmoWorkflows::isCommand($request->route()->getName())) { $replaySubject = HmoWorkflows::isCatalog($request) ? 'hmo_catalog' : 'hmo_account'; }
         if (ReminderWorkflows::isCommand($request->route()->getName())) { $replaySubject = ReminderWorkflows::isNotification($request) ? 'notification' : 'reminder'; }
+        if (DocumentExports::isCommand($request->route()->getName())) { $replaySubject = 'document_export'; }
         $this->audit->record('command.replayed', $actor->id, $replaySubject,
             $careWrite && $request->route('careProgram') !== null ? (int) $request->route('careProgram') : (int) $record->resource_id);
         $response->setStatusCode(200);

@@ -24,7 +24,7 @@ class ReportController extends Controller
         $response=$this->snapshots->run($request->user('web'),$kind,$request->validated(),function (User $actor,ReportPeriod $period,array $available) use ($kind): array {
             return match ($kind) {
                 'options'=>['available_modules'=>$available,'timezone'=>'Africa/Lagos','default_period'=>'today',
-                    'maximum_calendar_days'=>366,'currency'=>'NGN','balances_are_current'=>true,'exports_enabled'=>false],
+                    'maximum_calendar_days'=>366,'currency'=>'NGN','balances_are_current'=>true,'exports_enabled'=>$actor->hasPermission('exports.generate')],
                 'activity'=>$this->operations->summary($actor,$period),
                 'trend'=>$this->operations->trend($actor,$period,$period->filters['module']),
                 'inventory'=>$this->inventory->summary($actor,$period),

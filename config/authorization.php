@@ -7,6 +7,8 @@ return [
     'files_baseline' => 'protected-files-v1',
     'reset_minutes' => 15,
     'permissions' => [
+        'exports.generate' => 'Generate private documents from currently authorized saved records',
+        'exports.download' => 'Read, download and print your own unexpired authorized documents',
         'dashboard.view' => 'View permission-scoped operational dashboard summaries',
         'reports.activity' => 'Read operational reports within existing record visibility',
         'reports.inventory' => 'Read inventory reports within explicitly granted stores',

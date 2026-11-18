@@ -253,7 +253,7 @@ class PrescriptionApiTest extends TestCase
         $this->as($this->createStaffWithRole('admin'));
         $this->getJson('/api/v1/prescriptions/options')->assertForbidden();
         $this->create()->assertForbidden();
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
     }
 
     public function test_unicode_text_respects_both_character_and_storage_byte_limits(): void
@@ -261,6 +261,21 @@ class PrescriptionApiTest extends TestCase
         $this->create(['instructions' => str_repeat("\u{1F48A}", 16000)])->assertCreated();
         $this->assertTablesUnchanged($this->tables(), fn () => $this->create(['instructions' => str_repeat("\u{1F48A}", 20000)]))
             ->assertUnprocessable()->assertJsonValidationErrors('payload.instructions');
+    }
+
+    public function test_only_current_signed_prescriptions_are_printable_and_stopping_an_order_invalidates_its_old_copy(): void
+    {
+        $this->grantRolePermissions('doctor',['exports.generate','exports.download']);
+        $id=$this->create()->assertCreated()->json('data.id');
+        $input=['kind'=>'prescription','source_id'=>$id,'format'=>'html'];
+        $this->postCommand('/api/v1/exports',$input)->assertNotFound();
+        $this->sign($id)->assertOk();
+        $copy=$this->postCommand('/api/v1/exports',$input)->assertCreated()->json('data.id');
+        $printed=$this->get('/api/v1/exports/'.$copy.'/print')->assertOk();
+        $this->assertStringContainsString('Original medication sentinel',$printed->getContent());
+        $this->assertStringContainsString('Staff-entered dose',$printed->getContent());
+        $this->postCommand($this->path($id).'/stop',$this->finalization(2)+['reason'=>'Synthetic stop authorization'])->assertOk();
+        $this->getJson('/api/v1/exports/'.$copy.'/download')->assertNotFound();
     }
 
     private function path(?int $id = null): string

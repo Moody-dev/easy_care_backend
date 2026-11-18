@@ -48,7 +48,7 @@ class AppointmentMigrationTest extends TestCase
         $link = AppointmentFollowUp::factory()->create();
         $this->assertSame('attended', $link->previousAppointment->status);
         $this->assertTrue($link->appointment->followUpLink->is($link));
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

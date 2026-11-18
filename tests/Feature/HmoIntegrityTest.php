@@ -27,7 +27,7 @@ class HmoIntegrityTest extends TestCase
             $migration->up();
         });
         $this->assertDatabaseCount('hmo_providers',0);
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
         $this->assertDatabaseCount('role_permissions',21);
     }
 

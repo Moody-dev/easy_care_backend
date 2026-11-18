@@ -63,7 +63,7 @@ class InventoryReports
     {
         $page=$this->positionsQuery($actor,$period->filters)->select('p.*','d.code as drug_code','d.name as drug_name','u.code as unit_code',
             's.name as store_name','b.batch_number','b.expires_on')->orderBy('p.store_id')->orderBy('p.drug_id')->orderBy('p.batch_id')
-            ->paginate($period->filters['per_page']??25)->appends($period->filters);
+            ->paginate($period->filters['per_page']??25,['*'],'page',$period->filters['page']??1)->appends($period->filters);
         $page->through(fn (\stdClass $row): array=>['store_id'=>(int)$row->store_id,'store_name'=>$row->store_name,'drug_id'=>(int)$row->drug_id,
             'drug_code'=>$row->drug_code,'drug_name'=>$row->drug_name,'base_unit'=>$row->unit_code,'batch_id'=>(int)$row->batch_id,
             'batch_number'=>$row->batch_number,'expires_on'=>$row->expires_on,'quantity'=>FixedPoint::format((int)$row->quantity_micros),
@@ -74,7 +74,7 @@ class InventoryReports
     public function movements(User $actor, ReportPeriod $period): array
     {
         $page=$this->movementsQuery($actor,$period)->select('m.id','m.store_id','m.drug_id','m.batch_id','m.kind','m.quantity_micros','m.recorded_at')
-            ->orderByDesc('m.id')->paginate($period->filters['per_page']??25)->appends($period->filters);
+            ->orderByDesc('m.id')->paginate($period->filters['per_page']??25,['*'],'page',$period->filters['page']??1)->appends($period->filters);
         $page->through(fn (\stdClass $row): array=>['id'=>(int)$row->id,'store_id'=>(int)$row->store_id,'drug_id'=>(int)$row->drug_id,'batch_id'=>(int)$row->batch_id,
             'kind'=>$row->kind,'quantity'=>FixedPoint::format((int)$row->quantity_micros),'recorded_at'=>CarbonImmutable::parse($row->recorded_at,'UTC')->toISOString()]);
         return $page->toArray();

@@ -50,7 +50,7 @@ class StockMigrationTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $this->assertDatabaseCount('drugs', 0);
         $this->assertDatabaseCount('stock_movements', 0);
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
         $this->assertNotNull($entry->fresh());

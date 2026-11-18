@@ -456,6 +456,22 @@ class ClinicalApiTest extends TestCase
         return [['entry', 'content'], ['procedure', 'remarks'], ['procedure', 'findings']];
     }
 
+    public function test_printable_clinical_copies_exclude_drafts_and_expire_when_a_signed_amendment_replaces_them(): void
+    {
+        $this->grantRolePermissions('doctor',['exports.generate','exports.download']);
+        $id=$this->create('entry')->assertCreated()->json('data.id');
+        $input=['kind'=>'clinical','source_id'=>$id,'format'=>'html'];
+        $this->postCommand('/api/v1/exports',$input)->assertNotFound();
+        $this->sign($id)->assertOk();
+        $copy=$this->postCommand('/api/v1/exports',$input)->assertCreated()->json('data.id');
+        $printed=$this->get('/api/v1/exports/'.$copy.'/print')->assertOk();
+        $this->assertStringContainsString('Private clinical content sentinel',$printed->getContent());
+        $this->assertStringContainsString('Clinical Author Sentinel',$printed->getContent());
+        $this->postCommand($this->path($id).'/amend',$this->finalization(2)+['reason'=>'Synthetic signed correction','payload'=>['content'=>'Corrected signed text']])->assertCreated();
+        $this->getJson('/api/v1/exports/'.$copy.'/download')->assertNotFound();
+        $this->postCommand('/api/v1/exports',$input)->assertNotFound();
+    }
+
     private function path(?int $id = null): string
     {
         return '/api/v1/encounters/'.$this->visit->id.'/clinical'.($id === null ? '' : '/'.$id);

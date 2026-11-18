@@ -36,6 +36,16 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('exports')->name('exports.')->middleware('throttle:exports')->group(function (): void {
+                $controller=\App\Http\Controllers\Api\V1\ExportController::class;
+                Route::get('options',[$controller,'options'])->middleware('can:exports.generate')->name('options');
+                Route::post('/',[$controller,'store'])->middleware('can:exports.generate')->name('store');
+                Route::middleware('can:exports.download')->where(['export'=>'[1-9][0-9]{0,17}'])->group(function () use ($controller): void {
+                    Route::get('{export}',[$controller,'show'])->name('show');
+                    Route::get('{export}/download',[$controller,'download'])->name('download');
+                    Route::get('{export}/print',[$controller,'download'])->name('print');
+                });
+            });
             Route::get('dashboard',[\App\Http\Controllers\Api\V1\ReportController::class,'show'])->middleware(['can:dashboard.view','throttle:reports'])->name('dashboard');
             Route::prefix('reports')->name('reports.')->middleware('throttle:reports')->group(function (): void {
                 foreach (['options','activity','trend','inventory','positions','movements','billing','accounts','hmo'] as $kind) {

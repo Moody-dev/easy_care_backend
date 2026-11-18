@@ -168,7 +168,7 @@ class FinancialReports
 
     public function accountsPage(User $actor,ReportPeriod $period,bool $includeHmo): array
     {
-        $page=$this->accounts($actor,$period->filters)->orderBy('id')->paginate($period->filters['per_page']??25)->appends($period->filters);
+        $page=$this->accounts($actor,$period->filters)->orderBy('id')->paginate($period->filters['per_page']??25,['*'],'page',$period->filters['page']??1)->appends($period->filters);
         $page->through(fn (BillingAccount $account): array=>['account_id'=>$account->id,'patient_id'=>$account->patient_id,
             'current'=>$this->current($actor,$period->filters,[$account->id],$includeHmo)]);
         return $page->toArray()+['currency'=>'NGN','basis'=>'current lifetime balances; the date range does not truncate account balances'];

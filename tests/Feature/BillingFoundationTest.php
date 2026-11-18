@@ -76,7 +76,7 @@ class BillingFoundationTest extends TestCase
             $this->assertDatabaseCount('billing_accounts', 0);
         });
         $this->assertNotNull($service->fresh());
-        $this->assertDatabaseCount('permissions', 123);
+        $this->assertDatabaseCount('permissions', 125);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 
