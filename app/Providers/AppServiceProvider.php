@@ -32,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
         foreach (array_keys(config('authorization.permissions')) as $permission) {
             Gate::define($permission, fn (User $user): bool => $user->hasPermission($permission));
         }
+        Gate::define('reports.discover',fn (User $user): bool => $user->hasPermission('reports.activity')
+            || $user->hasPermission('reports.inventory') || $user->hasPermission('reports.billing') || $user->hasPermission('reports.hmo'));
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Department::class, DepartmentPolicy::class);
@@ -39,6 +41,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('stock-writes', fn (Request $request): Limit => Limit::perMinute(30)
             ->by('stock-writes:'.$request->user('web')?->id.'|'.$request->ip()));
+        RateLimiter::for('reports', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by('reports:'.$request->user('web')?->id.'|'.$request->ip()));
         RateLimiter::for('reminder-writes', fn (Request $request): Limit => Limit::perMinute(60)
             ->by('reminder-writes:'.$request->user('web')?->id.'|'.$request->ip()));
         RateLimiter::for('hmo-writes', fn (Request $request): Limit => Limit::perMinute(30)

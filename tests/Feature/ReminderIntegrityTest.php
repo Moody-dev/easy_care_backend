@@ -25,7 +25,7 @@ class ReminderIntegrityTest extends TestCase
             $migration->up();
         });
         $this->assertDatabaseCount('staff_reminders',0);
-        $this->assertDatabaseCount('permissions',118);
+        $this->assertDatabaseCount('permissions', 123);
         $this->assertDatabaseCount('role_permissions',21);
         $this->assertSame(0,DB::table('role_permissions as rp')->join('permissions as p','p.id','=','rp.permission_id')
             ->where(fn (\Illuminate\Database\Query\Builder $q): \Illuminate\Database\Query\Builder=>$q->where('p.code','like','reminders.%')->orWhere('p.code','like','notifications.%'))->count());

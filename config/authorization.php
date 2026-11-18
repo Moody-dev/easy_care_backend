@@ -7,6 +7,11 @@ return [
     'files_baseline' => 'protected-files-v1',
     'reset_minutes' => 15,
     'permissions' => [
+        'dashboard.view' => 'View permission-scoped operational dashboard summaries',
+        'reports.activity' => 'Read operational reports within existing record visibility',
+        'reports.inventory' => 'Read inventory reports within explicitly granted stores',
+        'reports.billing' => 'Read patient financial reports within current billing access',
+        'reports.hmo' => 'Read payer reports within current patient and HMO access',
         'reminders.view' => 'View your own reminders and retained schedule history',
         'reminders.manage' => 'Create, replace and cancel your own reminder schedules',
         'reminders.assign' => 'Assign reminders to explicitly visible authorized staff',

@@ -9,6 +9,7 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
+        'dashboard.viewed','report.viewed',
         'reminder.created','reminder.updated','reminder.cancelled','reminder.viewed','reminder.processed',
         'notification.read','notification.unread','notification.snoozed','notification.viewed',
         'hmo.provider-create','hmo.provider-update','hmo.plan-create','hmo.plan-update','hmo.tariff-import','hmo.tariff-review',
@@ -65,7 +66,7 @@ class AuditTrail
         if (! in_array($action, self::ACTIONS, true)
             || ! in_array($outcome, ['succeeded', 'denied', 'failed'], true)
             || ! in_array($channel, ['http', 'console'], true)
-            || ! in_array($subjectType, ['reminder', 'notification', 'hmo_catalog', 'hmo_account', 'billing_catalog', 'billing_account', 'medication', 'stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
+            || ! in_array($subjectType, ['business_report', 'reminder', 'notification', 'hmo_catalog', 'hmo_account', 'billing_catalog', 'billing_account', 'medication', 'stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
             throw new InvalidArgumentException('Unknown audit event classification.');
         }
 
@@ -95,6 +96,7 @@ class AuditTrail
     private function validateSummary(string $action, array $summary): void
     {
         $allowed = match ($action) {
+            'dashboard.viewed','report.viewed' => ['report_key'],
             'reminder.created','reminder.updated','reminder.cancelled' => ['version'],
             'reminder.processed' => ['delivered_count','suppressed_count'],
             'hmo.coverage-create','hmo.coverage-revoke','hmo.preauth-create','hmo.preauth-revoke','hmo.invoice','hmo.claim-submit','hmo.claim-resubmit',
@@ -132,6 +134,7 @@ class AuditTrail
 
         foreach ($summary as $key => $value) {
             $valid = in_array($key, $allowed, true) && match ($key) {
+                'report_key' => in_array($value,['dashboard','options','activity','trend','inventory','positions','movements','billing','accounts','hmo'],true),
                 'department_id', 'previous_department_id' => $value === null || (is_int($value) && $value > 0),
                 'category_id', 'record_id' => is_int($value) && $value > 0,
                 'byte_size', 'checked', 'missing', 'corrupt', 'orphaned', 'contact_count', 'delivered_count', 'suppressed_count' => is_int($value) && $value >= 0,

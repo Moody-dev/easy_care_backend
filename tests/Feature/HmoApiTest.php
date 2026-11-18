@@ -313,7 +313,7 @@ class HmoApiTest extends HmoTestCase
         $this->assertDatabaseCount('hmo_providers', 0);
         $this->assertDatabaseCount('hmo_coverages', 0);
         $this->assertDatabaseCount('hmo_tariff_imports', 0);
-        $this->assertDatabaseCount('permissions', 118);
+        $this->assertDatabaseCount('permissions', 123);
         $other = $this->createStaffWithRole('hmo');
         $this->loginCashier($other);
         $this->getJson('/api/v1/hmo/providers')->assertForbidden();

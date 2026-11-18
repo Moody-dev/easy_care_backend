@@ -36,6 +36,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::get('dashboard',[\App\Http\Controllers\Api\V1\ReportController::class,'show'])->middleware(['can:dashboard.view','throttle:reports'])->name('dashboard');
+            Route::prefix('reports')->name('reports.')->middleware('throttle:reports')->group(function (): void {
+                foreach (['options','activity','trend','inventory','positions','movements','billing','accounts','hmo'] as $kind) {
+                    Route::get($kind,[\App\Http\Controllers\Api\V1\ReportController::class,'show'])->defaults('kind',$kind)
+                        ->middleware('can:'.($kind==='options'?'reports.discover':\App\Services\ReportSnapshots::reportPermission($kind)))->name($kind);
+                }
+            });
             Route::prefix('reminders')->name('reminders.')->middleware('can:reminders.view')->group(function (): void {
                 $controller=\App\Http\Controllers\Api\V1\ReminderController::class;
                 Route::get('options',[$controller,'options'])->name('options');

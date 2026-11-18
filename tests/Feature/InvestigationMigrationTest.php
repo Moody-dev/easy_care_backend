@@ -41,7 +41,7 @@ class InvestigationMigrationTest extends TestCase
             $this->assertDatabaseCount($table, 0);
         }
         $this->assertNotNull($clinical->fresh());
-        $this->assertDatabaseCount('permissions', 118);
+        $this->assertDatabaseCount('permissions', 123);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

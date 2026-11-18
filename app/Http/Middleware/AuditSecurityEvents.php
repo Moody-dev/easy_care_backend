@@ -79,6 +79,11 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if (($route==='api.v1.dashboard' || str_starts_with($route,'api.v1.reports.')) && $status>=400) {
+            $this->audit->record($route==='api.v1.dashboard'?'dashboard.viewed':'report.viewed',$request->user('web')?->id,'business_report',
+                outcome:$status>=500?'failed':'denied',httpStatus:$status);
+            return $response;
+        }
         if ((str_starts_with($route,'api.v1.reminders.') || str_starts_with($route,'api.v1.notifications.')) && $status>=400) {
             $notification=str_starts_with($route,'api.v1.notifications.');
             $suffix=substr($route,strrpos($route,'.')+1);

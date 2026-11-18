@@ -29,7 +29,7 @@ class CareProgramMigrationTest extends TestCase
             $migration->down(); $migration->up();
         });
         $this->assertDatabaseCount('care_programs',0);
-        $this->assertDatabaseCount('permissions', 118);
+        $this->assertDatabaseCount('permissions', 123);
         $this->assertDatabaseCount('role_permissions',21);
         $this->assertNotNull($link->record->fresh());
     }
