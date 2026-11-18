@@ -79,6 +79,14 @@ class AuditSecurityEvents
         };
 
         $route = $request->route()?->getName() ?? '';
+        if ((str_starts_with($route,'api.v1.reminders.') || str_starts_with($route,'api.v1.notifications.')) && $status>=400) {
+            $notification=str_starts_with($route,'api.v1.notifications.');
+            $suffix=substr($route,strrpos($route,'.')+1);
+            $action=\App\Services\ReminderWorkflows::isCommand($route)?$suffix:'viewed';
+            $this->audit->record(($notification?'notification.':'reminder.').$action,$request->user('web')?->id,$notification?'notification':'reminder',
+                outcome:$status>=500?'failed':'denied',httpStatus:$status);
+            return $response;
+        }
         if (str_starts_with($route, 'api.v1.hmo.') && $status >= 400) {
             $suffix = substr($route, strrpos($route, '.') + 1);
             $action = isset(\App\Services\HmoWorkflows::PERMISSIONS[$suffix]) ? $suffix : 'viewed';

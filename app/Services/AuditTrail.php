@@ -9,6 +9,8 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
+        'reminder.created','reminder.updated','reminder.cancelled','reminder.viewed','reminder.processed',
+        'notification.read','notification.unread','notification.snoozed','notification.viewed',
         'hmo.provider-create','hmo.provider-update','hmo.plan-create','hmo.plan-update','hmo.tariff-import','hmo.tariff-review',
         'hmo.coverage-create','hmo.coverage-revoke','hmo.preauth-create','hmo.preauth-revoke','hmo.invoice','hmo.claim-submit','hmo.claim-resubmit',
         'hmo.decision-record','hmo.decision-review','hmo.remittance-create','hmo.remittance-review','hmo.allocation-record','hmo.allocation-review',
@@ -63,7 +65,7 @@ class AuditTrail
         if (! in_array($action, self::ACTIONS, true)
             || ! in_array($outcome, ['succeeded', 'denied', 'failed'], true)
             || ! in_array($channel, ['http', 'console'], true)
-            || ! in_array($subjectType, ['hmo_catalog', 'hmo_account', 'billing_catalog', 'billing_account', 'medication', 'stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
+            || ! in_array($subjectType, ['reminder', 'notification', 'hmo_catalog', 'hmo_account', 'billing_catalog', 'billing_account', 'medication', 'stock_catalog', 'stock_operation', 'staff', 'role', 'audit', 'file', 'patient', 'appointment', 'encounter', 'clinical', 'admission', 'ward', 'bed', 'care_program', 'care_form', 'investigation_test', 'investigation_order', 'investigation_result'], true)) {
             throw new InvalidArgumentException('Unknown audit event classification.');
         }
 
@@ -93,6 +95,8 @@ class AuditTrail
     private function validateSummary(string $action, array $summary): void
     {
         $allowed = match ($action) {
+            'reminder.created','reminder.updated','reminder.cancelled' => ['version'],
+            'reminder.processed' => ['delivered_count','suppressed_count'],
             'hmo.coverage-create','hmo.coverage-revoke','hmo.preauth-create','hmo.preauth-revoke','hmo.invoice','hmo.claim-submit','hmo.claim-resubmit',
             'hmo.decision-record','hmo.decision-review','hmo.allocation-record','hmo.allocation-review'=>['version','record_id'],
             'billing.performed', 'billing.invoice', 'billing.receipt', 'billing.allocate', 'billing.credit-request',
@@ -130,7 +134,7 @@ class AuditTrail
             $valid = in_array($key, $allowed, true) && match ($key) {
                 'department_id', 'previous_department_id' => $value === null || (is_int($value) && $value > 0),
                 'category_id', 'record_id' => is_int($value) && $value > 0,
-                'byte_size', 'checked', 'missing', 'corrupt', 'orphaned', 'contact_count' => is_int($value) && $value >= 0,
+                'byte_size', 'checked', 'missing', 'corrupt', 'orphaned', 'contact_count', 'delivered_count', 'suppressed_count' => is_int($value) && $value >= 0,
                 'mime_type' => in_array($value, ['application/pdf', 'image/jpeg', 'image/png'], true),
                 'version' => is_int($value) && $value > 0,
                 'is_active', 'previous_is_active', 'sessions_revoked', 'changed', 'contacts_changed', 'duplicates_acknowledged' => is_bool($value),

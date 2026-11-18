@@ -36,6 +36,8 @@ class PatientMigrationTest extends TestCase
         $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'files', 'audit_events'], function () use ($migration, $lookup, $records, $visits, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care, $requests, $results, $medications, $billing): void {
             $billingWorkflow = require database_path('migrations/2026_11_17_121111_add_billing_workflow_guards.php');
             $hmoMigration = require database_path('migrations/2026_11_17_152355_create_hmo_workflow_records.php');
+            $reminderMigration = require database_path('migrations/2026_11_18_020441_create_staff_reminder_records.php');
+            $reminderMigration->down();
             $hmoMigration->down();
             $billingWorkflow->down();
             $billing->down();
@@ -74,6 +76,7 @@ class PatientMigrationTest extends TestCase
             $billing->up();
             $billingWorkflow->up();
             $hmoMigration->up();
+            $reminderMigration->up();
         });
         $patient = Patient::factory()->create(['created_by' => $staff->id]);
         $this->assertDatabaseHas('patient_identifiers', ['patient_id' => $patient->id, 'identifier' => $patient->mrn]);

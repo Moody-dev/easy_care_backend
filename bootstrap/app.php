@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (QueryException $exception): ?bool {
+            if (request()->is('api/v1/reminders','api/v1/reminders/*','api/v1/notifications','api/v1/notifications/*')) {
+                logger()->error('A staff reminder database operation failed.');
+                return false;
+            }
             if (request()->is('api/v1/hmo','api/v1/hmo/*')) { logger()->error('An HMO database operation failed.'); return false; }
             if (request()->is('api/v1/billing', 'api/v1/billing/*')) {
                 logger()->error('A billing database operation failed.');

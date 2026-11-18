@@ -7,6 +7,11 @@ return [
     'files_baseline' => 'protected-files-v1',
     'reset_minutes' => 15,
     'permissions' => [
+        'reminders.view' => 'View your own reminders and retained schedule history',
+        'reminders.manage' => 'Create, replace and cancel your own reminder schedules',
+        'reminders.assign' => 'Assign reminders to explicitly visible authorized staff',
+        'notifications.view' => 'Receive and view your own in-app notifications',
+        'notifications.update' => 'Mark your own notifications read or unread and snooze them',
         'hmo.view'=>'View patient HMO records and payer financial records',
         'hmo.catalog.view'=>'View HMO provider, plan and published tariff catalogs',
         'hmo.catalog.manage'=>'Create HMO identities and retain catalog changes',

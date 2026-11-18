@@ -80,7 +80,7 @@ class AdmissionIntegrityTest extends TestCase
         $this->assertSame(str_repeat('界', 64), $bed->fresh()->label);
         $this->assertNull($ward->daily_rate);
         $this->assertNull($bed->daily_rate);
-        $this->assertDatabaseCount('permissions', 113);
+        $this->assertDatabaseCount('permissions', 118);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

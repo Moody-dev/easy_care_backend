@@ -1387,6 +1387,58 @@ Task 38 verification: forty-four new cases cover catalog publication and private
 
 Final publication checks passed staged whitespace, credential and publication scans. The isolated MySQL test database has zero staff, patients, drugs, stock documents, movements and store grants after verification. The backend branch was synchronized with its remote before publication, and the three existing frontend edits retain their original hashes. No frontend build/browser acceptance is claimed for this backend-only task.
 
+## Persistent staff reminders and in-app notifications
+
+Task 45 provides backend-only staff reminders. The approved workflow uses in-app inbox records, explicit staff recipients and retained missed occurrences. Email, SMS, browser push and automatic clinical/medication alerts are not enabled. No reminder, recipient or permission grant is seeded. The frontend and its dummy records remain independent.
+
+Five permissions are opt-in: `reminders.view` reads only the author's own schedules/history; `reminders.manage` creates, replaces and cancels those schedules; `reminders.assign` additionally permits assigning other staff within the author's current staff-directory scope. `notifications.view` permits receiving and reading only that staff member's inbox, and `notifications.update` permits read/unread/snooze actions. Known staff IDs do not bypass directory visibility, activation or recipient inbox permission. A reminder may link a saved patient and optional encounter; both author and recipients need current access. Visit identity must belong to that patient. Reminder context and ownership cannot be rebound later.
+
+| Table | Relationship and retained purpose |
+| --- | --- |
+| `staff_reminders` | One author and immutable patient/visit context; current schedule version, cancellation state and guarded next-occurrence cursor. |
+| `reminder_revisions` | Immutable schedule/content versions. Title and body use application-key encryption in MySQL. |
+| `reminder_recipients` | Explicit, immutable recipient IDs for each revision. No dynamic role/department broadcast. |
+| `reminder_occurrences` | One immutable due occurrence per revision/sequence, with original due time and actual processing time. |
+| `reminder_deliveries` | One delivered/suppressed outcome per occurrence/recipient, including a bounded suppression code. |
+| `staff_notifications` | One inbox record per delivered outcome; versioned read status and availability/snooze time. |
+| `reminder_events` | Retained schedule changes, deliveries, suppressions and recipient acknowledgements with actor/server time. |
+
+The API uses existing session authentication, private/no-store responses and submission receipts. Writes require `Idempotency-Key`; replacing/cancelling schedules and changing notification state also require their current `version`. Reminder actions use normal staff authentication without a second password prompt. Body fields cannot select another owner, notification recipient, read time or delivery status. Current authorization is checked again on retries; stale confirmations return a conflict.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/v1/reminders/options` | Channel, timezone, recurrence and recipient limits. |
+| `GET /api/v1/reminders/recipients` | Bounded eligible roster within existing staff-directory access; requires assignment permission. |
+| `GET /api/v1/reminders`, `GET /api/v1/reminders/{id}` | Author-owned schedules, filtered through current patient/encounter access. |
+| `POST /api/v1/reminders`, `PATCH /api/v1/reminders/{id}` | Create or append a complete replacement revision with explicit recipients. |
+| `POST /api/v1/reminders/{id}/cancel` | Append retained cancellation and stop future delivery. |
+| `GET /api/v1/reminders/{id}/history`, `/revisions`, `/occurrences` | Bounded private history; occurrences include delivered/suppressed recipient outcomes. |
+| `GET /api/v1/notifications`, `/{id}`, `/{id}/history` | Recipient-owned inbox/details/history with current patient/visit visibility. |
+| `GET /api/v1/notifications/summary` | Counts only currently accessible, current-revision unread/snoozed items. |
+| `POST /api/v1/notifications/{id}/read`, `/unread`, `/snooze` | Versioned recipient acknowledgement; snooze additionally requires future `snooze_until`. |
+
+Schedules require a title, optional body, explicit-offset ISO `starts_at`, `timezone: Africa/Lagos`, frequency (`once`, `daily`, `weekly` or `monthly`), interval 1–365, occurrence count 1–366 and 1–50 distinct eligible recipient IDs. One-time schedules require interval/count of one. Optional `ends_at` further bounds recurrence. Every schedule must fit MySQL's supported calendar range. Due times use the original Lagos calendar/clock, including microseconds. Monthly recurrence remains anchored to the original day, clamping short months: January 31 → February 28/29 → March 31. Due times are not recalculated from when a delayed worker happens to run.
+
+Past due times are retained. After downtime, workers process the oldest due occurrences across schedules in limited batches, preserving every processed occurrence and its original due time. No success response claims a notification was delivered merely because a schedule was saved. `delivery_pending` reports pending work. Delivery checks author activation/management authority, assignment authority and every recipient's current activation, inbox permission and patient/visit access. Current locking reads and the shared staff/patient write locks prevent an earlier MySQL snapshot from retaining revoked access. An ineligible delivery records an explicit suppression and does not expose a message; restoring access does not automatically resend that suppressed occurrence. Staff may review/reschedule deliberately.
+
+Each occurrence, all recipient outcomes/inbox rows, cursor advancement, private history and safe audit commit together or roll back. A retry after a crash continues from the retained cursor. Unique revision/sequence, occurrence/recipient and delivery/inbox constraints prevent duplicate notifications even if queue jobs repeat. Audit and job payloads exclude reminder text. General audit stores only IDs, versions and delivery/suppression counts; API SQL errors are sanitized.
+
+Schedule replacement preserves earlier revisions and creates a fresh bounded schedule. Existing notifications from replaced/cancelled revisions leave the normal inbox/counts; `include_inactive=1` exposes accessible history. They may be marked read for acknowledgement, but cannot be made unread or snoozed as current work. Notification list `state` supports `inbox` (default), `unread`, `read`, `snoozed` and `all`; collections use bounded `page`/`per_page` (maximum 100). Snoozing changes the same notification's availability, resets its read marker, retains history and does not create another message or shift later recurring occurrences.
+
+Local-server execution uses the existing database queue/cache tables and the dedicated `reminders` queue connection. The scheduler requests dispatch every minute. A database-backed unique job lease limits duplicate enqueueing; row locks and unique delivery identities still protect against expired leases, repeated jobs or multiple workers. Jobs retry five times with 10/30/60/120-second backoff. Their 45-second timeout remains below the queue's 120-second reservation retry. Failed jobs remain available through Laravel's existing failed-job tooling; a later scheduled job can resume remaining due work. `REMINDER_DELIVERY_ENABLED=false` pauses processing without deleting due work; `REMINDER_BATCH_SIZE` is capped at 100 occurrences per job.
+
+Run the scheduler and worker from the backend directory using the installed PHP executable:
+
+```text
+php artisan schedule:work
+php artisan queue:work reminders --queue=reminders --tries=5 --timeout=45 --sleep=1
+```
+
+For one execution, use `php artisan reminders:dispatch` followed by the worker's `--once` option. These processes must run for automatic delivery; HTTP requests alone do not run the queue. A hospital installation must supervise/restart them after failure/reboot under Task 55. The local reminder migration and permission catalog must be applied before starting them. Queue payloads contain delivery-job metadata rather than reminder content. Database records and the application encryption key must remain recoverable together. Rollback refuses to discard retained reminders. No external service or internet access is required for this delivery path.
+
+
+Task 45 verification: the full SQLite regression passed 1,338 cases/13,224 assertions with ninety-one MySQL-only skips. The final domain/calendar/storage gate passed 29 cases/173 assertions. MySQL passed the 25-case API/storage/delivery gate/195 assertions and the final three privacy/replay/validation cases/26 assertions. Four real competing transactions cover duplicate workers, cancellation versus delivery, read versus snooze and permission revocation after an earlier snapshot; a real database queue worker also proves durable unique dispatch and processing. All 69 affected PHP files passed syntax checks; whitespace and publication scans passed. The additive local migration/catalog is applied with 118 permissions, unchanged twenty-one grants/four baselines/seven categories, no default reminder/inbox grants, empty operational/queue records and HTTP 200 readiness. The isolated MySQL schema is cleared of operational fixtures. Frontend files/connections remain unchanged, including the original hash of the pre-existing nursing script edit.
+
 ## HMO coverage, claims and external settlement records
 
 Task 43 adds backend-only HMO APIs under `/api/v1/hmo`. Providers, plans, benefit decisions, tariffs and payments must come from the hospital and outside insurer records. Nothing sends claims, checks eligibility with an insurer, charges a card or moves funds. No providers, membership, tariffs, prices, benefit rules or settlement data are seeded. Fourteen permissions are opt-in; existing role grants stay unchanged.

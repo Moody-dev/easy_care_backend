@@ -34,6 +34,8 @@ class VisitMigrationTest extends TestCase
         $admissions = require database_path('migrations/2026_11_14_213944_create_admission_storage_tables.php');
         $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'patients', 'patient_identifiers',
             'patient_categories', 'files', 'audit_events', 'idempotency_requests'], function () use ($migration, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care, $requests, $results): void {
+            $reminderMigration = require database_path('migrations/2026_11_18_020441_create_staff_reminder_records.php');
+            $reminderMigration->down();
             $results->down();
             $requests->down();
             $care->down();
@@ -60,6 +62,7 @@ class VisitMigrationTest extends TestCase
             }
             $requests->up();
             $results->up();
+            $reminderMigration->up();
         });
         $booking = Appointment::factory()->registered($patient)->create(['booked_by' => $staff->id]);
         $booking->forceFill(['status' => 'attended', 'version' => 2])->save();
@@ -67,7 +70,7 @@ class VisitMigrationTest extends TestCase
         $assignment = DoctorAssignment::factory()->for($visit)->create(['doctor_id' => $staff->id, 'assigned_by' => $staff->id]);
         $this->assertTrue($visit->currentAssignment->is($assignment));
         $this->assertDatabaseHas('patients', ['id' => $patient->id, 'mrn' => $patient->mrn]);
-        $this->assertDatabaseCount('permissions', 113);
+        $this->assertDatabaseCount('permissions', 118);
         $this->assertDatabaseCount('role_permissions', 21);
     }
 

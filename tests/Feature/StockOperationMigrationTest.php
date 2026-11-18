@@ -45,7 +45,7 @@ class StockOperationMigrationTest extends TestCase
         } catch (QueryException) {
             $this->addToAssertionCount(1);
         }
-        $this->assertDatabaseCount('permissions', 113);
+        $this->assertDatabaseCount('permissions', 118);
         $this->assertDatabaseCount('role_permissions', 21);
         $this->assertDatabaseCount('permission_baselines', 4);
         $this->assertSame(1, StockOperationRevision::factory()->create()->version);

@@ -36,6 +36,32 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->middleware('throttle:staff-recovery')->name('auth.password.reset');
 
         Route::middleware(['auth:web', EnsureStaffIsActive::class, 'auth.session'])->group(function (): void {
+            Route::prefix('reminders')->name('reminders.')->middleware('can:reminders.view')->group(function (): void {
+                $controller=\App\Http\Controllers\Api\V1\ReminderController::class;
+                Route::get('options',[$controller,'options'])->name('options');
+                Route::get('recipients',[$controller,'recipients'])->middleware('can:reminders.assign')->name('recipients');
+                Route::get('/',[$controller,'index'])->name('index');
+                Route::get('{reminder}',[$controller,'show'])->whereNumber('reminder')->name('show');
+                foreach (['history','revisions','occurrences'] as $kind) {
+                    Route::get('{reminder}/'.$kind,[$controller,'history'])->whereNumber('reminder')->defaults('kind',$kind)->name($kind);
+                }
+                Route::middleware(['can:reminders.manage','throttle:reminder-writes'])->group(function () use ($controller): void {
+                    Route::post('/',[$controller,'write'])->name('created');
+                    Route::patch('{reminder}',[$controller,'write'])->whereNumber('reminder')->name('updated');
+                    Route::post('{reminder}/cancel',[$controller,'write'])->whereNumber('reminder')->name('cancelled');
+                });
+            });
+            Route::prefix('notifications')->name('notifications.')->middleware('can:notifications.view')->group(function (): void {
+                $controller=\App\Http\Controllers\Api\V1\ReminderController::class;
+                Route::get('summary',[$controller,'summary'])->name('summary');
+                Route::get('/',[$controller,'notifications'])->name('index');
+                Route::get('{notification}',[$controller,'notification'])->whereNumber('notification')->name('show');
+                Route::get('{notification}/history',[$controller,'notificationHistory'])->whereNumber('notification')->name('history');
+                foreach (['read'=>'read','unread'=>'unread','snooze'=>'snoozed'] as $path=>$action) {
+                    Route::post('{notification}/'.$path,[$controller,'write'])->whereNumber('notification')
+                        ->middleware(['can:notifications.update','throttle:reminder-writes'])->name($action);
+                }
+            });
             Route::prefix('hmo')->name('hmo.')->group(function (): void {
                 $controller = \App\Http\Controllers\Api\V1\HmoController::class;
                 Route::get('options', [$controller, 'options'])->middleware('can:hmo.catalog.view')->name('options');
