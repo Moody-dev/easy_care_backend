@@ -69,7 +69,10 @@ class ReportConcurrencyTest extends BillingTestCase
             $this->assertTrue($later->waitUntil(fn (string $type,string $output): bool=>str_contains($output,'READY')),$later->getErrorOutput());
             $early->start();
             $this->assertTrue($early->waitUntil(fn (string $type,string $output): bool=>str_contains($output,'LOCKED')),$early->getErrorOutput().$early->getOutput());
-            $input->write("continue\n"); $early->wait(); $later->wait(); $results=[];
+            $input->write("continue\n");
+            $this->assertTrue($later->waitUntil(fn (string $type,string $output): bool=>str_contains($output,'WRITING')),$later->getErrorOutput());
+            $this->assertTrue($early->isRunning(),'The report must start while the competing transaction is held.');
+            $early->wait(); $later->wait(); $results=[];
             foreach ([$early,$later] as $process) {
                 $this->assertTrue($process->isSuccessful(),$process->getErrorOutput().$process->getOutput());
                 $lines=explode("\n",trim($process->getOutput()));
@@ -92,7 +95,7 @@ if (!$app->environment('testing') || $app->configurationIsCached() || config('da
 }
 $job=json_decode($argv[2],true,flags:JSON_THROW_ON_ERROR);
 $actor=App\Models\User::findOrFail($job['actor']);
-if ($argv[3]!=='hold') { echo "READY\n"; flush(); fgets(STDIN); }
+if ($argv[3]!=='hold') { echo "READY\n"; flush(); fgets(STDIN); echo "WRITING\n"; flush(); }
 try {
     if ($job['action']==='report') {
         $response=$app->make(App\Services\ReportSnapshots::class)->run($actor,'billing',['from_date'=>$job['date'],'to_date'=>$job['date']],

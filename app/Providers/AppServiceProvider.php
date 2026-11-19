@@ -68,7 +68,9 @@ class AppServiceProvider extends ServiceProvider
             ->by('appointment-writes:'.$request->user('web')?->id.'|'.$request->ip()));
 
         RateLimiter::for('api', fn (Request $request): Limit => Limit::perMinute(120)
-            ->by($request->ip()));
+            ->by($request->user('web')?->is_active
+                ? 'staff:'.$request->user('web')->getAuthIdentifier()
+                : 'ip:'.$request->ip()));
 
         RateLimiter::for('staff-login', fn (Request $request): Limit => Limit::perMinute(20)
             ->by('staff-login-ip:'.$request->ip()));

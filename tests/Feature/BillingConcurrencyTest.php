@@ -132,6 +132,8 @@ class BillingConcurrencyTest extends BillingTestCase
             $early->start();
             $this->assertTrue($early->waitUntil(fn (string $type, string $output): bool => str_contains($output, 'LOCKED')), $early->getErrorOutput().$early->getOutput());
             $input->write("continue\n");
+            $this->assertTrue($later->waitUntil(fn (string $type,string $output): bool=>str_contains($output,'WRITING')),$later->getErrorOutput());
+            $this->assertTrue($early->isRunning(),'The competing request must start while the first transaction is held.');
             $early->wait();
             $later->wait();
             $outcomes = [];
@@ -164,7 +166,7 @@ $job = json_decode($argv[2], true, flags: JSON_THROW_ON_ERROR);
 Illuminate\Support\Facades\DB::beginTransaction();
 if ($argv[3] !== 'hold') {
     Illuminate\Support\Facades\DB::table('billing_events')->count();
-    echo "READY\n"; flush(); fgets(STDIN);
+    echo "READY\n"; flush(); fgets(STDIN); echo "WRITING\n"; flush();
 }
 try {
     $actor = App\Models\User::findOrFail($job['actor']);

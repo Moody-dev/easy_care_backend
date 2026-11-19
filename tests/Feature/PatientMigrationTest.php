@@ -16,6 +16,7 @@ class PatientMigrationTest extends TestCase
 
     public function test_patient_foundation_rolls_back_and_reapplies_without_changing_existing_staff_or_files(): void
     {
+        $this->removeLaterTestMigrations('2026_11_18_230113_create_document_exports_table.php');
         $this->seed(DatabaseSeeder::class);
         $billing = require database_path('migrations/2026_11_17_115716_create_billing_foundations.php');
         $medications = require database_path('migrations/2026_11_17_110715_create_medication_fulfillment_records.php');

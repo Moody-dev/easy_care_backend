@@ -71,17 +71,22 @@ class FinancialReports
             ->selectRaw('COALESCE(a.settled,0) AS settled,COALESCE(a.reserved,0) AS reserved');
     }
 
-    private function collect(Builder $query,array $fields,callable $values,string $column='id'): array
+    private function collect(Builder $query,array $fields,callable $values,string $column='id',bool $byAccount=false): array
     {
-        $totals=array_fill_keys($fields,'0'); $rows=0;
-        $query->chunkById(200,function (\Illuminate\Support\Collection $batch) use (&$totals,&$rows,$values): void {
-
+        $empty=['totals'=>array_fill_keys($fields,'0'),'records'=>0];
+        $groups=$byAccount?[]:['all'=>$empty];
+        $query->chunkById(200,function (\Illuminate\Support\Collection $batch) use (&$groups,$empty,$values,$byAccount): void {
             foreach ($batch as $row) {
-                $rows++;
-                foreach ($values($row) as $key=>$value) { $totals[$key]=ReportAmounts::add($totals[$key],$value); }
+                $group=$byAccount?$row->account_id:'all';
+                $groups[$group]??=$empty;
+                $groups[$group]['records']++;
+                foreach ($values($row) as $key=>$value) {
+                    $groups[$group]['totals'][$key]=ReportAmounts::add($groups[$group]['totals'][$key],$value);
+                }
             }
         },$column,'id');
-        return ['amounts'=>array_map(ReportAmounts::decimal(...),$totals),'records'=>$rows];
+        $result=array_map(fn (array $group): array=>['amounts'=>array_map(ReportAmounts::decimal(...),$group['totals']),'records'=>$group['records']],$groups);
+        return $byAccount?$result:$result['all'];
     }
 
     private function invoiceValues(\stdClass $row): array
@@ -169,9 +174,29 @@ class FinancialReports
     public function accountsPage(User $actor,ReportPeriod $period,bool $includeHmo): array
     {
         $page=$this->accounts($actor,$period->filters)->orderBy('id')->paginate($period->filters['per_page']??25,['*'],'page',$period->filters['page']??1)->appends($period->filters);
+        $totals=$this->accountTotals($actor,$period->filters,$page->getCollection()->modelKeys(),$includeHmo);
         $page->through(fn (BillingAccount $account): array=>['account_id'=>$account->id,'patient_id'=>$account->patient_id,
-            'current'=>$this->current($actor,$period->filters,[$account->id],$includeHmo)]);
+            'current'=>$totals[$account->id]]);
         return $page->toArray()+['currency'=>'NGN','basis'=>'current lifetime balances; the date range does not truncate account balances'];
+    }
+
+    private function accountTotals(User $actor,array $filters,array $ids,bool $includeHmo): array
+    {
+        if ($ids===[]) { return []; }
+        $invoiceFields=['gross_charges','patient_charges','credited','allocated','outstanding'];
+        $receiptFields=['received','refunded','refund_reserved','available_credit'];
+        $hmoFields=['insurer_liability','insurer_approved','insurer_settled','insurer_reserved','insurer_unreviewed','insurer_disputed','insurer_outstanding'];
+        $invoices=$this->collect($this->invoices($actor,$filters,$ids),$invoiceFields,$this->invoiceValues(...),'i.id',byAccount:true);
+        $receipts=$this->collect($this->receipts($actor,$filters,$ids),$receiptFields,$this->receiptValues(...),'c.id',byAccount:true);
+        $hmo=$includeHmo?$this->collect($this->insurerItems($actor,$filters,$ids),$hmoFields,$this->hmoValues(...),'s.id',byAccount:true):[];
+        $out=[];
+        foreach ($ids as $id) {
+            $out[$id]=['account_count'=>1,'invoice_count'=>$invoices[$id]['records']??0,'receipt_count'=>$receipts[$id]['records']??0,
+                'amounts'=>($invoices[$id]['amounts']??array_fill_keys($invoiceFields,'0.00'))
+                    +($receipts[$id]['amounts']??array_fill_keys($receiptFields,'0.00'))
+                    +($includeHmo?($hmo[$id]['amounts']??array_fill_keys($hmoFields,'0.00')):[])];
+        }
+        return $out;
     }
 
     private function conflict(): never

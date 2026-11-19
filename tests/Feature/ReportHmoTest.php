@@ -42,6 +42,10 @@ class ReportHmoTest extends HmoTestCase
         foreach ($expected as $field=>$amount) {
             $this->assertSame(\App\Support\BillingMoney::format($amount),$response->json('data.current.amounts.'.$field));
         }
+        $page=$this->getJson('/api/v1/reports/accounts')->assertOk();
+        foreach ($expected as $field=>$amount) {
+            $this->assertSame(\App\Support\BillingMoney::format($amount),$page->json('data.data.0.current.amounts.'.$field));
+        }
         $this->getJson('/api/v1/reports/billing')->assertOk()->assertJsonPath('data.current.amounts.outstanding','30.00');
         $this->visit->patient->forceFill(['access_status'=>'restricted','version'=>2])->save();
         $this->getJson('/api/v1/reports/hmo')->assertOk()->assertJsonPath('data.current.claim_count',0)->assertJsonPath('data.current.amounts.insurer_outstanding','0.00');
