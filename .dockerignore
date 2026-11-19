@@ -12,6 +12,9 @@
 !database/
 !database/migrations/
 !database/migrations/**
+!database/postgresql/
+!database/postgresql/**
+!database/schema/
 !database/seeders/
 !database/seeders/**
 !public/
@@ -28,3 +31,5 @@ public/hot
 **/*.log
 **/*.csv
 **/*.sql
+!database/schema/postgres-testing.sql
+!database/schema/postgres-testing.json

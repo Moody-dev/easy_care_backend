@@ -6,9 +6,12 @@ set -eu
 : "${DB_DATABASE:?Set the database name.}"
 : "${DB_USERNAME:?Set the restricted application database user.}"
 : "${DB_PASSWORD:?Set the application database password.}"
+if [ -z "${APP_URL:-}" ] && [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
+    export APP_URL="https://${RAILWAY_PUBLIC_DOMAIN}"
+fi
 export APP_URL="${APP_URL:-${RENDER_EXTERNAL_URL:-}}"
 export PORT="${PORT:-10000}"
-export PERSISTENT_STORAGE_ROOT="${PERSISTENT_STORAGE_ROOT:-${RENDER_STORAGE_ROOT:-/var/data}}"
+export PERSISTENT_STORAGE_ROOT="${PERSISTENT_STORAGE_ROOT:-${RAILWAY_VOLUME_MOUNT_PATH:-${RENDER_STORAGE_ROOT:-/var/data}}}"
 : "${APP_URL:?Set the public HTTPS APP_URL.}"
 
 if ! mountpoint -q "$PERSISTENT_STORAGE_ROOT"; then

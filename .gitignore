@@ -3,6 +3,7 @@
 .env
 .env.*
 !.env.supabase.example
+!.env.railway.example
 !.env.example
 !.env.testing.example
 !.env.production.example

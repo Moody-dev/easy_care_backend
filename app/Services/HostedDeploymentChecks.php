@@ -20,7 +20,7 @@ class HostedDeploymentChecks
         $publicPath = realpath(public_path());
 
         $checks = [
-            'hosting_platform' => in_array(config('deployment.platform'), ['render', 'oracle'], true),
+            'hosting_platform' => in_array(config('deployment.platform'), ['render', 'oracle', 'railway'], true),
             'production_errors' => config('app.env') === 'production' && config('app.debug') === false,
             'https_application_url' => is_string($url) && filter_var($url, FILTER_VALIDATE_URL) !== false && parse_url($url, PHP_URL_SCHEME) === 'https',
             'persistent_application_key' => is_string($key) && Encrypter::supported($key, config('app.cipher')),

@@ -292,6 +292,10 @@ Supabase testing support is implemented as a separate PostgreSQL profile while t
 
 Supabase verification is complete: PostgreSQL API/unit gate 885 cases/10,940 assertions; final PostgreSQL storage/concurrency checks sixty cases/506 assertions; full SQLite 1,551 cases/14,893 assertions (115 expected skips); MySQL 177 cases/1,781 assertions. Final protected-file checks pass on both original engines. Both PostgreSQL migrations are applied live and the verified-TLS connection passes. The private schema has 502 enabled guards and retains original integer limits; operating catalogs remain empty apart from reference permissions. MySQL source data, grants and frontend state are preserved. Hosting the PHP API and subsequent browser integration remain pending.
 
+Railway now replaces the unlaunched Render hosting proposal. The prepared Docker deployment uses the existing Supabase testing database, a persistent private-file volume and the existing supervised queue/scheduler processes. Railway HTTPS domain discovery and mounted-storage checks are supported; the Docker context now includes the PostgreSQL schema baseline/manifest. The ignored Railway environment reuses the permanent Supabase preview key and credentials, with a separate committed example containing no secrets. The hospital's MySQL profile and frontend files remain unchanged. The strict $0 budget still applies; free/trial credits do not guarantee continuous background processing. [Railway deployment steps and limits](LOCAL_DEVELOPMENT.md#railway-development-api).
+
+Railway preparation checks passed ninety focused cases/320 assertions, PHP syntax checks, shell syntax and the non-connecting private-profile checks. Railway account connection to this session, actual cloud resources, a real container build and external API/file/worker verification remain pending; no live Railway URL is claimed. Hospital-server Task 53 remains on hold.
+
 ## Reference documents
 
 - [Backend architecture PDF](architecture/EasyCare_Architecture_Reviewed_v1.1.pdf)
