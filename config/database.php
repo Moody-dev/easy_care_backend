@@ -3,6 +3,12 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+$postgresCertificate = env('DB_SSLROOTCERT') ?: base_path('bootstrap/certs/supabase-root-2021.crt');
+if (is_string($postgresCertificate) && ! str_starts_with($postgresCertificate, '/')
+    && ! str_starts_with($postgresCertificate, chr(92)) && ! str_contains($postgresCertificate, ':')) {
+    $postgresCertificate = base_path($postgresCertificate);
+}
+
 return [
 
     /*
@@ -95,8 +101,11 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'search_path' => [env('DB_SCHEMA', 'easycare'), 'extensions'],
+            'timezone' => 'UTC',
+            'sslmode' => env('DB_SSLMODE', 'verify-full'),
+            'sslrootcert' => $postgresCertificate,
+            'connect_timeout' => 10,
         ],
 
         'sqlsrv' => [

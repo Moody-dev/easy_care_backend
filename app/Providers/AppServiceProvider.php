@@ -21,7 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        \Illuminate\Database\Connection::resolverFor('pgsql', fn ($connection, $database, $prefix, $config) =>
+            new \App\Services\PrivatePostgresConnection($connection, $database, $prefix, $config));
+        $this->app->extend('migrator', fn ($migrator, $app) => new \App\Services\EngineMigrator(
+            $app['migration.repository'], $app['db'], $app['files'], $app['events'],
+        ));
     }
 
     /**

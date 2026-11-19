@@ -19,7 +19,7 @@ class HostedDeploymentChecks
         $rootPath = is_string($root) ? realpath($root) : false;
         $publicPath = realpath(public_path());
 
-        return [
+        $checks = [
             'hosting_platform' => in_array(config('deployment.platform'), ['render', 'oracle'], true),
             'production_errors' => config('app.env') === 'production' && config('app.debug') === false,
             'https_application_url' => is_string($url) && filter_var($url, FILTER_VALIDATE_URL) !== false && parse_url($url, PHP_URL_SCHEME) === 'https',
@@ -38,6 +38,12 @@ class HostedDeploymentChecks
                 && $this->storedWithin(config('filesystems.disks.protected.root'), $rootPath)
                 && $this->storedWithin(config('filesystems.disks.local.root'), $rootPath),
         ];
+        if (config('database.default') === 'pgsql') {
+            unset($checks['mysql_application_user']);
+            $checks['supabase_database_connection'] = ! in_array(false, app(SupabaseSetup::class)->run(), true);
+        }
+
+        return $checks;
     }
 
     public function databaseReady(): bool

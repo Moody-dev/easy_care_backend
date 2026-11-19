@@ -75,6 +75,10 @@
         "verify": [
             "@test:sqlite",
             "@test:mysql"
+        ],
+        "test:pgsql": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php vendor/phpunit/phpunit/phpunit --configuration phpunit.pgsql.xml --no-progress"
         ]
     },
     "extra": {

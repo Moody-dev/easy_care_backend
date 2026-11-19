@@ -4,8 +4,8 @@ ENV PORT=10000
 WORKDIR /var/www/html
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libicu-dev libzip-dev supervisor unzip util-linux \
-    && docker-php-ext-install -j2 pdo_mysql bcmath pcntl intl zip \
+    && apt-get install -y --no-install-recommends libicu-dev libzip-dev libpq-dev supervisor unzip util-linux \
+    && docker-php-ext-install -j2 pdo_mysql pdo_pgsql bcmath pcntl intl zip \
     && cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
@@ -18,6 +18,8 @@ COPY app/ app/
 COPY bootstrap/ bootstrap/
 COPY config/ config/
 COPY database/migrations/ database/migrations/
+COPY database/postgresql/ database/postgresql/
+COPY database/schema/ database/schema/
 COPY database/seeders/ database/seeders/
 COPY public/ public/
 COPY resources/views/ resources/views/

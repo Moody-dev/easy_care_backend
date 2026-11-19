@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/postgres-bootstrap.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Unit"><directory>tests/Unit</directory></testsuite>
+        <testsuite name="PostgreSQL APIs and guards">
+            <file>tests/Feature/AccommodationBillingTest.php</file>
+            <file>tests/Feature/AdmissionApiTest.php</file>
+            <file>tests/Feature/ApiFoundationTest.php</file>
+            <file>tests/Feature/ApiThrottleTest.php</file>
+            <file>tests/Feature/AppointmentApiTest.php</file>
+            <file>tests/Feature/AuthorizationTest.php</file>
+            <file>tests/Feature/BillingApiTest.php</file>
+            <file>tests/Feature/CareFormPublicationTest.php</file>
+            <file>tests/Feature/CareProgramApiTest.php</file>
+            <file>tests/Feature/ClinicalApiTest.php</file>
+            <file>tests/Feature/DocumentExportTest.php</file>
+            <file>tests/Feature/EncounterApiTest.php</file>
+            <file>tests/Feature/HmoApiTest.php</file>
+            <file>tests/Feature/InvestigationCatalogTest.php</file>
+            <file>tests/Feature/InvestigationPublicationTest.php</file>
+            <file>tests/Feature/InvestigationRequestApiTest.php</file>
+            <file>tests/Feature/InvestigationResultApiTest.php</file>
+            <file>tests/Feature/LocationApiTest.php</file>
+            <file>tests/Feature/MedicationFulfillmentApiTest.php</file>
+            <file>tests/Feature/MedicationPricingTest.php</file>
+            <file>tests/Feature/PatientApiTest.php</file>
+            <file>tests/Feature/PatientClinicalHistoryTest.php</file>
+            <file>tests/Feature/PatientRecordManagementTest.php</file>
+            <file>tests/Feature/PostgresAdmissionConcurrencyTest.php</file>
+            <file>tests/Feature/PostgresIntegrityTest.php</file>
+            <file>tests/Feature/PrescriptionApiTest.php</file>
+            <file>tests/Feature/ProtectedFilesTest.php</file>
+            <file>tests/Feature/ReminderApiTest.php</file>
+            <file>tests/Feature/ReminderDeliveryTest.php</file>
+            <file>tests/Feature/ReportApiTest.php</file>
+            <file>tests/Feature/ReportFinancialTest.php</file>
+            <file>tests/Feature/ReportHmoTest.php</file>
+            <file>tests/Feature/ReportInventoryTest.php</file>
+            <file>tests/Feature/RolePermissionsTest.php</file>
+            <file>tests/Feature/StaffManagementTest.php</file>
+            <file>tests/Feature/StaffRecoveryTest.php</file>
+            <file>tests/Feature/StaffSessionTest.php</file>
+            <file>tests/Feature/StockCatalogApiTest.php</file>
+            <file>tests/Feature/StockOperationApiTest.php</file>
+            <file>tests/Feature/SupabaseSetupTest.php</file>
+            <file>tests/Feature/TransactionRulesTest.php</file>
+        </testsuite>
+    </testsuites>
+    <source><include><directory>app</directory></include></source>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_DEBUG" value="false" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_DATABASE" value="easycare_pg_test" force="true"/>
+        <env name="DB_USERNAME" value="easycare_test" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="55432" force="true"/>
+        <env name="DB_SCHEMA" value="easycare" force="true"/>
+        <env name="DB_SSLMODE" value="disable" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+    </php>
+</phpunit>

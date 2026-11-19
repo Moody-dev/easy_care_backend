@@ -2,6 +2,7 @@
 .DS_Store
 .env
 .env.*
+!.env.supabase.example
 !.env.example
 !.env.testing.example
 !.env.production.example

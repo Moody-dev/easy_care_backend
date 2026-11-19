@@ -135,7 +135,7 @@ abstract class TestCase extends BaseTestCase
         $failure = null;
         $result = null;
         try {
-            $result = $operation();
+            $result = DB::getDriverName() === 'pgsql' ? DB::transaction($operation) : $operation();
         } catch (Throwable $exception) {
             $failure = $exception;
         }
@@ -266,7 +266,12 @@ abstract class TestCase extends BaseTestCase
             && in_array($settings['host'], ['127.0.0.1', 'localhost', '::1'], true)
             && empty($settings['url']);
 
-        if (! $app->environment('testing') || $app->configurationIsCached() || (! $safeSqlite && ! $safeMysql)) {
+        $safePostgres = $connection === 'pgsql'
+            && $settings['database'] === 'easycare_pg_test' && $settings['username'] === 'easycare_test'
+            && $settings['host'] === '127.0.0.1' && (int) $settings['port'] === 55432
+            && $settings['search_path'] === ['easycare', 'extensions'] && empty($settings['url']);
+
+        if (! $app->environment('testing') || $app->configurationIsCached() || (! $safeSqlite && ! $safeMysql && ! $safePostgres)) {
             throw new RuntimeException('Tests require uncached testing configuration and an isolated test database.');
         }
     }

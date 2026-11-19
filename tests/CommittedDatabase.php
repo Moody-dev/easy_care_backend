@@ -15,7 +15,7 @@ trait CommittedDatabase
     public function runDatabaseMigrations(): void
     {
         $this->ensureDatabaseIsIsolated($this->app);
-        if (DB::getDriverName()!=='mysql') { $this->rebuildTestDatabase(); return; }
+        if (!in_array(DB::getDriverName(), ['mysql', 'pgsql'], true)) { $this->rebuildTestDatabase(); return; }
         if (!RefreshDatabaseState::$migrated) {
             $this->refreshTestDatabase();
             $this->app[Kernel::class]->setArtisan(null);
@@ -32,8 +32,17 @@ trait CommittedDatabase
     {
         $this->ensureDatabaseIsIsolated($this->app);
         $connection=DB::connection();
-        if ($connection->getDriverName()!=='mysql') { throw new \RuntimeException('Committed fixture cleanup requires isolated MySQL.'); }
+        if (!in_array($connection->getDriverName(), ['mysql', 'pgsql'], true)) { throw new \RuntimeException('Committed fixture cleanup requires an isolated server database.'); }
         if ($connection->transactionLevel()!==0) { throw new \RuntimeException('Finish the test transaction before clearing committed fixtures.'); }
+        if ($connection->getDriverName() === 'pgsql') {
+            $tables = array_filter($connection->getSchemaBuilder()->getTables('easycare'), fn (array $table): bool => $table['name'] !== 'migrations');
+            if ($tables !== []) {
+                $names = array_map(fn (array $table): string => $connection->getQueryGrammar()->wrapTable($table['schema_qualified_name']), $tables);
+                $connection->unprepared('TRUNCATE TABLE '.implode(', ', $names).' RESTART IDENTITY CASCADE');
+            }
+
+            return;
+        }
         $schema=$connection->getSchemaBuilder(); $dispatcher=$connection->getEventDispatcher();
         $connection->unsetEventDispatcher();
         try {

@@ -278,7 +278,7 @@ class ProtectedFilesTest extends TestCase
         $owner = $this->createStaffWithRole('admin');
         app(ProtectedFiles::class)->upload($owner, $this->pdf());
         try {
-            $owner->delete();
+            \Illuminate\Support\Facades\DB::transaction(fn () => $owner->delete());
             $this->fail('Referenced upload owners must be retained.');
         } catch (QueryException) {
             $this->assertDatabaseCount('files', 1);

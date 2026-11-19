@@ -1,0 +1,748 @@
+{
+  "source_commit": "f4c645df4495e13bff1b2bb21473f0e643b2557b",
+  "tables": [
+    "accommodation_assessments",
+    "admission_exit_types",
+    "admission_revisions",
+    "admissions",
+    "allocation_rates",
+    "appointment_follow_ups",
+    "appointment_revisions",
+    "appointments",
+    "audit_events",
+    "bed_allocations",
+    "beds",
+    "billing_accounts",
+    "billing_allocation_releases",
+    "billing_allocations",
+    "billing_change_reviews",
+    "billing_changes",
+    "billing_events",
+    "billing_invoice_items",
+    "billing_invoice_posts",
+    "billing_invoices",
+    "billing_performed_services",
+    "billing_receipts",
+    "birth_patient_links",
+    "births",
+    "cache",
+    "cache_locks",
+    "care_programs",
+    "care_record_links",
+    "clinical_entries",
+    "clinical_procedures",
+    "clinical_records",
+    "clinical_revisions",
+    "clinical_template_versions",
+    "clinical_templates",
+    "departments",
+    "diagnoses",
+    "doctor_assignments",
+    "document_exports",
+    "drug_batches",
+    "drug_packs",
+    "drug_prices",
+    "drugs",
+    "encounter_revisions",
+    "encounters",
+    "failed_jobs",
+    "files",
+    "hmo_allocation_lines",
+    "hmo_allocations",
+    "hmo_catalog_revisions",
+    "hmo_claims",
+    "hmo_coverages",
+    "hmo_decision_lines",
+    "hmo_decisions",
+    "hmo_invoice_links",
+    "hmo_invoice_shares",
+    "hmo_plans",
+    "hmo_preauthorizations",
+    "hmo_providers",
+    "hmo_reference_bindings",
+    "hmo_remittances",
+    "hmo_reviews",
+    "hmo_revocations",
+    "hmo_submissions",
+    "hmo_tariff_imports",
+    "hmo_tariffs",
+    "hospital_medication_units",
+    "hospital_price_imports",
+    "hospital_reference_prices",
+    "idempotency_requests",
+    "investigation_items",
+    "investigation_orders",
+    "investigation_result_attachments",
+    "investigation_result_file_bindings",
+    "investigation_result_revisions",
+    "investigation_results",
+    "investigation_revisions",
+    "investigation_schemas",
+    "investigation_tests",
+    "job_batches",
+    "jobs",
+    "medication_administrations",
+    "medication_authorizations",
+    "medication_dispenses",
+    "medication_events",
+    "medication_return_reviews",
+    "medication_returns",
+    "password_reset_tokens",
+    "patient_access_events",
+    "patient_categories",
+    "patient_category_history",
+    "patient_contacts",
+    "patient_flags",
+    "patient_identifiers",
+    "patient_merge_requests",
+    "patient_merges",
+    "patient_relationships",
+    "patients",
+    "permission_baselines",
+    "permissions",
+    "prescription_items",
+    "prescriptions",
+    "reminder_deliveries",
+    "reminder_events",
+    "reminder_occurrences",
+    "reminder_recipients",
+    "reminder_revisions",
+    "role_permissions",
+    "roles",
+    "service_prices",
+    "services",
+    "sessions",
+    "staff_notifications",
+    "staff_password_resets",
+    "staff_reminders",
+    "stock_catalog_revisions",
+    "stock_invoice_receipts",
+    "stock_movements",
+    "stock_operation_legs",
+    "stock_operation_lines",
+    "stock_operation_revisions",
+    "stock_operations",
+    "stock_position_heads",
+    "stock_series_heads",
+    "stock_store_accesses",
+    "stock_stores",
+    "stock_units",
+    "suppliers",
+    "user_roles",
+    "users",
+    "vital_signs",
+    "wards"
+  ],
+  "views": [
+    "current_bed_occupancies",
+    "stock_balances"
+  ],
+  "triggers": 502,
+  "migrations": {
+    "0001_01_01_000000_create_users_table.php": "10d79883bc08ce46510f9ad8b1830b4d06d586dc56ae2c8bac3b3e491f69a90f",
+    "0001_01_01_000001_create_cache_table.php": "fbb4665e5a977e71df4e74ec75b3c06ca4f17ad0de7138fe9786639189978e77",
+    "0001_01_01_000002_create_jobs_table.php": "df4910687180313a14a3f96a8bddd808ae145ed1b107cd772caf865c0dc2b746",
+    "2026_11_11_001420_create_staff_foundation_tables.php": "ded0785320ba08333aa0de2e70c6898e815cddd55628f24e93db5a5fe6bb9bf6",
+    "2026_11_11_105511_create_permission_baselines_table.php": "b0c9259c9a8c7e11d9e662f70fca8eeaa3483d9a0579355751e722182f4f3b13",
+    "2026_11_11_111142_create_staff_password_resets_table.php": "cc47590e1e342256debd364272709fcd51bbb439c8d6dba6519a8da6c7ba6f6c",
+    "2026_11_11_121810_create_audit_events_table.php": "8f71a373aeb23c95282631eb1a89e3083186eef158c1be2e3c39ddcac7de51e3",
+    "2026_11_11_125446_create_files_table.php": "0ce4c003cdcd281a842e61d6f02087f45731f6665b0799519b56490ac5be9466",
+    "2026_11_11_160929_create_idempotency_requests_table.php": "2bcc77f8bb03e79d0a32a3159b98c0474c4235c9e56964aaf493a28ce3b6c4dd",
+    "2026_11_11_171342_create_patient_foundation_tables.php": "39bfc99b59c91463e42975a9ed998d9204c9cedeb6ee3bc8b5b7d426fb5da4ac",
+    "2026_11_11_173615_add_patient_lookup_indexes.php": "74a855715b059a9aff24d59789711459af0840449d9002d264f77bf4e8f354ad",
+    "2026_11_11_183300_create_patient_record_management_tables.php": "ca0f022fc7875b7d687af6e6c8a4ecd58415e25a638ea7a2544a3d544d59bab7",
+    "2026_11_11_225842_create_visit_foundation_tables.php": "52f8cd1bd192b322ca5551d3d328e69c5909acc0b476d4415afd111fc9a85d7e",
+    "2026_11_12_012918_create_appointment_booking_records.php": "37fe5dd08116f3ba94541d0ddcb51ed4f7dd01b968a7a774d0dca1d900df0f64",
+    "2026_11_12_023554_create_encounter_workflow_records.php": "5bea90c74d9fa4df13723c29cbd8195c09acde68eb9aaf084f6ce662b5e22dd1",
+    "2026_11_12_042242_create_clinical_storage_tables.php": "57086d1e2398e2917f396740cf534624252ee99dfda7005a09e0a7a9f4d8a857",
+    "2026_11_12_052540_create_clinical_revision_records.php": "6bcfb509964dff5079e633d7422b12156fc076511d1012fcc3db4b567c22fe9e",
+    "2026_11_14_213944_create_admission_storage_tables.php": "1fd456fbb0efb1d8e78787aef1959bc8ff6d66f05eb1f403d314587b91811447",
+    "2026_11_15_015445_create_admission_revision_records.php": "555ef822cb623a8a74f774eb88644153e9ae86b6a1e5ec98e45ab79230d541e5",
+    "2026_11_15_024759_create_care_program_records.php": "3eafde6324c903e77aa81e580d66fc8a86210a6963f244520ca2ad3422c7cea6",
+    "2026_11_16_000353_create_investigation_catalogs.php": "cae82f373b0450c72110a8efbe4ad0441a254c34937fbea3305fa42a273a4fe2",
+    "2026_11_16_023634_create_investigation_request_records.php": "0763e8864245ecabba85976d542542b52e06c94f08076a2ef2e116549f140dad",
+    "2026_11_16_034753_create_investigation_result_records.php": "4aa37950f0702bf5790ccbd84f48afc685a7c1ddc7b1118ea5b48087a294289f",
+    "2026_11_16_192621_create_medication_stock_foundations.php": "38455134908990efd409282a59f4248af155145d3053d2c799836217fb70944c",
+    "2026_11_17_030741_create_stock_operation_records.php": "7d38d5fabef3bef3a0275010c83b6cb5e6bb23a755d68002a8a89a4d66621a84",
+    "2026_11_17_110715_create_medication_fulfillment_records.php": "09ff614355c32d5bbe4b3dd0211ba0d1d448a0018d32323fa56cc4d4f5fb8f6f",
+    "2026_11_17_115716_create_billing_foundations.php": "f25e556b4f671872508398d68652c45c9c032d169fb55f4855747fd51e429335",
+    "2026_11_17_121111_add_billing_workflow_guards.php": "7d8d9c8ca934c769c813989f687e40bd930c5df951e613a2b27c8ab202cc0a1a",
+    "2026_11_17_152355_create_hmo_workflow_records.php": "78412ebfa2b5edd53fe376de5f43ac7d0304026a4a5b1316ec0b29552aa78f92",
+    "2026_11_18_020441_create_staff_reminder_records.php": "a4012844662fb9ac95471cae3bad61e88b8036efa790c8de44f656f9785a6413",
+    "2026_11_18_230113_create_document_exports_table.php": "d69082ad16a357d9da376a883b8fb855c38a8907e0e0dc437d325efc2e845ac4",
+    "2026_11_19_022314_add_read_path_indexes.php": "daea88d06ca6eb3c3ca6ca4f8973f2cf706d44985128daf34fef2a124a18d0a2",
+    "2026_11_19_034432_create_hospital_price_imports_table.php": "01ca84d89c85136107f02d6e4f8bfdd36955868e6356740b94c114784d2172f5",
+    "2026_11_19_133903_create_accommodation_assessments_table.php": "587aefe3c8c252954fc1969e93cfc70b50033fda8beef9673b986e9ae33eee85"
+  },
+  "sql_sha256": "0d43e685ead1019afd8d74dc04d3865af9bd3d787b34f81c341f8a0341bd9401",
+  "integer_ranges": {
+    "admission_revisions": {
+      "workflow_version": [
+        0,
+        4294967295
+      ]
+    },
+    "admissions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "allocation_rates": {
+      "source_version": [
+        0,
+        4294967295
+      ]
+    },
+    "appointment_revisions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "appointments": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "audit_events": {
+      "http_status": [
+        0,
+        65535
+      ]
+    },
+    "bed_allocations": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "beds": {
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "billing_change_reviews": {
+      "payout_confirmed": [
+        -128,
+        127
+      ]
+    },
+    "billing_events": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "billing_invoices": {
+      "item_count": [
+        0,
+        65535
+      ]
+    },
+    "billing_receipts": {
+      "externally_confirmed": [
+        -128,
+        127
+      ]
+    },
+    "births": {
+      "birth_order": [
+        0,
+        4294967295
+      ]
+    },
+    "care_programs": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "clinical_records": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "clinical_revisions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "clinical_template_versions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "clinical_templates": {
+      "is_active": [
+        -128,
+        127
+      ]
+    },
+    "doctor_assignments": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "document_exports": {
+      "byte_size": [
+        0,
+        4294967295
+      ]
+    },
+    "drug_packs": {
+      "version": [
+        0,
+        4294967295
+      ],
+      "is_active": [
+        -128,
+        127
+      ]
+    },
+    "drug_prices": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "drugs": {
+      "quantity_scale": [
+        0,
+        255
+      ],
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "encounter_revisions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "encounters": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "hmo_catalog_revisions": {
+      "version": [
+        0,
+        4294967295
+      ],
+      "is_active": [
+        -128,
+        127
+      ],
+      "preauth_required": [
+        -128,
+        127
+      ]
+    },
+    "hmo_reviews": {
+      "published_version": [
+        0,
+        4294967295
+      ]
+    },
+    "hmo_submissions": {
+      "sequence": [
+        0,
+        4294967295
+      ]
+    },
+    "hmo_tariff_imports": {
+      "expected_version": [
+        0,
+        4294967295
+      ],
+      "byte_size": [
+        0,
+        4294967295
+      ],
+      "row_count": [
+        0,
+        65535
+      ]
+    },
+    "hmo_tariffs": {
+      "preauth_required": [
+        -128,
+        127
+      ]
+    },
+    "hospital_reference_prices": {
+      "source_line": [
+        0,
+        4294967295
+      ],
+      "duplicate_line": [
+        0,
+        4294967295
+      ]
+    },
+    "idempotency_requests": {
+      "response_code": [
+        0,
+        65535
+      ],
+      "resource_version": [
+        0,
+        4294967295
+      ]
+    },
+    "investigation_items": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "investigation_orders": {
+      "assignment_version": [
+        0,
+        4294967295
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "investigation_result_revisions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "investigation_results": {
+      "sequence": [
+        0,
+        4294967295
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "investigation_revisions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "investigation_schemas": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "investigation_tests": {
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "job_batches": {
+      "total_jobs": [
+        -2147483648,
+        2147483647
+      ],
+      "pending_jobs": [
+        -2147483648,
+        2147483647
+      ],
+      "failed_jobs": [
+        -2147483648,
+        2147483647
+      ],
+      "cancelled_at": [
+        -2147483648,
+        2147483647
+      ],
+      "created_at": [
+        -2147483648,
+        2147483647
+      ],
+      "finished_at": [
+        -2147483648,
+        2147483647
+      ]
+    },
+    "jobs": {
+      "attempts": [
+        0,
+        65535
+      ],
+      "reserved_at": [
+        0,
+        4294967295
+      ],
+      "available_at": [
+        0,
+        4294967295
+      ],
+      "created_at": [
+        0,
+        4294967295
+      ]
+    },
+    "medication_authorizations": {
+      "drug_version": [
+        0,
+        4294967295
+      ],
+      "assignment_version": [
+        0,
+        4294967295
+      ]
+    },
+    "medication_events": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "medication_returns": {
+      "usable_confirmed": [
+        -128,
+        127
+      ]
+    },
+    "patient_contacts": {
+      "priority": [
+        0,
+        4294967295
+      ]
+    },
+    "patient_merge_requests": {
+      "source_version": [
+        0,
+        4294967295
+      ],
+      "target_version": [
+        0,
+        4294967295
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "patient_merges": {
+      "source_version": [
+        0,
+        4294967295
+      ],
+      "target_version": [
+        0,
+        4294967295
+      ]
+    },
+    "patients": {
+      "dob_estimated": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "prescription_items": {
+      "line_number": [
+        0,
+        65535
+      ]
+    },
+    "reminder_events": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "reminder_occurrences": {
+      "sequence": [
+        0,
+        65535
+      ]
+    },
+    "reminder_revisions": {
+      "version": [
+        0,
+        4294967295
+      ],
+      "interval": [
+        0,
+        65535
+      ],
+      "occurrence_count": [
+        0,
+        65535
+      ]
+    },
+    "service_prices": {
+      "version": [
+        0,
+        4294967295
+      ],
+      "is_active": [
+        -128,
+        127
+      ]
+    },
+    "services": {
+      "is_active": [
+        -128,
+        127
+      ]
+    },
+    "sessions": {
+      "last_activity": [
+        -2147483648,
+        2147483647
+      ]
+    },
+    "staff_notifications": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "staff_reminders": {
+      "version": [
+        0,
+        4294967295
+      ],
+      "is_active": [
+        -128,
+        127
+      ],
+      "next_sequence": [
+        0,
+        65535
+      ]
+    },
+    "stock_catalog_revisions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "stock_operation_lines": {
+      "drug_version": [
+        0,
+        4294967295
+      ]
+    },
+    "stock_operation_revisions": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "stock_operations": {
+      "version": [
+        0,
+        4294967295
+      ],
+      "source_store_version": [
+        0,
+        4294967295
+      ],
+      "destination_store_version": [
+        0,
+        4294967295
+      ],
+      "supplier_version": [
+        0,
+        4294967295
+      ]
+    },
+    "stock_series_heads": {
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "stock_store_accesses": {
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "stock_stores": {
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "suppliers": {
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "users": {
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    },
+    "vital_signs": {
+      "systolic_mmhg": [
+        0,
+        65535
+      ],
+      "diastolic_mmhg": [
+        0,
+        65535
+      ]
+    },
+    "wards": {
+      "is_active": [
+        -128,
+        127
+      ],
+      "version": [
+        0,
+        4294967295
+      ]
+    }
+  }
+}

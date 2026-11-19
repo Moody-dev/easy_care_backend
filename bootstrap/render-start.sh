@@ -2,8 +2,8 @@
 set -eu
 
 : "${APP_KEY:?Set a permanent Laravel APP_KEY before deploying.}"
-: "${DB_HOST:?Set the private MySQL host.}"
-: "${DB_DATABASE:?Set the MySQL database.}"
+: "${DB_HOST:?Set the database host.}"
+: "${DB_DATABASE:?Set the database name.}"
 : "${DB_USERNAME:?Set the restricted application database user.}"
 : "${DB_PASSWORD:?Set the application database password.}"
 export APP_URL="${APP_URL:-${RENDER_EXTERNAL_URL:-}}"
@@ -32,8 +32,12 @@ chown -R www-data:www-data "$PERSISTENT_STORAGE_ROOT" /var/www/html/bootstrap/ca
 
 runuser -u www-data -- php artisan config:cache --no-interaction
 runuser -u www-data -- php artisan deploy:check --wait=120 --no-interaction
-runuser -u www-data -- php artisan migrate --force --no-interaction
-runuser -u www-data -- php artisan db:seed --force --no-interaction
+if [ "${DB_CONNECTION:-mysql}" = "pgsql" ]; then
+    runuser -u www-data -- php artisan supabase:prepare --no-interaction
+else
+    runuser -u www-data -- php artisan migrate --force --no-interaction
+    runuser -u www-data -- php artisan db:seed --force --no-interaction
+fi
 runuser -u www-data -- php artisan view:clear --no-interaction
 runuser -u www-data -- php artisan route:cache --no-interaction
 exec /usr/bin/supervisord -c /var/www/html/bootstrap/render-supervisord.conf

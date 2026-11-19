@@ -288,6 +288,10 @@ Pricing clarification checks passed: full SQLite 1,522 cases/14,827 assertions (
 
 Final targeted MySQL checks also passed seventeen cases/eighty-six assertions, including competing same-key exit confirmations with a single retained assessment. All gates have zero failures/errors.
 
+Supabase testing support is implemented as a separate PostgreSQL profile while the hospital remains on MySQL. It uses a private application schema, direct/session-pooled database credentials, verified TLS and engine-specific migrations. API publishable/secret keys are not database credentials. The supplied project address and private database credentials are in ignored local configuration. The live private schema and reference catalogs are prepared through the session pooler, with verified TLS and the bundled public Supabase CA. Read-only checks confirm 502 enabled guards, no copied operating records and no private-schema/patient-table access for the public API roles. A public PHP API host remains pending. Frontend changes and hospital Task 53 remain deferred. [Setup, verification and return-to-MySQL procedure](LOCAL_DEVELOPMENT.md#supabase-postgresql-for-team-testing).
+
+Supabase verification is complete: PostgreSQL API/unit gate 885 cases/10,940 assertions; final PostgreSQL storage/concurrency checks sixty cases/506 assertions; full SQLite 1,551 cases/14,893 assertions (115 expected skips); MySQL 177 cases/1,781 assertions. Final protected-file checks pass on both original engines. Both PostgreSQL migrations are applied live and the verified-TLS connection passes. The private schema has 502 enabled guards and retains original integer limits; operating catalogs remain empty apart from reference permissions. MySQL source data, grants and frontend state are preserved. Hosting the PHP API and subsequent browser integration remain pending.
+
 ## Reference documents
 
 - [Backend architecture PDF](architecture/EasyCare_Architecture_Reviewed_v1.1.pdf)

@@ -137,7 +137,7 @@ class AccommodationBillingTest extends BillingTestCase
         $this->finish($admission);
         foreach (['allocation_rates', 'accommodation_assessments'] as $table) {
             try {
-                DB::table($table)->delete();
+                DB::transaction(fn () => DB::table($table)->delete());
                 $this->fail('Retained billing facts must not be deleted.');
             } catch (QueryException) {
                 $this->assertDatabaseCount($table, 1);
