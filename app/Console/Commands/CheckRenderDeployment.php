@@ -2,47 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Services\HostedDeploymentChecks;
 use App\Services\RenderDeploymentChecks;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
-use Illuminate\Console\Command;
 
 #[Signature('deploy:check-render {--wait=0 : Seconds to wait for the private MySQL service, up to 300}')]
 #[Description('Check the Render runtime and private database without revealing connection secrets')]
-class CheckRenderDeployment extends Command
+class CheckRenderDeployment extends CheckHostedDeployment
 {
-    /**
-     * Execute the console command.
-     */
-    public function handle(RenderDeploymentChecks $checks): int
+    protected function checks(): HostedDeploymentChecks
     {
-        $wait = (string) $this->option('wait');
-        if (! ctype_digit($wait) || (int) $wait > 300) {
-            $this->error('Use a wait time between zero and 300 seconds.');
-
-            return self::FAILURE;
-        }
-        $results = $checks->run();
-        foreach ($results as $name => $passed) {
-            $this->line(($passed ? 'PASS ' : 'FAIL ').$name);
-        }
-        if (in_array(false, $results, true)) {
-            return self::FAILURE;
-        }
-        $deadline = microtime(true) + (int) $wait;
-        do {
-            if ($checks->databaseReady()) {
-                $this->info('PASS private_database_ready');
-
-                return self::SUCCESS;
-            }
-            if (microtime(true) >= $deadline) {
-                break;
-            }
-            sleep(1);
-        } while (true);
-        $this->error('FAIL private_database_ready');
-
-        return self::FAILURE;
+        return app(RenderDeploymentChecks::class);
     }
 }

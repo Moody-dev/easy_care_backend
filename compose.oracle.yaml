@@ -1,0 +1,105 @@
+name: easycare-preview
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: mysqld --log-bin-trust-function-creators=ON --max-connections=40 --innodb-buffer-pool-size=256M
+    mem_limit: 1536m
+    environment:
+      MYSQL_DATABASE: easycare_development
+      MYSQL_USER: easycare_app
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Generate the private .env.oracle first}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Generate the private .env.oracle first}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - database
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP -h127.0.0.1 -u"$$MYSQL_USER" -D"$$MYSQL_DATABASE" -e "SELECT 1" >/dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  api:
+    build: .
+    restart: unless-stopped
+    mem_limit: 768m
+    stop_grace_period: 90s
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      HOSTING_PLATFORM: oracle
+      APP_NAME: EasyCare Development API
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_URL: https://${API_DOMAIN:?Set the public API hostname}
+      APP_KEY: ${APP_KEY:?Generate the private .env.oracle first}
+      FRONTEND_URLS: '*'
+      TRUSTED_PROXIES: 172.30.0.0/24
+      PERSISTENT_STORAGE_ROOT: /var/data
+      PROTECTED_FILES_ROOT: /var/data/protected
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: '3306'
+      DB_DATABASE: easycare_development
+      DB_USERNAME: easycare_app
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Generate the private .env.oracle first}
+      SESSION_DRIVER: database
+      SESSION_SECURE_COOKIE: 'true'
+      SESSION_HTTP_ONLY: 'true'
+      SESSION_SAME_SITE: none
+      SESSION_ENCRYPT: 'true'
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      FILESYSTEM_DISK: local
+      MAIL_MAILER: log
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      APPOINTMENT_TIMEZONE: Africa/Lagos
+    volumes:
+      - private_files:/var/data
+    networks:
+      - web
+      - database
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --output, /dev/null, 'http://127.0.0.1:10000/api/v1/health']
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 300s
+
+  https:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    mem_limit: 192m
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set the public API hostname}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./bootstrap/oracle-caddy.conf:/etc/caddy/Caddyfile:ro
+      - https_data:/data
+      - https_config:/config
+    networks:
+      - web
+
+networks:
+  web:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+  database:
+    internal: true
+
+volumes:
+  mysql_data:
+  private_files:
+  https_data:
+  https_config:
