@@ -18,6 +18,7 @@ class AdmissionMigrationTest extends TestCase
 
     public function test_admission_upgrade_and_rollback_preserve_existing_patient_visit_clinical_and_grant_data(): void
     {
+        $this->removeLaterTestMigrations('2026_11_19_022314_add_read_path_indexes.php');
         $this->seed(DatabaseSeeder::class);
         $admissionHistory = require database_path('migrations/2026_11_15_015445_create_admission_revision_records.php');
         $entry = ClinicalEntry::factory()->create();
