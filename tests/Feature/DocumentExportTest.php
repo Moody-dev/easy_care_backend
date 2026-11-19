@@ -13,7 +13,7 @@ use Tests\BillingTestCase;
 
 class DocumentExportTest extends BillingTestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\RejectsOutboundRequests;
 
     protected function setUp(): void
     {

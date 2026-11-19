@@ -21,7 +21,7 @@ use Tests\TestCase;
 
 class ProtectedFilesTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\RejectsOutboundRequests;
 
     protected function setUp(): void
     {

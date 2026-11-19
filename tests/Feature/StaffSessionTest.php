@@ -17,7 +17,7 @@ use Tests\TestCase;
 
 class StaffSessionTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\RejectsOutboundRequests;
 
     private ?string $cookie = null;
 

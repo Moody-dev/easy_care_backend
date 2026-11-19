@@ -15,7 +15,7 @@ use Tests\ReminderTestCase;
 
 class ReminderDeliveryTest extends ReminderTestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\RejectsOutboundRequests;
 
     public function test_failed_notification_insert_restores_cursor_occurrence_and_every_recipient_before_safe_retry(): void
     {

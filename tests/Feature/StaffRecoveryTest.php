@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class StaffRecoveryTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\RejectsOutboundRequests;
 
     private User $admin;
     private User $target;
