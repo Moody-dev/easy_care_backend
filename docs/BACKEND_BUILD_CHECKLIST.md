@@ -274,6 +274,8 @@ Price-source import completed locally: all 3,691 rows are retained, including 70
 
 Shared Render development hosting is prepared separately from hospital installation: a PHP 8.4/Apache API, private MySQL 8.4, persistent private files, supervised queues/scheduler, guarded additive startup and the requested open-origin credentialed CORS configuration. The proposed services/disks are approximately $33.50/month before additional charges, subject to Render's current checkout. Focused SQLite and MySQL checks each passed 97 cases/522 assertions; seventy additional SQLite security/transaction cases passed 1,603 assertions. Render's current Blueprint schema, shell syntax and affected PHP syntax checks pass. Local data, permissions and frontend files remain unchanged. Deployment is pending Render account access, paid-resource approval and an actual image build/external verification; no live API URL is claimed. [Render deployment and later local-hosting instructions](LOCAL_DEVELOPMENT.md#render-development-api). Hospital-server Task 53 stays on hold.
 
+**Hosting budget supersedes the costed plan: strictly $0.** The paid Render proposal was declined and is not authorized for deployment. Keep its Blueprint as a costed reference only. A free cloud VM or temporary laptop-hosted HTTPS tunnel is being considered; the choice is still pending. Do not substitute ephemeral storage for retained clinical files or claim a live API before the selected free setup passes external verification. Frontend changes and hospital-server Task 53 remain deferred.
+
 ## Reference documents
 
 - [Backend architecture PDF](architecture/EasyCare_Architecture_Reviewed_v1.1.pdf)
