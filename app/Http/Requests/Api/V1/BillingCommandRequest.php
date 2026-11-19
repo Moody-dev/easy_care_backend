@@ -35,7 +35,7 @@ class BillingCommandRequest extends FormRequest
             'performed' => ['service_id' => $id, 'quantity' => ['required','string','max:16'], 'occurred_at' => $date,
                 'reference' => ['required','string','min:1','max:128'], 'performed_confirmed' => ['required','accepted']],
             'invoice' => ['self_pay_confirmed' => ['required','accepted'], 'sources' => ['required','array','list','min:1','max:50'],
-                'sources.*' => ['required','array:type,id,price_id'], 'sources.*.type' => ['required',Rule::in(['performed','investigation','dispense'])],
+                'sources.*' => ['required','array:type,id,price_id'], 'sources.*.type' => ['required',Rule::in(['performed','investigation','dispense','accommodation'])],
                 'sources.*.id' => $id, 'sources.*.price_id' => $id],
             'receipt' => ['amount' => ['required','string','max:15'], 'kind' => ['required',Rule::in(['deposit','payment'])],
                 'method' => ['required',Rule::in(['cash','bank_transfer','pos','other'])], 'reference' => ['sometimes','nullable','string','min:1','max:128'],

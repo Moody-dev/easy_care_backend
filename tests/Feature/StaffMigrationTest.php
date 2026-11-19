@@ -17,6 +17,7 @@ class StaffMigrationTest extends TestCase
 
     public function test_existing_users_survive_upgrade_and_rollback(): void
     {
+        $this->removeLaterTestMigrations('2026_11_19_034432_create_hospital_price_imports_table.php');
         $exports = require database_path('migrations/2026_11_18_230113_create_document_exports_table.php');
         $exports->down();
         $operations = require database_path('migrations/2026_11_17_030741_create_stock_operation_records.php');

@@ -82,6 +82,17 @@ class AdmissionApiConcurrencyTest extends TestCase
         $this->assertDatabaseCount('admission_revisions', 2);
     }
 
+    public function test_competing_same_key_exit_confirmations_retain_one_assessment(): void
+    {
+        [$admission] = $this->authorized();
+        $this->otherNurse = $this->nurse;
+        $this->assertSame(['saved', 'replayed'], $this->race($admission, 'complete-discharge', [],
+            $admission, 'complete-discharge', [], sameKey: true));
+        $this->assertDatabaseCount('accommodation_assessments', 1);
+        $this->assertDatabaseCount('current_bed_occupancies', 0);
+        $this->assertDatabaseCount('idempotency_requests', 1);
+    }
+
     private function authorized(): array
     {
         $doctor = $this->createStaffWithRole('doctor');

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([])]
 class BedAllocation extends Model
@@ -17,6 +18,11 @@ class BedAllocation extends Model
     protected $dateFormat = 'Y-m-d H:i:s.u';
 
     protected $attributes = ['version' => 1];
+
+    public function rate(): HasOne
+    {
+        return $this->hasOne(AllocationRate::class, 'allocation_id');
+    }
 
     public function bed(): BelongsTo
     {

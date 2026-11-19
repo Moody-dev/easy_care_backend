@@ -40,6 +40,9 @@ class StockCatalog
         $catalog = $request->route('catalog') ?? 'store-access';
         $this->authority->permission($actor, 'stock.catalog.view');
         $this->authority->permission($actor, $catalog === 'store-access' ? 'stock.access.manage' : 'stock.catalog.manage');
+        if ($catalog === 'prices' && $request->input('kind') === 'selling') {
+            abort_unless($actor->roles()->whereIn('code', ['admin', 'pharmacy'])->exists(), 403);
+        }
         $this->authority->password($request, $actor);
         $record = null;
         if ($catalog === 'store-access') {
@@ -60,6 +63,9 @@ class StockCatalog
     {
         $catalog = $request->attributes->get('stock_catalog_name');
         $record = $request->attributes->get('stock_catalog_record');
+        if ($catalog === 'prices' && ($data['kind'] ?? null) === 'selling') {
+            abort_unless($actor->roles()->whereIn('code', ['admin', 'pharmacy'])->exists(), 403);
+        }
         $time = $this->authority->time($record?->updated_at ?? $record?->changed_at ?? $record?->recorded_at);
         if ($catalog === 'store-access') {
             $this->authority->version($record?->version ?? 0, $data['version']);

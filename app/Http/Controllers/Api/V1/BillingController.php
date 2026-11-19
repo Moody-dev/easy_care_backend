@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BillingCommandRequest;
+use App\Models\AccommodationAssessment;
 use App\Models\BillingAccount;
 use App\Models\Encounter;
 use App\Models\Patient;
@@ -36,6 +37,24 @@ class BillingController extends Controller
         $audit->record('billing.catalog_viewed', $request->user('web')->id, 'billing_catalog');
 
         return response()->json($query->orderByDesc('id')->paginate($data['per_page'] ?? 25));
+    }
+
+    public function accommodation(Request $request, AuditTrail $audit): JsonResponse
+    {
+        return DB::transaction(function () use ($request, $audit): JsonResponse {
+            $data = $request->validate(['page' => ['sometimes','integer','min:1'], 'per_page' => ['sometimes','integer','min:1','max:100']]);
+            $actor = $request->user('web');
+            $patient = Patient::query()->visibleTo($actor)->lockForUpdate()->findOrFail($request->route('patient'));
+            $query = AccommodationAssessment::query()->whereHas('admission', fn ($admissions) => $admissions
+                ->where('patient_id', $patient->id)->whereHas('encounter', fn ($visits) => $visits->visibleTo($actor)));
+            $page = $query->with('admission')->orderByDesc('id')->paginate($data['per_page'] ?? 25);
+            $page->through(fn ($row): array => ['id' => $row->id, 'price_id' => $row->id, 'source_type' => 'accommodation',
+                'encounter_id' => $row->admission->encounter_id, 'admission_id' => $row->admission_id,
+                'status' => $row->status, 'calculation' => $row->snapshot, 'recorded_at' => $row->recorded_at->toISOString()]);
+            $audit->record('billing.viewed', $actor->id, 'patient', $patient->id);
+
+            return response()->json($page);
+        });
     }
 
     public function show(Request $request, BillingWorkflows $service, AuditTrail $audit): JsonResponse

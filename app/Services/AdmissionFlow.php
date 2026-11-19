@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use stdClass;
@@ -34,7 +35,7 @@ class AdmissionFlow
         'complete-discharge' => ['admissions.complete_discharge', 'discharged'],
     ];
 
-    public function __construct(private AuditTrail $audit) {}
+    public function __construct(private AuditTrail $audit, private AccommodationBilling $accommodation) {}
 
     public static function isCommand(string $route): bool
     {
@@ -162,6 +163,7 @@ class AdmissionFlow
                 $allocation = new BedAllocation;
                 $allocation->forceFill(['admission_id' => $admission->id, 'bed_id' => $bed->id, 'assigned_by' => $actor->id,
                     'assigned_at' => $time, 'assignment_reason' => $data['reason']])->save();
+                $this->accommodation->capture($allocation, $bed, $actor, $time);
             } elseif ($action === 'release') {
                 if ($current === null) {
                     throw new WriteConflict('allocation_missing', 'There is no current bed to release.');
@@ -178,6 +180,8 @@ class AdmissionFlow
                 $admission->forceFill(['status' => 'discharge_authorized', 'authorized_at' => $time,
                     'authorized_by' => $actor->id, 'discharge_reason' => $data['reason'],
                     'discharge_summary' => $data['discharge_summary'] ?? null, 'version' => $admission->version + 1])->save();
+                DB::table('admission_exit_types')->insert(['admission_id' => $admission->id,
+                    'exit_type' => $data['exit_type'] ?? 'discharge', 'actor_id' => $actor->id, 'recorded_at' => $time->format('Y-m-d H:i:s.u')]);
             } else {
                 if ($admission->status !== 'discharge_authorized') {
                     throw new WriteConflict('discharge_not_authorized', 'The current doctor must authorize discharge first.');
@@ -187,6 +191,7 @@ class AdmissionFlow
                 }
                 $admission->forceFill(['status' => 'discharged', 'discharged_by' => $actor->id,
                     'discharged_at' => $time, 'version' => $admission->version + 1])->save();
+                $this->accommodation->finalize($admission, $actor, $time);
             }
         }
         $workflowVersion = (int) $admission->revisions()->max('workflow_version') + 1;
@@ -214,7 +219,7 @@ class AdmissionFlow
         $last = $bed->allocations()->reorder()->orderByDesc('released_at')->lockForUpdate()->first();
         $this->clock($time, $last?->released_at);
 
-        return $bed;
+        return $bed->setRelation('ward', $ward);
     }
 
     private function release(BedAllocation $allocation, User $actor, CarbonInterface $time, string $reason): void
@@ -323,6 +328,8 @@ class AdmissionFlow
 
         return $admission->only(['id', 'encounter_id', 'patient_id', 'status', 'version', 'admitted_by',
             'authorized_by', 'discharged_by', 'discharge_reason', 'discharge_summary']) + [
+            'exit_type' => DB::table('admission_exit_types')->where('admission_id', $admission->id)->value('exit_type'),
+            'accommodation_assessment' => $admission->assessment()->first()?->only(['id', 'status', 'snapshot']),
             'workflow_version' => $workflowVersion ?? (int) $admission->revisions()->max('workflow_version'),
             'encounter_version' => $visit->version, 'encounter_status' => $visit->status,
             'current_assignment' => $visit->currentAssignment === null ? null : EncounterFlow::assignment($visit->currentAssignment),

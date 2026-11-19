@@ -9,7 +9,7 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
-        'prices.imported',
+        'prices.imported', 'prices.units_confirmed', 'admission.accommodation_assessed',
         'export.generated','export.viewed','export.downloaded','export.printed',
         'dashboard.viewed','report.viewed',
         'reminder.created','reminder.updated','reminder.cancelled','reminder.viewed','reminder.processed',

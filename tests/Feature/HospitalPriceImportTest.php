@@ -54,6 +54,26 @@ class HospitalPriceImportTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_confirmed_single_item_units_are_retained_once_without_rewriting_sources_or_publishing_drugs(): void
+    {
+        $batch = app(HospitalPriceImporter::class)->apply(app(HospitalPriceFiles::class)->read($this->directory), true);
+        $before = $batch->prices()->get()->toArray();
+        $this->artisan('prices:confirm-medication-units', ['import' => $batch->id])->assertFailed();
+        $this->artisan('prices:confirm-medication-units', ['import' => $batch->id, '--per-item' => true])->assertSuccessful();
+        $this->artisan('prices:confirm-medication-units', ['import' => $batch->id, '--per-item' => true])->assertSuccessful();
+        $this->assertDatabaseCount('hospital_medication_units', 1);
+        $this->assertSame($before, $batch->prices()->get()->toArray());
+        $this->assertDatabaseCount('drugs', 0);
+        $this->artisan('prices:review', ['import' => $batch->id, '--kind' => 'medication'])
+            ->expectsOutputToContain('NGN per one sellable item')->assertSuccessful();
+        try {
+            DB::table('hospital_medication_units')->update(['basis' => 'pack']);
+            $this->fail('Unit confirmations cannot be replaced.');
+        } catch (QueryException) {
+            $this->assertDatabaseHas('hospital_medication_units', ['basis' => 'per_sellable_item']);
+        }
+    }
+
     public function test_exact_prices_duplicates_conflicts_and_units_are_distinguished(): void
     {
         $parsed = app(HospitalPriceFiles::class)->read($this->directory);

@@ -47,6 +47,11 @@ class Admission extends Model
         return $this->belongsTo(User::class, 'discharged_by');
     }
 
+    public function assessment(): HasOne
+    {
+        return $this->hasOne(AccommodationAssessment::class);
+    }
+
     public function allocations(): HasMany
     {
         return $this->hasMany(BedAllocation::class)->orderBy('assigned_at')->orderBy('id');

@@ -26,7 +26,7 @@ class ImportHospitalPrices extends Command
                 $this->info('Validation only. No database changes.');
             }
             $this->table(['Status', 'Rows'], $rows->countBy('status')->map(fn (int $count, string $status): array => [$status, $count])->values()->all());
-            $this->line('Medication units remain unconfirmed. Ready service references are not published billable prices.');
+            $this->line('Medication references require a separately retained per-item confirmation and staff catalog publication. Ready service references are not published billable prices.');
 
             return self::SUCCESS;
         } catch (InvalidArgumentException $exception) {

@@ -123,6 +123,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::prefix('patients/{patient}')->where(['patient' => '[1-9][0-9]{0,17}', 'billingChange' => '[1-9][0-9]{0,17}', 'billingInvoice' => '[1-9][0-9]{0,17}'])
                     ->middleware(['can:patients.view','can:billing.view'])->group(function () use ($controller): void {
                         Route::get('/', [$controller, 'show'])->name('show');
+                        Route::get('accommodation', [$controller, 'accommodation'])->middleware('can:encounters.view')->name('accommodation');
                         Route::get('history', [$controller, 'records'])->defaults('kind', 'history')->middleware('can:billing.review')->name('history');
                         Route::get('reconciliation', [$controller, 'reconciliation'])->middleware('can:billing.review')->name('reconciliation');
                         Route::get('invoices/{billingInvoice}', [$controller, 'invoice'])->name('invoice.show');
@@ -279,6 +280,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 Route::post('encounters/{encounter}/admission', [AdmissionController::class, 'write'])->where('encounter', '[1-9][0-9]{0,17}')
                     ->middleware(['can:admissions.create', 'throttle:admission-writes'])->name('store');
                 Route::prefix('admissions/{admission}')->where(['admission' => '[1-9][0-9]{0,17}'])->group(function (): void {
+                    Route::get('accommodation', [AdmissionController::class, 'accommodation'])->name('accommodation');
                     Route::get('/', [AdmissionController::class, 'show'])->name('show');
                     Route::get('history', [AdmissionController::class, 'history'])->name('history');
                     Route::get('allocations', [AdmissionController::class, 'allocations'])->name('allocations');

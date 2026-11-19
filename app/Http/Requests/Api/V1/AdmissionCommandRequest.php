@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\Services\AdmissionFlow;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class AdmissionCommandRequest extends FormRequest
@@ -40,6 +41,7 @@ class AdmissionCommandRequest extends FormRequest
         }
         if ($action === 'authorize-discharge') {
             $rules += ['assignment_id' => $id, 'assignment_version' => $version,
+                'exit_type' => ['sometimes', Rule::in(['discharge', 'referral', 'dama'])],
                 'discharge_summary' => ['nullable', 'string', 'max:20000']];
         }
         if ($action === 'complete-discharge') {

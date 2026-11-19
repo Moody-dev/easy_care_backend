@@ -246,6 +246,9 @@ class BillingWorkflows
     /** @return array<string, mixed> */
     public function source(BillingAccount $account, Encounter $visit, string $kind, int $id, CarbonImmutable $time, int $expectedPrice): array
     {
+        if ($kind === 'accommodation') {
+            return app(AccommodationBilling::class)->invoiceLine($account, $visit, $id, $expectedPrice, $time);
+        }
         ['serviceId'=>$serviceId, 'drugId'=>$drugId, 'quantity'=>$quantity, 'occurred'=>$occurred, 'snapshot'=>$snapshot, 'key'=>$key]
             = $this->sourceFacts($account, $visit, $kind, $id);
         if ($serviceId !== null) {

@@ -28,6 +28,10 @@ class MedicationFulfillmentApiTest extends MedicationFulfillmentTestCase
             'sources' => [['type' => 'dispense', 'id' => $issued['last_record_id'], 'price_id' => $price->id]],
             'current_password' => self::STAFF_TEST_PASSWORD, 'reason' => 'Synthetic issued medication billing'];
         $this->postCommand($path, $data)->assertCreated()->assertJsonPath('data.totals.charges', '4.02');
+        $this->travel(1)->seconds();
+        $replacement = \App\Models\DrugPrice::factory()->create(['drug_id' => $this->batch->drug_id, 'version' => 2, 'amount_micros' => 30000000]);
+        $this->publishFixture('prices', $replacement);
+        $this->assertDatabaseHas('billing_invoice_items', ['drug_price_id' => $price->id, 'amount_kobo' => 402]);
         $data['account_version'] = 1;
         $this->postCommand($path, $data)->assertConflict()->assertJsonPath('code', 'billing_source_charged');
         $this->assertDatabaseCount('stock_movements', 2);

@@ -351,6 +351,64 @@ class AdmissionApiTest extends TestCase
         Log::shouldHaveReceived('error')->once()->with('An admission or location database operation failed.');
     }
 
+    public function test_completed_day_is_shared_across_transfers_and_frozen_at_exit(): void
+    {
+        $first = Bed::factory()->create(['daily_rate' => '10000.00']);
+        $second = Bed::factory()->create(['daily_rate' => '20000.00']);
+        $admission = $this->command($this->admit(), 'allocate', $this->bedData($first))->assertOk()->json('data');
+        $this->travel(12)->hours();
+        $admission = $this->command($admission, 'transfer', $this->bedData($second))->assertOk()->json('data');
+        $first->forceFill(['daily_rate' => '90000.00', 'version' => 2])->save();
+        $this->travel(18)->hours();
+        $this->getJson('/api/v1/admissions/'.$admission['id'].'/accommodation')->assertOk()
+            ->assertJsonPath('data.finalized', false)->assertJsonPath('data.calculation.total', '15000.00')
+            ->assertJsonPath('data.calculation.completed_days', 1)->assertJsonPath('data.calculation.items.0.amount', '5000.00')
+            ->assertJsonPath('data.calculation.items.1.amount', '10000.00');
+        $this->signIn($this->doctor);
+        $admission = $this->command($admission, 'authorize-discharge', ['exit_type' => 'dama'])->assertOk()->json('data');
+        $this->signIn($this->nurse);
+        $data = $this->data($admission, 'complete-discharge');
+        $url = $this->url($admission, 'complete-discharge');
+        $headers = ['Idempotency-Key' => 'accommodation-finalize-once'];
+        $this->postCommand($url, $data, $headers)->assertOk()->assertJsonPath('data.exit_type', 'dama')
+            ->assertJsonPath('data.accommodation_assessment.snapshot.total', '15000.00');
+        $this->postCommand($url, $data, $headers)->assertOk()->assertHeader('Idempotency-Replayed', 'true');
+        $this->travel(2)->days();
+        $this->getJson('/api/v1/admissions/'.$admission['id'].'/accommodation')->assertOk()
+            ->assertJsonPath('data.finalized', true)->assertJsonPath('data.calculation.total', '15000.00');
+        $this->assertDatabaseCount('accommodation_assessments', 1);
+        $this->assertDatabaseCount('allocation_rates', 2);
+        $this->assertDatabaseCount('billing_invoices', 0);
+        $this->assertDatabaseCount('billing_accounts', 0);
+    }
+
+    public function test_missing_historical_rate_flags_review_without_blocking_clinical_exit(): void
+    {
+        $admission = $this->command($this->admit(), 'allocate', $this->bedData(Bed::factory()->create()))->assertOk()->json('data');
+        $this->travel(25)->hours();
+        $this->signIn($this->doctor);
+        $admission = $this->command($admission, 'authorize-discharge', ['exit_type' => 'referral'])->assertOk()->json('data');
+        $this->signIn($this->nurse);
+        $this->command($admission, 'complete-discharge')->assertOk()->assertJsonPath('data.status', 'discharged')
+            ->assertJsonPath('data.accommodation_assessment.status', 'requires_review')
+            ->assertJsonPath('data.accommodation_assessment.snapshot.total', null);
+        $this->assertDatabaseCount('billing_invoices', 0);
+    }
+
+    public function test_finalization_failure_rolls_back_exit_release_assessment_and_retry_receipt(): void
+    {
+        $admission = $this->command($this->admit(), 'allocate', $this->bedData(Bed::factory()->create(['daily_rate' => '100.00'])))->assertOk()->json('data');
+        $this->signIn($this->doctor);
+        $admission = $this->command($admission, 'authorize-discharge')->assertOk()->json('data');
+        $this->signIn($this->nurse);
+        $reached = $this->failNextWriteTo('accommodation_assessments', 'insert');
+        $this->assertTablesUnchanged([...$this->tables(), 'allocation_rates', 'accommodation_assessments'], function () use ($admission): void {
+            $this->command($admission, 'complete-discharge')->assertServerError();
+        });
+        $this->assertTrue($reached());
+        $this->assertDatabaseCount('current_bed_occupancies', 1);
+    }
+
     private function opening(): array
     {
         return ['encounter_version' => 1, 'patient_version' => 1, 'identity_verified' => true, 'reason' => 'Private admission reason'];

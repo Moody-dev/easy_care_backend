@@ -9,6 +9,8 @@ use App\Http\Resources\AdmissionResource;
 use App\Http\Resources\AdmissionRevisionResource;
 use App\Http\Resources\BedAllocationResource;
 use App\Models\Admission;
+use App\Models\Patient;
+use App\Services\AccommodationBilling;
 use App\Services\AdmissionFlow;
 use App\Services\AuditTrail;
 use App\Services\IdempotentCommands;
@@ -16,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class AdmissionController extends Controller
 {
@@ -23,7 +26,8 @@ class AdmissionController extends Controller
     {
         return response()->json(['data' => ['timezone' => config('appointments.timezone'),
             'statuses' => array_keys(Admission::TRANSITIONS), 'active_admissions_per_patient' => 1,
-            'bed_required_at_admission' => false, 'timestamps' => 'server_utc',
+            'bed_required_at_admission' => false, 'exit_types' => ['discharge', 'referral', 'dama'],
+            'accommodation_policy' => 'completed_24h_occupied_time_across_transfers', 'timestamps' => 'server_utc',
             'discharge_authorizer' => 'current_doctor', 'discharge_completer' => 'different_nurse',
             'identity_verification_required' => true]]);
     }
@@ -52,6 +56,20 @@ class AdmissionController extends Controller
         $audit->record('admission.viewed', $request->user('web')->id, 'admission', $record->id);
 
         return new AdmissionResource($record);
+    }
+
+    public function accommodation(Request $request, int $admission, AccommodationBilling $billing, AuditTrail $audit): JsonResponse
+    {
+        return DB::transaction(function () use ($request, $admission, $billing, $audit): JsonResponse {
+            $record = Admission::query()->visibleTo($request->user('web'))->findOrFail($admission);
+            Patient::query()->visibleTo($request->user('web'))->lockForUpdate()->findOrFail($record->patient_id);
+            $record = Admission::query()->visibleTo($request->user('web'))->lockForUpdate()->findOrFail($admission);
+            $saved = $record->assessment()->first();
+            $audit->record('admission.viewed', $request->user('web')->id, 'admission', $record->id);
+
+            return response()->json(['data' => ['assessment_id' => $saved?->id, 'finalized' => $saved !== null,
+                'calculation' => $saved?->snapshot ?? $billing->calculate($record)]]);
+        });
     }
 
     public function history(ListAdmissionsRequest $request, int $admission, AuditTrail $audit): AnonymousResourceCollection

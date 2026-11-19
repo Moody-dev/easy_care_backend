@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\HospitalPriceImport;
 use App\Support\FixedPoint;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class ReviewHospitalPrices extends Command
 {
@@ -19,6 +20,10 @@ class ReviewHospitalPrices extends Command
             $this->error('Choose an existing import and a positive page number.');
 
             return self::FAILURE;
+        }
+        $confirmed = DB::table('hospital_medication_units')->where('import_id', $batch->id)->exists();
+        if ($confirmed) {
+            $this->info('Medication unit basis confirmed: NGN per one sellable item. Original row status is retained; staff catalog publication and source conflicts still require review.');
         }
         $query = $batch->prices()->orderBy('id');
         foreach (['kind' => 'source_kind', 'status' => 'status'] as $option => $column) {

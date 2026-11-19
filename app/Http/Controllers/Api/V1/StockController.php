@@ -15,6 +15,7 @@ use App\Models\StockStore;
 use App\Models\StockStoreAccess;
 use App\Services\AuditTrail;
 use App\Services\IdempotentCommands;
+use App\Services\MedicationPricing;
 use App\Services\StockCatalog;
 use App\Services\StockOperations;
 use App\Support\FixedPoint;
@@ -60,13 +61,22 @@ class StockController extends Controller
         }
         $audit->record('stock.listed', $request->user('web')->id, 'stock_catalog');
 
-        return StockCatalogResource::collection($query->orderByDesc('id')->paginate($this->limit($request))->appends($request->validated()));
+        $page = $query->orderByDesc('id')->paginate($this->limit($request))->appends($request->validated());
+        if ($catalog === 'drugs') {
+            app(MedicationPricing::class)->attach($page->getCollection());
+        }
+
+        return StockCatalogResource::collection($page);
     }
 
     public function catalogShow(Request $request, AuditTrail $audit): StockCatalogResource
     {
         $record = StockCatalog::query($request->route('catalog'))->findOrFail($request->route('stockRecord'));
         $audit->record('stock.viewed', $request->user('web')->id, 'stock_catalog', $record->id);
+
+        if ($request->route('catalog') === 'drugs') {
+            app(MedicationPricing::class)->attach(collect([$record]));
+        }
 
         return new StockCatalogResource($record);
     }
