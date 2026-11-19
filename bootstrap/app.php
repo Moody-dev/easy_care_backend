@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->replace(\Illuminate\Http\Middleware\TrustProxies::class, \App\Http\Middleware\TrustDeploymentProxies::class);
         $middleware->trimStrings(except: ['csv_content']);
         $middleware->prependToGroup('api', \App\Http\Middleware\AuditSecurityEvents::class);
         $middleware->appendToGroup('api', 'throttle:api');
