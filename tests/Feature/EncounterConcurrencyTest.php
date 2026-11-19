@@ -8,14 +8,14 @@ use App\Models\Encounter;
 use App\Models\Patient;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class EncounterConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     public function test_parallel_arrival_with_same_key_opens_once_and_confirms_saved_encounter(): void
     {

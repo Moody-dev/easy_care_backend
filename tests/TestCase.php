@@ -25,6 +25,32 @@ abstract class TestCase extends BaseTestCase
 
     protected const STAFF_TEST_PASSWORD = 'Correct-secret-123!';
 
+    /** @var list<string> */
+    private array $removedTestMigrations = [];
+
+    protected function removeLaterTestMigrations(string $lastRetained): void
+    {
+        $this->ensureDatabaseIsIsolated($this->app);
+        $files=glob(database_path('migrations/*.php'));
+        sort($files,SORT_STRING);
+        if (!in_array(database_path('migrations/'.$lastRetained),$files,true)) {
+            throw new InvalidArgumentException('Choose an existing historical migration boundary.');
+        }
+        foreach (array_reverse($files) as $file) {
+            if (strcmp(basename($file),$lastRetained)<=0) { continue; }
+            $migration=require $file;
+            $migration->down();
+            array_unshift($this->removedTestMigrations,$file);
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        try {
+            foreach ($this->removedTestMigrations as $file) { $migration=require $file; $migration->up(); }
+        } finally { parent::tearDown(); }
+    }
+
     /** @param array<string, mixed> $data @param array<string, string> $headers */
     protected function postCommand(string $uri, array $data = [], array $headers = []): TestResponse
     {

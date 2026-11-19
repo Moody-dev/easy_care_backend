@@ -9,16 +9,15 @@ use App\Models\BedAllocation;
 use App\Models\User;
 use App\Services\AdmissionFlow;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class AdmissionApiConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     private User $nurse;
     private User $otherNurse;
@@ -194,9 +193,4 @@ PHP;
         return end($lines);
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        RefreshDatabaseState::$migrated = false;
-    }
 }

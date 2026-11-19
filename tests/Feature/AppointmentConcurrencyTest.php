@@ -6,14 +6,14 @@ use App\Models\Appointment;
 use App\Models\User;
 use App\Services\AppointmentBookings;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class AppointmentConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     public function test_parallel_same_key_confirms_one_booking_history_and_command(): void
     {

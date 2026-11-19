@@ -7,15 +7,14 @@ use App\Models\ClinicalRecord;
 use App\Models\Encounter;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class ClinicalApiConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     private User $author;
 
@@ -215,9 +214,4 @@ PHP;
         return json_decode(end($lines), true, flags: JSON_THROW_ON_ERROR);
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        RefreshDatabaseState::$migrated = false;
-    }
 }

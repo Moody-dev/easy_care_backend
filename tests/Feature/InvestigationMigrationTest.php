@@ -19,6 +19,7 @@ class InvestigationMigrationTest extends TestCase
 
     public function test_upgrade_and_rollback_preserve_existing_care_patients_and_staff_grants(): void
     {
+        $this->removeLaterTestMigrations('2026_11_16_034753_create_investigation_result_records.php');
         $this->seed(DatabaseSeeder::class);
         $results = require database_path('migrations/2026_11_16_034753_create_investigation_result_records.php');
         $requests = require database_path('migrations/2026_11_16_023634_create_investigation_request_records.php');

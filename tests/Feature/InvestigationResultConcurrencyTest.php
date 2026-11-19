@@ -9,16 +9,15 @@ use App\Models\InvestigationResult;
 use App\Models\User;
 use App\Services\InvestigationCatalog;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class InvestigationResultConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     private User $author;
     private User $reviewer;
@@ -197,9 +196,4 @@ PHP;
             ['APP_ENV' => 'testing', 'DB_CONNECTION' => 'mysql', 'DB_DATABASE' => 'easycare_test', 'DB_USERNAME' => 'easycare_test', 'DB_URL' => ''], timeout: 45);
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        RefreshDatabaseState::$migrated = false;
-    }
 }

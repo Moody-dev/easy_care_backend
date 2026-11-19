@@ -19,6 +19,7 @@ class ClinicalMigrationTest extends TestCase
 
     public function test_clinical_upgrade_and_rollback_preserve_existing_identity_visits_and_grants(): void
     {
+        $this->removeLaterTestMigrations('2026_11_15_024759_create_care_program_records.php');
         $this->seed(DatabaseSeeder::class);
         $care = require database_path('migrations/2026_11_15_024759_create_care_program_records.php');
         $visit = Encounter::factory()->create();

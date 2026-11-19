@@ -19,6 +19,7 @@ class VisitMigrationTest extends TestCase
 
     public function test_visit_storage_rolls_back_and_reapplies_without_changing_existing_records_or_grants(): void
     {
+        $this->removeLaterTestMigrations('2026_11_16_034753_create_investigation_result_records.php');
         $this->seed(DatabaseSeeder::class);
         $results = require database_path('migrations/2026_11_16_034753_create_investigation_result_records.php');
         $requests = require database_path('migrations/2026_11_16_023634_create_investigation_request_records.php');
@@ -34,8 +35,6 @@ class VisitMigrationTest extends TestCase
         $admissions = require database_path('migrations/2026_11_14_213944_create_admission_storage_tables.php');
         $this->assertTablesUnchanged(['users', 'roles', 'permissions', 'role_permissions', 'patients', 'patient_identifiers',
             'patient_categories', 'files', 'audit_events', 'idempotency_requests'], function () use ($migration, $bookings, $workflow, $clinical, $review, $admissions, $admissionHistory, $care, $requests, $results): void {
-            $reminderMigration = require database_path('migrations/2026_11_18_020441_create_staff_reminder_records.php');
-            $reminderMigration->down();
             $results->down();
             $requests->down();
             $care->down();
@@ -62,7 +61,6 @@ class VisitMigrationTest extends TestCase
             }
             $requests->up();
             $results->up();
-            $reminderMigration->up();
         });
         $booking = Appointment::factory()->registered($patient)->create(['booked_by' => $staff->id]);
         $booking->forceFill(['status' => 'attended', 'version' => 2])->save();

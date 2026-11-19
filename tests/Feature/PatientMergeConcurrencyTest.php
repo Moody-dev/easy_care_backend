@@ -6,14 +6,14 @@ use App\Models\Patient;
 use App\Models\PatientMergeRequest;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class PatientMergeConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     public function test_parallel_merge_approvals_with_one_key_commit_once_and_confirm_the_receipt(): void
     {

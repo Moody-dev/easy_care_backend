@@ -8,16 +8,16 @@ use App\Models\User;
 use App\Services\WriteTransactions;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use PDOException;
 use RuntimeException;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class TransactionConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     public function test_database_only_retries_roll_back_every_failed_attempt(): void
     {

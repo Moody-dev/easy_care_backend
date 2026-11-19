@@ -5,14 +5,14 @@ namespace Tests\Feature;
 use App\Models\DoctorAssignment;
 use App\Models\Encounter;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class VisitConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     public function test_parallel_assignments_cannot_create_two_current_clinicians(): void
     {

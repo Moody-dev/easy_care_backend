@@ -8,16 +8,15 @@ use App\Models\BedAllocation;
 use App\Models\CurrentBedOccupancy;
 use App\Models\Encounter;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\InputStream;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class AdmissionConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     protected function setUp(): void
     {
@@ -192,9 +191,4 @@ PHP;
         return end($lines);
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        RefreshDatabaseState::$migrated = false;
-    }
 }

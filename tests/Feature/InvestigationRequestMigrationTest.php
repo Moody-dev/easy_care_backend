@@ -17,6 +17,7 @@ class InvestigationRequestMigrationTest extends TestCase
 
     public function test_upgrade_and_rollback_retain_existing_catalog_patients_visits_and_grants(): void
     {
+        $this->removeLaterTestMigrations('2026_11_16_034753_create_investigation_result_records.php');
         $this->seed(DatabaseSeeder::class);
         $revision = InvestigationRevision::factory()->create();
         $order = $revision->order;

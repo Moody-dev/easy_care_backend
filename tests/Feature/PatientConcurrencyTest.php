@@ -6,14 +6,14 @@ use App\Models\Patient;
 use App\Models\PatientCategory;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class PatientConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     public function test_parallel_registration_confirmation_commits_one_patient_contact_and_number(): void
     {

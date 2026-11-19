@@ -5,15 +5,14 @@ namespace Tests\Feature;
 use App\Models\ClinicalEntry;
 use App\Models\ClinicalRecord;
 use App\Models\Prescription;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
+use Tests\CommittedDatabase;
 use Tests\TestCase;
 
 class ClinicalConcurrencyTest extends TestCase
 {
-    use DatabaseMigrations;
+    use CommittedDatabase;
 
     public function test_signing_blocks_a_competing_note_edit_despite_an_earlier_read_snapshot(): void
     {
@@ -132,9 +131,4 @@ PHP;
         return end($lines);
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        RefreshDatabaseState::$migrated = false;
-    }
 }
