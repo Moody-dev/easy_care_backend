@@ -6,6 +6,8 @@
 *.md diff=markdown
 *.php diff=php
 
+/public/docs/** linguist-generated=true whitespace=-blank-at-eol
+
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore

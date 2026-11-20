@@ -2024,4 +2024,22 @@ Deployment sequence:
 
 The Free plan currently includes $1 of resource usage per month after a one-time $5/30-day trial, and stops services when the allowance runs out. It has a 0.5 GB volume limit. Background queue polling, scheduled work and database connections can prevent idle sleep, so this complete backend is not guaranteed continuous operation within $1. Do not disable required background processing silently to hide that limitation. Trial volume retention is time-limited after credit expiry; confirm the account's current plan/retention before relying on the volume and retain protected backups. A limited/unverified trial may restrict outbound connections to Supabase. [Railway Free plan](https://docs.railway.com/pricing/free-plan), [volume lifecycle and startup limitations](https://docs.railway.com/volumes), [deployment configuration guidance](https://docs.railway.com/infrastructure-as-code).
 
-Repository preparation alone does not create a Railway service or prove a live deployment. Railway account access, resource creation within the selected free allowance, an actual Docker build and external acceptance remain required. Hospital-server Task 53 and frontend integration remain deferred.
+The API is now deployed at `https://easycare-development-api-production.up.railway.app`. External checks confirmed HTTP 200 for root, liveness, database readiness and CSRF bootstrap; guest session/patient requests returned 401, preflight 204, an unknown route 404 and private `.env` access 403. Measured requests took approximately 2–9 seconds from the checking connection. These checks do not certify authenticated clinical/financial workflows, retained-file recovery, capacity or hospital acceptance. Hospital-server Task 53 and frontend integration remain deferred.
+
+## API documentation with Scribe
+
+Scribe 5.11 is a development dependency. Its generated static website and downloads are committed under `public/docs` and copied by the existing Dockerfile. After the documentation commit deploys, the frontend team can read `/docs/`, import `/docs/collection.json` into Postman and download `/docs/openapi.yaml`. Production uses `composer install --no-dev`; `config/scribe.php` returns an empty configuration when the generator is absent, so hosted startup does not depend on development packages or documentation source files. Reading the static documentation does not query the application database.
+
+The reference includes all 280 current API operations, permission middleware, path/query/body fields, CSRF/idempotency headers, shared error envelopes, and explicit synthetic success examples for health/session/patient endpoints. Success examples for other workflows are not fabricated from real records. `resources/docs/api-guide.md` explains the cookie/CSRF login flow, the planned same-origin proxy, role/record/store restrictions, pagination shapes, exact decimal values, versions, independent approval, uploads and retries. The Postman collection captures fresh CSRF tokens into its collection variable; use its cookie jar, supply authorized test credentials and set `idempotency_key` for each new command intent. No bearer token, password or saved session is supplied in these public artifacts. Browser write buttons are disabled in the reference; Postman remains available for deliberate testing with authorized synthetic records.
+
+Regenerate after changing routes, requests, documentation strategies or the guide:
+
+```powershell
+composer install
+composer docs:generate
+php vendor/phpunit/phpunit/phpunit --filter ApiDocumentationTest --no-progress
+```
+
+Generation is forced from source and intermediate `.scribe` caches are ignored. Response calls, model/database sampling and generation transactions are disabled. Tests reject database connections and outbound HTTP calls during a complete generation and compare both exports against every registered API route. The command-request strategy handles controllers that resolve FormRequests inside idempotent callbacks; stock catalog fields include their applicable/required catalog variants. Dynamic template payloads and workflow checks still require the published forms/options and API validation. Keep generated files with the source changes so deployments publish matching documentation.
+
+`SCRIBE_BASE_URL` can select a different server origin when regenerating for a hospital installation; the default is the Railway testing origin and endpoint paths already contain `/api/v1`. The generated page uses Scribe's default CDN font/search/highlighting dependencies; offline readers can still read the HTML, but those enhancements need connectivity unless assets are separately bundled. The frontend application remains untouched.

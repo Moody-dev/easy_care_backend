@@ -298,6 +298,8 @@ Railway preparation checks passed ninety focused cases/320 assertions, PHP synta
 
 ## Reference documents
 
+Scribe documentation is added for the frontend handoff: all 280 API operations, static HTML, Postman and OpenAPI exports, cookie/CSRF integration, route permissions, workflow fields and retry/version conventions. Generation avoids database and API response calls and uses synthetic examples; all reference/download assets are included in the backend deployment. The final focused SQLite gate passed 113 cases/992 assertions; local HTTP checks pass for the page, downloads and assets. MySQL remains the hospital database and no frontend files or connection code changed. [Regeneration and deployment notes](LOCAL_DEVELOPMENT.md#api-documentation-with-scribe).
+
 - [Backend architecture PDF](architecture/EasyCare_Architecture_Reviewed_v1.1.pdf)
 - [Database dictionary](architecture/Database_Dictionary_v1.1.md)
 - [Proposed MySQL schema](architecture/schema.mysql.sql)
