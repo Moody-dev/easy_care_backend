@@ -43,4 +43,18 @@ else
 fi
 runuser -u www-data -- php artisan view:clear --no-interaction
 runuser -u www-data -- php artisan route:cache --no-interaction
+
+printf 'Resetting runtime Apache MPM configuration to prefork.\n'
+a2dismod -f mpm_event mpm_worker
+a2enmod mpm_prefork
+printf 'Runtime Apache MPM configuration links:\n'
+find /etc/apache2/mods-enabled -maxdepth 1 -name 'mpm_*' -printf '%f -> %l\n'
+apache2ctl -t
+apache_modules="$(apache2ctl -M)"
+printf 'Runtime Apache loaded MPMs:\n'
+if ! printf '%s\n' "$apache_modules" | awk '/mpm_.*_module/ { print; count++; prefork += ($1 == "mpm_prefork_module") } END { exit !(count == 1 && prefork == 1) }'; then
+    printf 'Apache must load exactly one MPM, and it must be prefork. Startup stopped.\n' >&2
+    exit 1
+fi
+printf 'PASS runtime_apache_prefork; starting supervised processes.\n'
 exec /usr/bin/supervisord -c /var/www/html/bootstrap/render-supervisord.conf
