@@ -20,8 +20,8 @@
     ],
     "info": {
         "name": "EasyCare API Reference",
-        "_postman_id": "979b4b4a-f920-4087-9a55-e601bd573d2f",
-        "description": "# Frontend integration guide\n\nThis is the Laravel API reference for the shared Railway testing environment. All endpoint paths below include `\/api\/v1`; do not add that prefix twice. Set the Postman `baseUrl` to the server origin, without `\/api\/v1`. The hospital installation continues to use Laravel and MySQL. Supabase is the temporary testing database; frontend clients call Laravel rather than Supabase tables.\n\n## Session login and CSRF\n\nAuthentication uses a staff session cookie, not a bearer token or Supabase Auth. Obtain an authorized test account from the backend team; there is no public signup. Documentation access does not grant API access.\n\n1. Send `GET \/api\/v1\/auth\/csrf-token`. Retain its cookies and the `data.csrf_token` value.\n2. Send `POST \/api\/v1\/auth\/login` with JSON `{\"email_or_username\":\"YOUR_TEST_USERNAME\",\"password\":\"YOUR_TEST_PASSWORD\"}` and header `X-CSRF-TOKEN` containing the bootstrap token. Send the same session cookies.\n3. Login rotates the session and returns a fresh `data.csrf_token`. Replace the saved token and retain the updated cookie. `GET \/api\/v1\/auth\/me` restores the current user, roles, effective permissions and session information.\n4. Send the latest CSRF token and cookies with every POST, PUT, PATCH or DELETE. Send `Accept: application\/json`; JSON requests also use `Content-Type: application\/json`.\n5. `POST \/api\/v1\/auth\/logout` signs out and returns 204 with no body. On 401\/419, restore the session or repeat login rather than retrying a write blindly.\n\nIn browser code use `credentials: \"include\"`. The deployed session cookie is Secure, HttpOnly and SameSite=Lax. The planned Vercel frontend proxy must forward the request cookies, CSRF headers, response Set-Cookie headers and appropriate cookie attributes for its same-origin route. Direct cross-site browser login from Vercel to Railway needs a separately reviewed cookie setup; permissive CORS alone does not enable it. Frontend integration remains the frontend team's work.\n\nIn Postman keep the cookie jar enabled. Import `collection.json`; the collection captures `data.csrf_token` from bootstrap\/login\/session responses into its `csrf_token` variable. Supply your own test credentials in the login request. No working credentials are included in the downloads.\n\n## Permissions and visibility\n\nEach endpoint lists its route permission checks. Staff need active accounts and explicit grants; administrator or department membership does not automatically grant patient, clinical, stock, billing or reporting access. Restricted or merged records, clinician assignment, store membership and workflow state can further limit access. An options response describes supported choices; it does not grant permission to save them. A 404 can conceal an inaccessible record.\n\n## Writes, versions and retries\n\nEndpoints marked as commands require `Idempotency-Key`: 16\u2013128 characters, starting with a letter\/digit and containing letters, digits, dots, colons, underscores or hyphens. Generate a UUID for each new intent and set the Postman `idempotency_key` variable before sending it. If the response is lost, retry the identical method, path, payload and key as the same staff member. Do not automatically generate a new key on every retry. Changed payloads require a new intent; old keys expire and are not permanent business identifiers.\n\nSupply the latest saved `version`, related record versions, `workflow_version`, `account_version` or `expected_version` fields required by that particular endpoint. A conflict requires refreshing the affected records before resubmitting an intentional change. Never guess versions or increment them client-side. The `Idempotency-Replayed` response header indicates a retained command replay; current permissions and visibility still apply.\n\nPassword confirmation uses `current_password` where required. Approval routes may require a different authorized staff member; a visible button is not authorization. Clinical templates, diagnostic schemas and tariffs are versioned. Load published options\/forms before constructing the related payload. Signed and posted records retain their originals; use supported correction workflows.\n\n## Responses and data formats\n\nRead each endpoint's request schema and examples. Examples are synthetic and are not hospital policy, stock, medication recommendations, prices or real records. Error examples show the common envelope; not every failure is possible in every workflow. Success examples are included only where explicitly documented, rather than invented from live records.\n\nErrors use `{\"message\":\"...\",\"code\":\"...\"}`; validation errors add an `errors` map of field names to message arrays. Common statuses are 401 (sign in), 403 (permission\/workflow), 404 (missing or hidden), 409 (state\/version conflict), 419 (session\/CSRF), 422 (invalid fields), 429 (rate limit; honor `Retry-After`), and 503 (temporarily unavailable). Conflict codes can be more specific than `conflict`.\n\nPaginated resources provide `data`, `links` and `meta`; some billing, stock and reporting endpoints return Laravel's direct paginator shape instead. Follow the returned links rather than assuming every list has the same wrapper. Supply supported `page` and `per_page` query fields; ordinary defaults are 25 and a maximum of 100 unless the endpoint says otherwise.\n\nUse ISO 8601 timestamps with an explicit UTC offset where requested. Hospital business-day rules use Africa\/Lagos. Send exact decimal quantities and money as strings where the schema requires strings; do not use floating-point calculations for prices or balances. NGN transaction totals are stored as exact kobo. Physical POS\/cash\/bank payments happen outside the platform; the API records their details and confirmations.\n\nUploads use multipart\/form-data with the endpoint's file field; let the browser\/client generate the multipart boundary. Protected files remain permission controlled. Report exports are private, expiring saved artifacts and may become unavailable if source access or versions change. Do not assume a download URL is public or permanent.\n\n## Frontend connection sequence\n\nStart with health, CSRF, login, session restore and logout. Then implement options, lists, details and paginated search before writes. Handle validation messages and permission denials, then add idempotency, version conflicts and workflow approvals. Verify the session proxy and each module using authorized synthetic test data. This reference does not change any frontend code or connect its dummy screens.\n",
+        "_postman_id": "5d1c000e-19ac-43a4-b61a-11c44fe1a744",
+        "description": "# Frontend integration guide\n\nThis is the Laravel API reference for the shared Railway testing environment. All endpoint paths below include `\/api\/v1`; do not add that prefix twice. Set the Postman `baseUrl` to the server origin, without `\/api\/v1`. The hospital installation continues to use Laravel and MySQL. Supabase is the temporary testing database; frontend clients call Laravel rather than Supabase tables.\n\n## Session login and CSRF\n\nAuthentication uses a staff session cookie, not a bearer token or Supabase Auth. Obtain an authorized test account from the backend team; there is no public signup. Documentation access does not grant API access.\n\n1. Send `GET \/api\/v1\/auth\/csrf-token`. Retain its cookies and the `data.csrf_token` value.\n2. Send `POST \/api\/v1\/auth\/login` with JSON `{\"email_or_username\":\"YOUR_TEST_USERNAME\",\"password\":\"YOUR_TEST_PASSWORD\"}` and header `X-CSRF-TOKEN` containing the bootstrap token. Send the same session cookies.\n3. Login rotates the session and returns a fresh `data.csrf_token`. Replace the saved token and retain the updated cookie. `GET \/api\/v1\/auth\/me` restores the current user, roles, effective permissions and session information.\n4. Send the latest CSRF token and cookies with every POST, PUT, PATCH or DELETE. Send `Accept: application\/json`; JSON requests also use `Content-Type: application\/json`.\n5. `POST \/api\/v1\/auth\/logout` signs out and returns 204 with no body. On 401\/419, restore the session or repeat login rather than retrying a write blindly.\n\nIn browser code use `credentials: \"include\"`. The deployed session cookie is Secure, HttpOnly and SameSite=Lax. The planned Vercel frontend proxy must forward the request cookies, CSRF headers, response Set-Cookie headers and appropriate cookie attributes for its same-origin route. Direct cross-site browser login from Vercel to Railway needs a separately reviewed cookie setup; permissive CORS alone does not enable it. Frontend integration remains the frontend team's work.\n\nIn Postman keep the cookie jar enabled. Import `collection.json`; the collection captures `data.csrf_token` from bootstrap\/login\/session responses into its `csrf_token` variable. Supply your own test credentials in the login request. No working credentials are included in the downloads.\n\n## Permissions and visibility\n\nEach endpoint lists its route permission checks. Staff need active accounts and explicit grants; administrator or department membership does not automatically grant patient, clinical, stock, billing or reporting access. Restricted or merged records, clinician assignment, store membership and workflow state can further limit access. An options response describes supported choices; it does not grant permission to save them. A 404 can conceal an inaccessible record.\n\n## Writes, versions and retries\n\n### Reserved registration numbers\n\nRead `GET \/api\/v1\/patients\/options` first. Private uses `PVT` and Walk-in uses `WLK`; their `numbering_mode` is `reservation_required`. Other categories retain `staff_entered` numbering until their formats are confirmed.\n\nFor Private\/Walk-in, send `POST \/api\/v1\/patients\/number-reservations` with `{\"category_id\":1}` using the selected category's actual ID, session cookies, CSRF and an `Idempotency-Key`. Staff need both patient-view and patient-create permissions. Display the returned `data.mrn` in a read-only field and retain `data.number_reservation_token`. Retrying the same reservation key returns the same number and token; changing category needs a new reservation intent\/key. IDs in examples are synthetic.\n\nSubmit the token with the registration demographics to `POST \/api\/v1\/patients`, using a separate registration idempotency key. Omit `mrn` or echo the reserved value exactly. The backend verifies the category and staff ownership, creates the patient and consumes the reservation atomically. If the save fails, the reservation remains available to that staff member. If the response is lost, retry the original registration key and payload; do not create a new registration intent for the consumed token.\n\nEach prefix advances independently (`PVT-01`, `PVT-02`, ...; `WLK-01`, `WLK-02`, ...). Counters start above matching existing and retired identifiers. Numbers are retained without automatic expiry\/reuse, so abandoning or switching a form can leave gaps; a gap is not an extra patient. Reservations belong to the requesting staff account, not a browser tab or patient record. Do not share tokens across staff accounts. Existing patient numbers are unchanged, and demographic editing cannot change them. The frontend team implements the read-only field and these requests; this backend change does not alter its screens.\n\n### Command submission\n\nEndpoints marked as commands require `Idempotency-Key`: 16\u2013128 characters, starting with a letter\/digit and containing letters, digits, dots, colons, underscores or hyphens. Generate a UUID for each new intent and set the Postman `idempotency_key` variable before sending it. If the response is lost, retry the identical method, path, payload and key as the same staff member. Do not automatically generate a new key on every retry. Changed payloads require a new intent; old keys expire and are not permanent business identifiers.\n\nSupply the latest saved `version`, related record versions, `workflow_version`, `account_version` or `expected_version` fields required by that particular endpoint. A conflict requires refreshing the affected records before resubmitting an intentional change. Never guess versions or increment them client-side. The `Idempotency-Replayed` response header indicates a retained command replay; current permissions and visibility still apply.\n\nPassword confirmation uses `current_password` where required. Approval routes may require a different authorized staff member; a visible button is not authorization. Clinical templates, diagnostic schemas and tariffs are versioned. Load published options\/forms before constructing the related payload. Signed and posted records retain their originals; use supported correction workflows.\n\n## Responses and data formats\n\nRead each endpoint's request schema and examples. Examples are synthetic and are not hospital policy, stock, medication recommendations, prices or real records. Error examples show the common envelope; not every failure is possible in every workflow. Success examples are included only where explicitly documented, rather than invented from live records.\n\nErrors use `{\"message\":\"...\",\"code\":\"...\"}`; validation errors add an `errors` map of field names to message arrays. Common statuses are 401 (sign in), 403 (permission\/workflow), 404 (missing or hidden), 409 (state\/version conflict), 419 (session\/CSRF), 422 (invalid fields), 429 (rate limit; honor `Retry-After`), and 503 (temporarily unavailable). Conflict codes can be more specific than `conflict`.\n\nPaginated resources provide `data`, `links` and `meta`; some billing, stock and reporting endpoints return Laravel's direct paginator shape instead. Follow the returned links rather than assuming every list has the same wrapper. Supply supported `page` and `per_page` query fields; ordinary defaults are 25 and a maximum of 100 unless the endpoint says otherwise.\n\nUse ISO 8601 timestamps with an explicit UTC offset where requested. Hospital business-day rules use Africa\/Lagos. Send exact decimal quantities and money as strings where the schema requires strings; do not use floating-point calculations for prices or balances. NGN transaction totals are stored as exact kobo. Physical POS\/cash\/bank payments happen outside the platform; the API records their details and confirmations.\n\nUploads use multipart\/form-data with the endpoint's file field; let the browser\/client generate the multipart boundary. Protected files remain permission controlled. Report exports are private, expiring saved artifacts and may become unavailable if source access or versions change. Do not assume a download URL is public or permanent.\n\n## Frontend connection sequence\n\nStart with health, CSRF, login, session restore and logout. Then implement options, lists, details and paginated search before writes. Handle validation messages and permission denials, then add idempotency, version conflicts and workflow approvals. Verify the session proxy and each module using authorized synthetic test data. This reference does not change any frontend code or connect its dummy screens.\n",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json"
     },
     "item": [
@@ -356,7 +356,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "voided",
+                                    "value": "signed",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -385,7 +385,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/patients\/:patient\/history?kind=entry&status=voided&encounter_id=1&include_superseded=&page=22&per_page=7",
+                            "raw": "{{baseUrl}}\/api\/v1\/patients\/:patient\/history?kind=entry&status=signed&encounter_id=1&include_superseded=&page=22&per_page=7",
                             "variable": [
                                 {
                                     "id": "patient",
@@ -1358,6 +1358,85 @@
                     ]
                 },
                 {
+                    "name": "Patients \/ Number Reservations \/ Store",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/patients\/number-reservations",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/patients\/number-reservations"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "X-CSRF-TOKEN",
+                                "value": "{{csrf_token}}"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{idempotency_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"category_id\":16}"
+                        },
+                        "description": "Route name: api.v1.patients.number-reservations.store.\n\nRequired permission checks: patients.view, patients.create. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":1,\"category_id\":1,\"mrn\":\"PVT-01\",\"number_reservation_token\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"numbering_mode\":\"reserved\",\"read_only\":true}}",
+                            "name": "Same-key retry returns the original reservation"
+                        },
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\"data\":{\"id\":1,\"category_id\":1,\"mrn\":\"PVT-01\",\"number_reservation_token\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"numbering_mode\":\"reserved\",\"read_only\":true}}",
+                            "name": "Synthetic new reservation; replace example IDs\/token with returned values"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
+                            "name": "No valid staff session"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"message\":\"You do not have permission to perform this action.\",\"code\":\"forbidden\"}",
+                            "name": "Permission or workflow access denied"
+                        },
+                        {
+                            "header": [],
+                            "code": 419,
+                            "body": "{\"message\":\"Your session has expired. Please sign in again.\",\"code\":\"session_expired\"}",
+                            "name": "Missing or expired session\/CSRF protection"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\"message\":\"The submitted data is invalid.\",\"code\":\"validation_failed\",\"errors\":{\"field_name\":[\"Example validation message; actual field names depend on this request.\"]}}",
+                            "name": "Validation error envelope"
+                        },
+                        {
+                            "header": [],
+                            "code": 429,
+                            "body": "{\"message\":\"Too many requests. Please try again later.\",\"code\":\"too_many_requests\"}",
+                            "name": "Rate limited; respect Retry-After"
+                        }
+                    ]
+                },
+                {
                     "name": "Patients \/ Duplicates",
                     "request": {
                         "url": {
@@ -1593,7 +1672,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"mrn\":\"b\",\"first_name\":\"n\",\"last_name\":\"g\",\"middle_name\":\"z\",\"sex\":\"m\",\"date_of_birth\":\"2022-12-14\",\"dob_estimated\":true,\"email\":\"zbailey@example.net\",\"phone\":\"+3642559314$\\\/D\",\"marital_status\":\"k\",\"religion\":\"h\",\"occupation\":\"w\",\"state_of_origin\":\"a\",\"address\":\"y\",\"category_id\":73,\"contacts\":[{\"name\":\"n\",\"relationship\":\"g\",\"phone\":\"+3642559314$\\\/D\"}],\"acknowledged_duplicate_ids\":[16]}"
+                            "raw": "{\"mrn\":\"b\",\"number_reservation_token\":\"f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$\\\/D\",\"first_name\":\"o\",\"last_name\":\"q\",\"middle_name\":\"i\",\"sex\":\"t\",\"date_of_birth\":\"2022-12-14\",\"dob_estimated\":true,\"email\":\"zbailey@example.net\",\"phone\":\"+3642559314$\\\/D\",\"marital_status\":\"k\",\"religion\":\"h\",\"occupation\":\"w\",\"state_of_origin\":\"a\",\"address\":\"y\",\"category_id\":73,\"contacts\":[{\"name\":\"n\",\"relationship\":\"g\",\"phone\":\"+3642559314$\\\/D\"}],\"acknowledged_duplicate_ids\":[16]}"
                         },
                         "description": "Route name: api.v1.patients.store.\n\nRequired permission checks: patients.view, patients.create. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -1674,7 +1753,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"middle_name\":\"g\",\"sex\":\"z\",\"date_of_birth\":\"2022-12-14\",\"dob_estimated\":false,\"email\":\"zbailey@example.net\",\"phone\":\"+3642559314$\\\/D\",\"marital_status\":\"k\",\"religion\":\"h\",\"occupation\":\"w\",\"state_of_origin\":\"a\",\"address\":\"y\",\"contacts\":[{\"name\":\"g\",\"relationship\":\"z\",\"phone\":\"+3642559314$\\\/D\"}],\"acknowledged_duplicate_ids\":[16],\"version\":22}"
+                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"middle_name\":\"g\",\"sex\":\"z\",\"date_of_birth\":\"2022-12-14\",\"dob_estimated\":true,\"email\":\"zbailey@example.net\",\"phone\":\"+3642559314$\\\/D\",\"marital_status\":\"k\",\"religion\":\"h\",\"occupation\":\"w\",\"state_of_origin\":\"a\",\"address\":\"y\",\"contacts\":[{\"name\":\"g\",\"relationship\":\"z\",\"phone\":\"+3642559314$\\\/D\"}],\"acknowledged_duplicate_ids\":[16],\"version\":22}"
                         },
                         "description": "Route name: api.v1.patients.update.\n\nRequired permission checks: patients.view, patients.update. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -1761,7 +1840,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"version\":1,\"patient_id\":22,\"patient_version\":7,\"identity_verified\":true,\"care_setting\":\"IPD\",\"reason\":\"z\"}"
+                            "raw": "{\"version\":1,\"patient_id\":22,\"patient_version\":7,\"identity_verified\":true,\"care_setting\":\"EMERGENCY\",\"reason\":\"z\"}"
                         },
                         "description": "Route name: api.v1.appointments.arrive.\n\nRequired permission checks: encounters.view, patients.view, appointments.view, encounters.arrive, encounters.view_any. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -1883,7 +1962,7 @@
                                 },
                                 {
                                     "key": "sort",
-                                    "value": "-created_at",
+                                    "value": "created_at",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -1900,7 +1979,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/appointments\/clinicians?q=b&status=cancelled&doctor_id=22&patient_id=7&from_date=2026-11-20&to_date=2026-11-20&sort=-created_at&page=16&per_page=17"
+                            "raw": "{{baseUrl}}\/api\/v1\/appointments\/clinicians?q=b&status=cancelled&doctor_id=22&patient_id=7&from_date=2026-11-20&to_date=2026-11-20&sort=created_at&page=16&per_page=17"
                         },
                         "method": "GET",
                         "header": [
@@ -2121,7 +2200,7 @@
                                 },
                                 {
                                     "key": "sort",
-                                    "value": "created_at",
+                                    "value": "-created_at",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2138,7 +2217,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/appointments\/:appointment\/history?q=b&status=no_show&doctor_id=22&patient_id=7&from_date=2026-11-20&to_date=2026-11-20&sort=created_at&page=16&per_page=17",
+                            "raw": "{{baseUrl}}\/api\/v1\/appointments\/:appointment\/history?q=b&status=no_show&doctor_id=22&patient_id=7&from_date=2026-11-20&to_date=2026-11-20&sort=-created_at&page=16&per_page=17",
                             "variable": [
                                 {
                                     "id": "appointment",
@@ -2209,7 +2288,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"phone\":\"+3642559314$\\\/D\",\"starts_at\":\"architecto\",\"ends_at\":\"architecto\",\"booking_channel\":\"Email\",\"visit_type\":\"Surgical Consultation\",\"specialist_name\":\"n\",\"specialist_email\":\"ashly64@example.com\",\"patient_id\":1,\"doctor_id\":1,\"follow_up_of_id\":5}"
+                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"phone\":\"+3642559314$\\\/D\",\"starts_at\":\"architecto\",\"ends_at\":\"architecto\",\"booking_channel\":\"Social Media\",\"visit_type\":\"Routine Check-Up\",\"specialist_name\":\"n\",\"specialist_email\":\"ashly64@example.com\",\"patient_id\":1,\"doctor_id\":1,\"follow_up_of_id\":5}"
                         },
                         "description": "Route name: api.v1.appointments.store.\n\nRequired permission checks: appointments.view, appointments.create. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -2284,7 +2363,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"phone\":\"+3642559314$\\\/D\",\"starts_at\":\"architecto\",\"ends_at\":\"architecto\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"Antenatal Care\",\"specialist_name\":\"n\",\"specialist_email\":\"ashly64@example.com\",\"doctor_id\":1,\"version\":1,\"reason\":\"l\"}"
+                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"phone\":\"+3642559314$\\\/D\",\"starts_at\":\"architecto\",\"ends_at\":\"architecto\",\"booking_channel\":\"Referral\",\"visit_type\":\"Family Planning\",\"specialist_name\":\"n\",\"specialist_email\":\"ashly64@example.com\",\"doctor_id\":1,\"version\":1,\"reason\":\"l\"}"
                         },
                         "description": "Route name: api.v1.appointments.update.\n\nRequired permission checks: appointments.view, appointments.update. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -2607,7 +2686,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "confirmed",
+                                    "value": "cancelled",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2637,7 +2716,7 @@
                                 },
                                 {
                                     "key": "sort",
-                                    "value": "-created_at",
+                                    "value": "-starts_at",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2654,7 +2733,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/clinicians?q=b&status=confirmed&doctor_id=22&patient_id=7&from_date=2026-11-20&to_date=2026-11-20&sort=-created_at&page=16&per_page=17"
+                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/clinicians?q=b&status=cancelled&doctor_id=22&patient_id=7&from_date=2026-11-20&to_date=2026-11-20&sort=-starts_at&page=16&per_page=17"
                         },
                         "method": "GET",
                         "header": [
@@ -2696,7 +2775,7 @@
                             "query": [
                                 {
                                     "key": "status",
-                                    "value": "closed",
+                                    "value": "cancelled",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2720,7 +2799,7 @@
                                 },
                                 {
                                     "key": "care_setting",
-                                    "value": "EMERGENCY",
+                                    "value": "IPD",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2749,7 +2828,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/encounters?status=closed&queue=unassigned&doctor_id=1&patient_id=22&care_setting=EMERGENCY&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16"
+                            "raw": "{{baseUrl}}\/api\/v1\/encounters?status=cancelled&queue=unassigned&doctor_id=1&patient_id=22&care_setting=IPD&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16"
                         },
                         "method": "GET",
                         "header": [
@@ -2845,7 +2924,7 @@
                                 },
                                 {
                                     "key": "queue",
-                                    "value": "waiting",
+                                    "value": "in_progress",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2863,7 +2942,7 @@
                                 },
                                 {
                                     "key": "care_setting",
-                                    "value": "OPD",
+                                    "value": "IPD",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2892,7 +2971,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/history?status=open&queue=waiting&doctor_id=1&patient_id=22&care_setting=OPD&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16",
+                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/history?status=open&queue=in_progress&doctor_id=1&patient_id=22&care_setting=IPD&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16",
                             "variable": [
                                 {
                                     "id": "encounter",
@@ -2942,13 +3021,13 @@
                             "query": [
                                 {
                                     "key": "status",
-                                    "value": "in_progress",
+                                    "value": "cancelled",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "queue",
-                                    "value": "in_progress",
+                                    "value": "unassigned",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -2995,7 +3074,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/assignments?status=in_progress&queue=in_progress&doctor_id=1&patient_id=22&care_setting=OPD&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16",
+                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/assignments?status=cancelled&queue=unassigned&doctor_id=1&patient_id=22&care_setting=OPD&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16",
                             "variable": [
                                 {
                                     "id": "encounter",
@@ -3066,7 +3145,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"patient_id\":1,\"patient_version\":22,\"identity_verified\":true,\"care_setting\":\"OPD\",\"visit_type\":\"Routine Check-Up\"}"
+                            "raw": "{\"patient_id\":1,\"patient_version\":22,\"identity_verified\":true,\"care_setting\":\"OPD\",\"visit_type\":\"Follow-Up Appointment\"}"
                         },
                         "description": "Route name: api.v1.encounters.store.\n\nRequired permission checks: encounters.view, patients.view, encounters.arrive, encounters.view_any. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -3141,7 +3220,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"version\":1,\"reason\":\"n\",\"doctor_id\":7,\"consultation_type\":\"Specialist Referral\"}"
+                            "raw": "{\"version\":1,\"reason\":\"n\",\"doctor_id\":7,\"consultation_type\":\"Follow-Up Appointment\"}"
                         },
                         "description": "Route name: api.v1.encounters.assign.\n\nRequired permission checks: encounters.view, patients.view, encounters.assign. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -3216,7 +3295,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"version\":1,\"reason\":\"n\",\"doctor_id\":7,\"consultation_type\":\"Post Natal Care\",\"assignment_id\":16,\"assignment_version\":17}"
+                            "raw": "{\"version\":1,\"reason\":\"n\",\"doctor_id\":7,\"consultation_type\":\"Immunization\",\"assignment_id\":16,\"assignment_version\":17}"
                         },
                         "description": "Route name: api.v1.encounters.reassign.\n\nRequired permission checks: encounters.view, patients.view, encounters.assign. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -3827,7 +3906,7 @@
                             "query": [
                                 {
                                     "key": "status",
-                                    "value": "discharged",
+                                    "value": "admitted",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -3862,7 +3941,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/admissions\/:admission\/history?status=discharged&patient_id=1&encounter_id=22&ward_id=7&page=16&per_page=17",
+                            "raw": "{{baseUrl}}\/api\/v1\/admissions\/:admission\/history?status=admitted&patient_id=1&encounter_id=22&ward_id=7&page=16&per_page=17",
                             "variable": [
                                 {
                                     "id": "admission",
@@ -3912,7 +3991,7 @@
                             "query": [
                                 {
                                     "key": "status",
-                                    "value": "admitted",
+                                    "value": "discharge_authorized",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -3947,7 +4026,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/admissions\/:admission\/allocations?status=admitted&patient_id=1&encounter_id=22&ward_id=7&page=16&per_page=17",
+                            "raw": "{{baseUrl}}\/api\/v1\/admissions\/:admission\/allocations?status=discharge_authorized&patient_id=1&encounter_id=22&ward_id=7&page=16&per_page=17",
                             "variable": [
                                 {
                                     "id": "admission",
@@ -4251,7 +4330,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"version\":7,\"workflow_version\":16,\"assignment_id\":17,\"assignment_version\":15,\"exit_type\":\"discharge\",\"discharge_summary\":\"y\"}"
+                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"version\":7,\"workflow_version\":16,\"assignment_id\":17,\"assignment_version\":15,\"exit_type\":\"dama\",\"discharge_summary\":\"y\"}"
                         },
                         "description": "Route name: api.v1.admissions.authorize-discharge.\n\nRequired permission checks: admissions.view, encounters.view, patients.view, admissions.authorize_discharge. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -4378,19 +4457,19 @@
                             "query": [
                                 {
                                     "key": "action",
-                                    "value": "prescription.amended",
+                                    "value": "investigation.result_attachment_download_authorized",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "outcome",
-                                    "value": "succeeded",
+                                    "value": "denied",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "channel",
-                                    "value": "http",
+                                    "value": "console",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -4402,7 +4481,7 @@
                                 },
                                 {
                                     "key": "subject_type",
-                                    "value": "stock_catalog",
+                                    "value": "notification",
                                     "description": "This field is required when subject_id is present.",
                                     "disabled": false
                                 },
@@ -4443,7 +4522,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/audit-events?action=prescription.amended&outcome=succeeded&channel=http&actor_id=16&subject_type=stock_catalog&subject_id=22&from=2026-11-20&to=2026-11-20&through_id=84&page=66&per_page=17"
+                            "raw": "{{baseUrl}}\/api\/v1\/audit-events?action=investigation.result_attachment_download_authorized&outcome=denied&channel=console&actor_id=16&subject_type=notification&subject_id=22&from=2026-11-20&to=2026-11-20&through_id=84&page=66&per_page=17"
                         },
                         "method": "GET",
                         "header": [
@@ -4654,7 +4733,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"code\":\"z-8yvqyjn8k7jay.pmy7jcj_vdjrfitppspq_dm$\\\/D\",\"name\":\"s\",\"category\":\"registration\"}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"code\":\"z-8yvqyjn8k7jay.pmy7jcj_vdjrfitppspq_dm$\\\/D\",\"name\":\"s\",\"category\":\"ward\"}"
                         },
                         "description": "Route name: api.v1.billing.service.\n\nRequired permission checks: billing.catalog.view, billing.catalog.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -4729,7 +4808,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"expected_version\":7,\"unit_price\":\"zmiyvdljnikhwayk\",\"is_active\":false,\"approval_reference\":\"c\",\"effective_at\":\"1530-12-04\"}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"expected_version\":7,\"unit_price\":\"zmiyvdljnikhwayk\",\"is_active\":true,\"approval_reference\":\"c\",\"effective_at\":\"1275-04-30\"}"
                         },
                         "description": "Route name: api.v1.billing.price.\n\nRequired permission checks: billing.catalog.view, billing.catalog.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -5165,7 +5244,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"encounter_id\":16,\"encounter_version\":17,\"service_id\":15,\"quantity\":\"yvdljnikhwaykcmy\",\"occurred_at\":\"1530-12-04\",\"reference\":\"g\",\"performed_confirmed\":true}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"encounter_id\":16,\"encounter_version\":17,\"service_id\":15,\"quantity\":\"yvdljnikhwaykcmy\",\"occurred_at\":\"1275-04-30\",\"reference\":\"g\",\"performed_confirmed\":true}"
                         },
                         "description": "Route name: api.v1.billing.performed.\n\nRequired permission checks: patients.view, billing.view, billing.sources.record. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -5240,7 +5319,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"encounter_id\":16,\"encounter_version\":17,\"self_pay_confirmed\":true,\"sources\":[{\"type\":\"performed\",\"id\":1,\"price_id\":22}]}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"encounter_id\":16,\"encounter_version\":17,\"self_pay_confirmed\":true,\"sources\":[{\"type\":\"dispense\",\"id\":1,\"price_id\":22}]}"
                         },
                         "description": "Route name: api.v1.billing.invoice.\n\nRequired permission checks: patients.view, billing.view, billing.invoices.post. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -5315,7 +5394,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"amount\":\"z\",\"kind\":\"payment\",\"method\":\"cash\",\"reference\":\"m\",\"payer_name\":\"i\",\"payer_phone\":\"y\",\"paid_at\":\"1530-12-04\",\"externally_confirmed\":false,\"transaction_details\":{\"provider\":\"b\",\"terminal_id\":\"n\",\"authorization_code\":\"g\",\"receipt_number\":\"z\",\"bank_name\":\"m\",\"method_name\":\"i\",\"notes\":\"y\"}}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"amount\":\"z\",\"kind\":\"deposit\",\"method\":\"cash\",\"reference\":\"m\",\"payer_name\":\"i\",\"payer_phone\":\"y\",\"paid_at\":\"1275-04-30\",\"externally_confirmed\":false,\"transaction_details\":{\"provider\":\"b\",\"terminal_id\":\"n\",\"authorization_code\":\"g\",\"receipt_number\":\"z\",\"bank_name\":\"m\",\"method_name\":\"i\",\"notes\":\"y\"}}"
                         },
                         "description": "Route name: api.v1.billing.receipt.\n\nRequired permission checks: patients.view, billing.view, billing.receipts.record. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -5621,7 +5700,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"payout_reference\":\"z\",\"payout_confirmed\":true,\"payout_at\":\"1530-12-04\",\"payout_method\":\"pos\",\"payee_name\":\"g\",\"payout_details\":{\"provider\":\"z\",\"terminal_id\":\"m\",\"authorization_code\":\"i\",\"receipt_number\":\"y\",\"bank_name\":\"v\",\"method_name\":\"d\",\"notes\":\"l\"}}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"payout_reference\":\"z\",\"payout_confirmed\":true,\"payout_at\":\"1275-04-30\",\"payout_method\":\"cash\",\"payee_name\":\"g\",\"payout_details\":{\"provider\":\"z\",\"terminal_id\":\"m\",\"authorization_code\":\"i\",\"receipt_number\":\"y\",\"bank_name\":\"v\",\"method_name\":\"d\",\"notes\":\"l\"}}"
                         },
                         "description": "Route name: api.v1.billing.approve.\n\nRequired permission checks: patients.view, billing.view, billing.changes.approve. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -5814,7 +5893,7 @@
                             "query": [
                                 {
                                     "key": "type",
-                                    "value": "immunization",
+                                    "value": "birth",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -5849,7 +5928,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/:careProgram\/encounters\/:encounter\/records\/:clinicalRecord\/history?type=immunization&status=active&patient_id=1&birth_id=22&page=7&per_page=16",
+                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/:careProgram\/encounters\/:encounter\/records\/:clinicalRecord\/history?type=birth&status=active&patient_id=1&birth_id=22&page=7&per_page=16",
                             "variable": [
                                 {
                                     "id": "careProgram",
@@ -6392,7 +6471,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "active",
+                                    "value": "completed",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -6421,7 +6500,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/forms?type=family_planning&status=active&patient_id=1&birth_id=22&page=7&per_page=16"
+                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/forms?type=family_planning&status=completed&patient_id=1&birth_id=22&page=7&per_page=16"
                         },
                         "method": "GET",
                         "header": [
@@ -6463,13 +6542,13 @@
                             "query": [
                                 {
                                     "key": "type",
-                                    "value": "antenatal",
+                                    "value": "birth",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "status",
-                                    "value": "completed",
+                                    "value": "active",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -6498,7 +6577,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/care-programs?type=antenatal&status=completed&patient_id=1&birth_id=22&page=7&per_page=16"
+                            "raw": "{{baseUrl}}\/api\/v1\/care-programs?type=birth&status=active&patient_id=1&birth_id=22&page=7&per_page=16"
                         },
                         "method": "GET",
                         "header": [
@@ -6569,7 +6648,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"type\":\"antenatal\",\"patient_version\":7,\"identity_verified\":true}"
+                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"type\":\"postnatal\",\"patient_version\":7,\"identity_verified\":true}"
                         },
                         "description": "Route name: api.v1.care-programs.store.\n\nRequired permission checks: care.view, patients.view, encounters.view, care.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -6663,7 +6742,7 @@
                             "query": [
                                 {
                                     "key": "type",
-                                    "value": "postnatal",
+                                    "value": "antenatal",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -6698,7 +6777,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/:careProgram\/births?type=postnatal&status=active&patient_id=1&birth_id=22&page=7&per_page=16",
+                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/:careProgram\/births?type=antenatal&status=active&patient_id=1&birth_id=22&page=7&per_page=16",
                             "variable": [
                                 {
                                     "id": "careProgram",
@@ -6748,13 +6827,13 @@
                             "query": [
                                 {
                                     "key": "type",
-                                    "value": "family_planning",
+                                    "value": "postnatal",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "status",
-                                    "value": "completed",
+                                    "value": "active",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -6783,7 +6862,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/:careProgram\/records?type=family_planning&status=completed&patient_id=1&birth_id=22&page=7&per_page=16",
+                            "raw": "{{baseUrl}}\/api\/v1\/care-programs\/:careProgram\/records?type=postnatal&status=active&patient_id=1&birth_id=22&page=7&per_page=16",
                             "variable": [
                                 {
                                     "id": "careProgram",
@@ -7110,13 +7189,13 @@
                             "query": [
                                 {
                                     "key": "kind",
-                                    "value": "diagnosis",
+                                    "value": "entry",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "status",
-                                    "value": "voided",
+                                    "value": "draft",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -7133,7 +7212,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/clinical\/templates?kind=diagnosis&status=voided&page=1&per_page=22"
+                            "raw": "{{baseUrl}}\/api\/v1\/clinical\/templates?kind=entry&status=draft&page=1&per_page=22"
                         },
                         "method": "GET",
                         "header": [
@@ -7175,7 +7254,7 @@
                             "query": [
                                 {
                                     "key": "kind",
-                                    "value": "vitals",
+                                    "value": "procedure",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -7198,7 +7277,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/clinical?kind=vitals&status=voided&page=1&per_page=22",
+                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/clinical?kind=procedure&status=voided&page=1&per_page=22",
                             "variable": [
                                 {
                                     "id": "encounter",
@@ -7410,7 +7489,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"encounter_version\":1,\"kind\":\"procedure\",\"payload\":[]}"
+                            "raw": "{\"encounter_version\":1,\"kind\":\"entry\",\"payload\":[]}"
                         },
                         "description": "Route name: api.v1.clinical.store.\n\nRequired permission checks: clinical.view, encounters.view, patients.view, clinical.write. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -7786,7 +7865,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -7797,7 +7876,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/dashboard?from_date=8832-04-19&to_date=2052-12-13"
+                            "raw": "{{baseUrl}}\/api\/v1\/dashboard?from_date=2927-12-02&to_date=2052-12-13"
                         },
                         "method": "GET",
                         "header": [
@@ -7851,7 +7930,7 @@
                                 },
                                 {
                                     "key": "sort",
-                                    "value": "name",
+                                    "value": "-code",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -7868,7 +7947,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/departments?q=b&sort=name&page=22&per_page=7"
+                            "raw": "{{baseUrl}}\/api\/v1\/departments?q=b&sort=-code&page=22&per_page=7"
                         },
                         "method": "GET",
                         "header": [
@@ -8025,7 +8104,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"kind\":\"receipt\",\"format\":\"html\",\"source_id\":1,\"report_key\":\"positions\"}"
+                            "raw": "{\"kind\":\"result\",\"format\":\"html\",\"source_id\":1,\"report_key\":\"positions\"}"
                         },
                         "description": "Route name: api.v1.exports.store.\n\nRequired permission checks: exports.generate. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -9050,7 +9129,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"is_active\":true,\"preauth_required\":true,\"details\":{\"phone\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"address\":\"d\",\"contact_person\":\"l\",\"billing_frequency\":\"j\",\"treatment_guide\":\"n\"},\"code\":\"z-8yvqyjn8k7jay.pmy7jcj_vdjrfitppspq_dm$\\\/D\",\"name\":\"s\"}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"is_active\":false,\"preauth_required\":false,\"details\":{\"phone\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"address\":\"d\",\"contact_person\":\"l\",\"billing_frequency\":\"j\",\"treatment_guide\":\"n\"},\"code\":\"z-8yvqyjn8k7jay.pmy7jcj_vdjrfitppspq_dm$\\\/D\",\"name\":\"s\"}"
                         },
                         "description": "Route name: api.v1.hmo.provider-create.\n\nRequired permission checks: hmo.catalog.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -9125,7 +9204,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"is_active\":false,\"preauth_required\":true,\"details\":{\"phone\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"address\":\"d\",\"contact_person\":\"l\",\"billing_frequency\":\"j\",\"treatment_guide\":\"n\"},\"version\":5}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"is_active\":false,\"preauth_required\":false,\"details\":{\"phone\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"address\":\"d\",\"contact_person\":\"l\",\"billing_frequency\":\"j\",\"treatment_guide\":\"n\"},\"version\":5}"
                         },
                         "description": "Route name: api.v1.hmo.provider-update.\n\nRequired permission checks: hmo.catalog.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -9267,7 +9346,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"is_active\":false,\"preauth_required\":true,\"details\":{\"phone\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"address\":\"d\",\"contact_person\":\"l\",\"billing_frequency\":\"j\",\"treatment_guide\":\"n\"},\"version\":5}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"is_active\":true,\"preauth_required\":false,\"details\":{\"phone\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"address\":\"d\",\"contact_person\":\"l\",\"billing_frequency\":\"j\",\"treatment_guide\":\"n\"},\"version\":5}"
                         },
                         "description": "Route name: api.v1.hmo.plan-update.\n\nRequired permission checks: hmo.catalog.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -9334,7 +9413,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"plan_id\":7,\"expected_version\":16,\"filename\":\"m\",\"csv_content\":\"i\",\"approval_reference\":\"y\",\"effective_at\":\"1530-12-04\"}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"plan_id\":7,\"expected_version\":16,\"filename\":\"m\",\"csv_content\":\"i\",\"approval_reference\":\"y\",\"effective_at\":\"1283-07-05\"}"
                         },
                         "description": "Route name: api.v1.hmo.tariff-import.\n\nRequired permission checks: hmo.tariffs.import. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -9476,7 +9555,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"provider_id\":7,\"amount\":\"z\",\"reference\":\"m\",\"method\":\"cash\",\"payer_name\":\"i\",\"received_at\":\"1530-12-04\",\"externally_confirmed\":true,\"transaction_details\":[\"g\"]}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"provider_id\":7,\"amount\":\"z\",\"reference\":\"m\",\"method\":\"pos\",\"payer_name\":\"i\",\"received_at\":\"1283-07-05\",\"externally_confirmed\":true,\"transaction_details\":[\"g\"]}"
                         },
                         "description": "Route name: api.v1.hmo.remittance-create.\n\nRequired permission checks: hmo.settlements.record. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -10223,7 +10302,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"plan_id\":16,\"member_number\":\"m\",\"valid_from\":\"1530-12-04\",\"valid_until\":\"2052-12-13\",\"verification_reference\":\"n\",\"verified\":true,\"group_number\":\"g\",\"employer_name\":\"z\"}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"plan_id\":16,\"member_number\":\"m\",\"valid_from\":\"1283-07-05\",\"valid_until\":\"2052-12-13\",\"verification_reference\":\"n\",\"verified\":true,\"group_number\":\"g\",\"employer_name\":\"z\"}"
                         },
                         "description": "Route name: api.v1.hmo.coverage-create.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.coverages.verify. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -10379,7 +10458,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"coverage_id\":16,\"encounter_id\":17,\"encounter_version\":15,\"subject_type\":\"drug\",\"subject_id\":8,\"status\":\"approved\",\"limit\":\"v\",\"reference\":\"d\",\"approved_at\":\"1530-12-04\",\"valid_from\":\"1530-12-04\",\"valid_until\":\"2052-12-13\",\"externally_verified\":true}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"coverage_id\":16,\"encounter_id\":17,\"encounter_version\":15,\"subject_type\":\"drug\",\"subject_id\":8,\"status\":\"approved\",\"limit\":\"v\",\"reference\":\"d\",\"approved_at\":\"1275-04-30\",\"valid_from\":\"1275-04-30\",\"valid_until\":\"2052-12-13\",\"externally_verified\":true}"
                         },
                         "description": "Route name: api.v1.hmo.preauth-create.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.preauthorizations.record. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -10535,7 +10614,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"coverage_id\":16,\"encounter_id\":17,\"encounter_version\":15,\"split_confirmed\":true,\"sources\":[{\"type\":\"investigation\",\"id\":1,\"tariff_id\":22,\"patient_amount\":\"g\",\"insurer_amount\":\"z\",\"benefit_reference\":\"m\",\"preauth_id\":15}]}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"coverage_id\":16,\"encounter_id\":17,\"encounter_version\":15,\"split_confirmed\":true,\"sources\":[{\"type\":\"performed\",\"id\":1,\"tariff_id\":22,\"patient_amount\":\"g\",\"insurer_amount\":\"z\",\"benefit_reference\":\"m\",\"preauth_id\":15}]}"
                         },
                         "description": "Route name: api.v1.hmo.invoice.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.invoices.post. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -10610,7 +10689,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"invoice_id\":16,\"reference\":\"m\",\"submitted_at\":\"1530-12-04\",\"externally_submitted\":true}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"invoice_id\":16,\"reference\":\"m\",\"submitted_at\":\"1275-04-30\",\"externally_submitted\":true}"
                         },
                         "description": "Route name: api.v1.hmo.claim-submit.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.claims.submit. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -10691,7 +10770,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"reference\":\"z\",\"submitted_at\":\"1530-12-04\",\"externally_submitted\":true}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"reference\":\"z\",\"submitted_at\":\"1275-04-30\",\"externally_submitted\":true}"
                         },
                         "description": "Route name: api.v1.hmo.claim-resubmit.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.claims.submit. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -10766,7 +10845,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"claim_id\":16,\"submission_id\":17,\"reference\":\"i\",\"occurred_at\":\"1530-12-04\",\"lines\":[{\"item_id\":1,\"approved_amount\":\"n\",\"reason\":\"g\"}]}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"claim_id\":16,\"submission_id\":17,\"reference\":\"i\",\"occurred_at\":\"1275-04-30\",\"lines\":[{\"item_id\":1,\"approved_amount\":\"n\",\"reason\":\"g\"}]}"
                         },
                         "description": "Route name: api.v1.hmo.decision-record.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.decisions.record. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -10847,7 +10926,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"version\":16,\"outcome\":\"accepted\",\"externally_verified\":true}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"version\":16,\"outcome\":\"rejected\",\"externally_verified\":true}"
                         },
                         "description": "Route name: api.v1.hmo.decision-review.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.decisions.approve. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -11119,15 +11198,15 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "voided",
+                                    "value": "draft",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "current",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "page",
@@ -11142,7 +11221,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/results?patient_id=1&encounter_id=22&item_id=7&author_id=16&status=voided&current=1&page=17&per_page=15"
+                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/results?patient_id=1&encounter_id=22&item_id=7&author_id=16&status=draft&current=&page=17&per_page=15"
                         },
                         "method": "GET",
                         "header": [
@@ -11208,7 +11287,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "submitted",
+                                    "value": "voided",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -11231,7 +11310,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/items\/:investigationItem\/results?patient_id=1&encounter_id=22&item_id=7&author_id=16&status=submitted&current=&page=17&per_page=15",
+                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/items\/:investigationItem\/results?patient_id=1&encounter_id=22&item_id=7&author_id=16&status=voided&current=&page=17&per_page=15",
                             "variable": [
                                 {
                                     "id": "investigationItem",
@@ -11434,7 +11513,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "released",
+                                    "value": "draft",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -11457,7 +11536,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/items\/:investigationItem\/results\/:investigationResult\/history?patient_id=1&encounter_id=22&item_id=7&author_id=16&status=released&current=1&page=17&per_page=15",
+                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/items\/:investigationItem\/results\/:investigationResult\/history?patient_id=1&encounter_id=22&item_id=7&author_id=16&status=draft&current=1&page=17&per_page=15",
                             "variable": [
                                 {
                                     "id": "investigationItem",
@@ -12123,7 +12202,7 @@
                                 },
                                 {
                                     "key": "department",
-                                    "value": "laboratory",
+                                    "value": "radiology",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -12158,7 +12237,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/orders?patient_id=1&encounter_id=22&ordered_by=7&order_id=16&department=laboratory&status=collected&priority=routine&active=&page=17&per_page=15"
+                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/orders?patient_id=1&encounter_id=22&ordered_by=7&order_id=16&department=radiology&status=collected&priority=routine&active=&page=17&per_page=15"
                         },
                         "method": "GET",
                         "header": [
@@ -12230,13 +12309,13 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "cancelled",
+                                    "value": "completed",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "priority",
-                                    "value": "routine",
+                                    "value": "urgent",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -12259,7 +12338,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/queue?patient_id=1&encounter_id=22&ordered_by=7&order_id=16&department=laboratory&status=cancelled&priority=routine&active=&page=17&per_page=15"
+                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/queue?patient_id=1&encounter_id=22&ordered_by=7&order_id=16&department=laboratory&status=completed&priority=urgent&active=&page=17&per_page=15"
                         },
                         "method": "GET",
                         "header": [
@@ -12460,7 +12539,7 @@
                                 },
                                 {
                                     "key": "priority",
-                                    "value": "routine",
+                                    "value": "urgent",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -12483,7 +12562,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/orders\/:investigationOrder\/history?patient_id=1&encounter_id=22&ordered_by=7&order_id=16&department=laboratory&status=processing&priority=routine&active=&page=17&per_page=15",
+                            "raw": "{{baseUrl}}\/api\/v1\/investigations\/orders\/:investigationOrder\/history?patient_id=1&encounter_id=22&ordered_by=7&order_id=16&department=laboratory&status=processing&priority=urgent&active=&page=17&per_page=15",
                             "variable": [
                                 {
                                     "id": "investigationOrder",
@@ -13134,15 +13213,15 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "available",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "page",
@@ -13157,7 +13236,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/locations\/wards?ward_id=1&active=1&available=1&page=22&per_page=7"
+                            "raw": "{{baseUrl}}\/api\/v1\/locations\/wards?ward_id=1&active=&available=&page=22&per_page=7"
                         },
                         "method": "GET",
                         "header": [
@@ -14078,7 +14157,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"current_password\":\"g\",\"version\":16,\"dispense_id\":17,\"quantity\":\"iyvdljnikhwaykcm\",\"disposition\":\"expired\",\"usable_confirmed\":true}"
+                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"current_password\":\"g\",\"version\":16,\"dispense_id\":17,\"quantity\":\"iyvdljnikhwaykcm\",\"disposition\":\"damaged\",\"usable_confirmed\":false}"
                         },
                         "description": "Route name: api.v1.medications.return-request.\n\nRequired permission checks: patients.view, encounters.view, prescriptions.view, medications.view, medications.returns.request. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -14303,7 +14382,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"current_password\":\"g\",\"version\":16,\"dispense_id\":17,\"quantity\":\"iyvdljnikhwaykcm\",\"observed_at\":\"2026-11-20T01:18:13\"}"
+                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"current_password\":\"g\",\"version\":16,\"dispense_id\":17,\"quantity\":\"iyvdljnikhwaykcm\",\"observed_at\":\"2026-11-20T01:48:35\"}"
                         },
                         "description": "Route name: api.v1.medications.administer.\n\nRequired permission checks: patients.view, encounters.view, prescriptions.view, medications.view, medications.administer. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -14378,7 +14457,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"current_password\":\"g\",\"version\":16,\"dispense_id\":17,\"quantity\":\"iyvdljnikhwaykcm\",\"observed_at\":\"2026-11-20T01:18:13\",\"administration_id\":8}"
+                            "raw": "{\"encounter_version\":1,\"reason\":\"n\",\"current_password\":\"g\",\"version\":16,\"dispense_id\":17,\"quantity\":\"iyvdljnikhwaykcm\",\"observed_at\":\"2026-11-20T01:48:35\",\"administration_id\":8}"
                         },
                         "description": "Route name: api.v1.medications.correct.\n\nRequired permission checks: patients.view, encounters.view, prescriptions.view, medications.view, medications.correct. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -14483,7 +14562,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"page\":16,\"per_page\":22,\"include_inactive\":false,\"reminder_id\":67}"
+                            "raw": "{\"page\":16,\"per_page\":22,\"include_inactive\":true,\"reminder_id\":67}"
                         },
                         "description": "Route name: api.v1.notifications.index.\n\nRequired permission checks: notifications.view. Record visibility and workflow restrictions also apply."
                     },
@@ -14799,7 +14878,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"version\":1,\"snooze_until\":\"9867-09-18\"}"
+                            "raw": "{\"version\":1,\"snooze_until\":\"3962-03-04\"}"
                         },
                         "description": "Route name: api.v1.notifications.snoozed.\n\nRequired permission checks: notifications.view, notifications.update. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -14891,7 +14970,7 @@
                             "query": [
                                 {
                                     "key": "status",
-                                    "value": "voided",
+                                    "value": "signed",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -14914,7 +14993,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/prescriptions?status=voided&order_status=completed&page=1&per_page=22",
+                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/prescriptions?status=signed&order_status=completed&page=1&per_page=22",
                             "variable": [
                                 {
                                     "id": "encounter",
@@ -15018,13 +15097,13 @@
                             "query": [
                                 {
                                     "key": "status",
-                                    "value": "voided",
+                                    "value": "signed",
                                     "description": "",
                                     "disabled": false
                                 },
                                 {
                                     "key": "order_status",
-                                    "value": "completed",
+                                    "value": "active",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -15041,7 +15120,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/prescriptions\/:clinicalRecord\/history?status=voided&order_status=completed&page=1&per_page=22",
+                            "raw": "{{baseUrl}}\/api\/v1\/encounters\/:encounter\/prescriptions\/:clinicalRecord\/history?status=signed&order_status=active&page=1&per_page=22",
                             "variable": [
                                 {
                                     "id": "encounter",
@@ -15670,7 +15749,7 @@
                                 },
                                 {
                                     "key": "queue",
-                                    "value": "in_progress",
+                                    "value": "unassigned",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -15717,7 +15796,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/queues?status=cancelled&queue=in_progress&doctor_id=1&patient_id=22&care_setting=OPD&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16"
+                            "raw": "{{baseUrl}}\/api\/v1\/queues?status=cancelled&queue=unassigned&doctor_id=1&patient_id=22&care_setting=OPD&from_date=2026-11-20&to_date=2026-11-20&page=7&per_page=16"
                         },
                         "method": "GET",
                         "header": [
@@ -15865,7 +15944,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"page\":16,\"per_page\":22,\"is_active\":true}"
+                            "raw": "{\"page\":16,\"per_page\":22,\"is_active\":false}"
                         },
                         "description": "Route name: api.v1.reminders.index.\n\nRequired permission checks: reminders.view. Record visibility and workflow restrictions also apply."
                     },
@@ -16133,7 +16212,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"title\":\"b\",\"body\":\"n\",\"starts_at\":\"9866-07-25\",\"timezone\":\"Africa\\\/Lagos\",\"frequency\":\"daily\",\"interval\":7,\"occurrence_count\":16,\"ends_at\":\"2052-12-13\",\"recipient_ids\":[22],\"patient_id\":7,\"encounter_id\":16}"
+                            "raw": "{\"title\":\"b\",\"body\":\"n\",\"starts_at\":\"3962-03-04\",\"timezone\":\"Africa\\\/Lagos\",\"frequency\":\"weekly\",\"interval\":7,\"occurrence_count\":16,\"ends_at\":\"2052-12-13\",\"recipient_ids\":[22],\"patient_id\":7,\"encounter_id\":16}"
                         },
                         "description": "Route name: api.v1.reminders.created.\n\nRequired permission checks: reminders.view, reminders.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -16208,7 +16287,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"title\":\"b\",\"body\":\"n\",\"starts_at\":\"9866-07-25\",\"timezone\":\"Africa\\\/Lagos\",\"frequency\":\"daily\",\"interval\":7,\"occurrence_count\":16,\"ends_at\":\"2052-12-13\",\"recipient_ids\":[22],\"version\":7}"
+                            "raw": "{\"title\":\"b\",\"body\":\"n\",\"starts_at\":\"3962-03-04\",\"timezone\":\"Africa\\\/Lagos\",\"frequency\":\"monthly\",\"interval\":7,\"occurrence_count\":16,\"ends_at\":\"2052-12-13\",\"recipient_ids\":[22],\"version\":7}"
                         },
                         "description": "Route name: api.v1.reminders.updated.\n\nRequired permission checks: reminders.view, reminders.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -16335,7 +16414,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16346,7 +16425,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/options?from_date=8832-04-19&to_date=2052-12-13"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/options?from_date=2927-12-02&to_date=2052-12-13"
                         },
                         "method": "GET",
                         "header": [
@@ -16388,7 +16467,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16417,7 +16496,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/activity?from_date=8832-04-19&to_date=2052-12-13&patient_id=22&encounter_id=7&doctor_id=16"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/activity?from_date=2927-12-02&to_date=2052-12-13&patient_id=22&encounter_id=7&doctor_id=16"
                         },
                         "method": "GET",
                         "header": [
@@ -16459,7 +16538,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16489,12 +16568,12 @@
                                 },
                                 {
                                     "key": "module",
-                                    "value": "registry",
+                                    "value": "encounters",
                                     "description": "",
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/trend?from_date=8832-04-19&to_date=2052-12-13&patient_id=22&encounter_id=7&doctor_id=16&module=registry"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/trend?from_date=2927-12-02&to_date=2052-12-13&patient_id=22&encounter_id=7&doctor_id=16&module=encounters"
                         },
                         "method": "GET",
                         "header": [
@@ -16536,7 +16615,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16559,7 +16638,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/inventory?from_date=8832-04-19&to_date=2052-12-13&store_id=22&drug_id=7"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/inventory?from_date=2927-12-02&to_date=2052-12-13&store_id=22&drug_id=7"
                         },
                         "method": "GET",
                         "header": [
@@ -16601,7 +16680,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16636,7 +16715,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/positions?from_date=8832-04-19&to_date=2052-12-13&store_id=22&drug_id=7&page=66&per_page=17"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/positions?from_date=2927-12-02&to_date=2052-12-13&store_id=22&drug_id=7&page=66&per_page=17"
                         },
                         "method": "GET",
                         "header": [
@@ -16678,7 +16757,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16713,7 +16792,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/movements?from_date=8832-04-19&to_date=2052-12-13&store_id=22&drug_id=7&page=66&per_page=17"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/movements?from_date=2927-12-02&to_date=2052-12-13&store_id=22&drug_id=7&page=66&per_page=17"
                         },
                         "method": "GET",
                         "header": [
@@ -16755,7 +16834,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16772,7 +16851,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/billing?from_date=8832-04-19&to_date=2052-12-13&patient_id=22"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/billing?from_date=2927-12-02&to_date=2052-12-13&patient_id=22"
                         },
                         "method": "GET",
                         "header": [
@@ -16814,7 +16893,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16843,7 +16922,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/accounts?from_date=8832-04-19&to_date=2052-12-13&patient_id=22&page=67&per_page=16"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/accounts?from_date=2927-12-02&to_date=2052-12-13&patient_id=22&page=67&per_page=16"
                         },
                         "method": "GET",
                         "header": [
@@ -16885,7 +16964,7 @@
                             "query": [
                                 {
                                     "key": "from_date",
-                                    "value": "8832-04-19",
+                                    "value": "2927-12-02",
                                     "description": "Must be a valid date in the format Y-m-d. Must be a date after or equal to 1000-01-02. Must be a date before or equal to 9999-12-30.",
                                     "disabled": false
                                 },
@@ -16902,7 +16981,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/reports\/hmo?from_date=8832-04-19&to_date=2052-12-13&patient_id=22"
+                            "raw": "{{baseUrl}}\/api\/v1\/reports\/hmo?from_date=2927-12-02&to_date=2052-12-13&patient_id=22"
                         },
                         "method": "GET",
                         "header": [
@@ -16956,7 +17035,7 @@
                                 },
                                 {
                                     "key": "sort",
-                                    "value": "-name",
+                                    "value": "username",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -16973,7 +17052,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/staff?q=b&sort=-name&page=22&per_page=7"
+                            "raw": "{{baseUrl}}\/api\/v1\/staff?q=b&sort=username&page=22&per_page=7"
                         },
                         "method": "GET",
                         "header": [
@@ -17075,7 +17154,7 @@
                                 },
                                 {
                                     "key": "sort",
-                                    "value": "-username",
+                                    "value": "name",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -17092,7 +17171,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/staff-management?q=b&sort=-username&page=22&per_page=7"
+                            "raw": "{{baseUrl}}\/api\/v1\/staff-management?q=b&sort=name&page=22&per_page=7"
                         },
                         "method": "GET",
                         "header": [
@@ -17318,7 +17397,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"middle_name\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"staff_code\":\"d\",\"department_id\":16,\"role_codes\":[\"architecto\"],\"is_active\":false,\"current_password\":\"n\",\"version\":67}"
+                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"middle_name\":\"g\",\"email\":\"rowan.gulgowski@example.com\",\"staff_code\":\"d\",\"department_id\":16,\"role_codes\":[\"architecto\"],\"is_active\":true,\"current_password\":\"n\",\"version\":67}"
                         },
                         "description": "Route name: api.v1.staff-management.update.\n\nRequired permission checks: update,user. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -17463,9 +17542,9 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "store_id",
@@ -17493,7 +17572,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "submitted",
+                                    "value": "rejected",
                                     "description": "Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.",
                                     "disabled": false
                                 },
@@ -17516,7 +17595,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/catalog\/:id?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=submitted&through_id=1&currency=ZMI%24%2FD&code=y",
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/catalog\/:id?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=rejected&through_id=1&currency=ZMI%24%2FD&code=y",
                             "variable": [
                                 {
                                     "id": "id",
@@ -17668,7 +17747,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "rejected",
+                                    "value": "cancelled",
                                     "description": "Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.",
                                     "disabled": false
                                 },
@@ -17691,7 +17770,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/catalog\/:catalog\/:stockRecord\/history?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=rejected&through_id=1&currency=ZMI%24%2FD&code=y",
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/catalog\/:catalog\/:stockRecord\/history?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=cancelled&through_id=1&currency=ZMI%24%2FD&code=y",
                             "variable": [
                                 {
                                     "id": "catalog",
@@ -17776,7 +17855,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"code\":\"g\",\"name\":\"z\",\"base_unit_id\":17,\"quantity_scale\":5,\"generic_name\":\"y\",\"brand_name\":\"v\",\"strength\":\"d\",\"dosage_form\":\"l\",\"category\":\"j\",\"is_active\":false,\"approval_reference\":\"n\",\"drug_id\":5,\"expected_version\":8,\"base_quantity\":\"hwaykcmyuwpwlvqw\",\"contact_name\":\"r\",\"phone\":\"s\",\"alternate_phone\":\"i\",\"email\":\"pfritsch@example.com\",\"address\":\"c\",\"kind\":\"main\",\"department_id\":17,\"batch_number\":\"l\",\"manufacturer\":\"d\",\"manufactured_on\":\"2026-11-20\",\"expires_on\":\"2026-11-20\",\"currency\":\"ZMI$\\\/D\",\"amount\":\"yvdljnikhwaykcmy\",\"effective_at\":\"2026-11-20T01:18:13.000000Z\"}"
+                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"code\":\"g\",\"name\":\"z\",\"base_unit_id\":17,\"quantity_scale\":5,\"generic_name\":\"y\",\"brand_name\":\"v\",\"strength\":\"d\",\"dosage_form\":\"l\",\"category\":\"j\",\"is_active\":false,\"approval_reference\":\"n\",\"drug_id\":5,\"expected_version\":8,\"base_quantity\":\"hwaykcmyuwpwlvqw\",\"contact_name\":\"r\",\"phone\":\"s\",\"alternate_phone\":\"i\",\"email\":\"pfritsch@example.com\",\"address\":\"c\",\"kind\":\"main\",\"department_id\":17,\"batch_number\":\"l\",\"manufacturer\":\"d\",\"manufactured_on\":\"2026-11-20\",\"expires_on\":\"2026-11-20\",\"currency\":\"ZMI$\\\/D\",\"amount\":\"yvdljnikhwaykcmy\",\"effective_at\":\"2026-11-20T01:48:35.000000Z\"}"
                         },
                         "description": "Route name: api.v1.stock.catalog.store.\n\nRequired permission checks: stock.catalog.view, stock.catalog.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -17857,7 +17936,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"version\":7,\"name\":\"z\",\"is_active\":true,\"approval_reference\":\"m\",\"drug_id\":15,\"expected_version\":8,\"base_quantity\":\"vdljnikhwaykcmyu\",\"contact_name\":\"w\",\"phone\":\"p\",\"alternate_phone\":\"w\",\"email\":\"emelie.baumbach@example.net\",\"address\":\"s\",\"batch_number\":\"i\",\"manufacturer\":\"t\",\"manufactured_on\":\"2026-11-20\",\"expires_on\":\"2026-11-20\",\"kind\":\"selling\",\"currency\":\"ZMI$\\\/D\",\"amount\":\"yvdljnikhwaykcmy\",\"effective_at\":\"2026-11-20T01:18:14.000000Z\"}"
+                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"version\":7,\"name\":\"z\",\"is_active\":true,\"approval_reference\":\"m\",\"drug_id\":15,\"expected_version\":8,\"base_quantity\":\"vdljnikhwaykcmyu\",\"contact_name\":\"w\",\"phone\":\"p\",\"alternate_phone\":\"w\",\"email\":\"emelie.baumbach@example.net\",\"address\":\"s\",\"batch_number\":\"i\",\"manufacturer\":\"t\",\"manufactured_on\":\"2026-11-20\",\"expires_on\":\"2026-11-20\",\"kind\":\"selling\",\"currency\":\"ZMI$\\\/D\",\"amount\":\"yvdljnikhwaykcmy\",\"effective_at\":\"2026-11-20T01:48:35.000000Z\"}"
                         },
                         "description": "Route name: api.v1.stock.catalog.update.\n\nRequired permission checks: stock.catalog.view, stock.catalog.manage. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -17921,9 +18000,9 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "store_id",
@@ -17951,7 +18030,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "cancelled",
+                                    "value": "posted",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -17974,7 +18053,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/stores\/:stockStore\/access?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=cancelled&through_id=1&currency=ZMI%24%2FD&code=y",
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/stores\/:stockStore\/access?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=posted&through_id=1&currency=ZMI%24%2FD&code=y",
                             "variable": [
                                 {
                                     "id": "stockStore",
@@ -18072,7 +18151,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "submitted",
+                                    "value": "rejected",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -18095,7 +18174,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/stores\/:stockStore\/access\/:stockStaff\/history?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=submitted&through_id=1&currency=ZMI%24%2FD&code=y",
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/stores\/:stockStore\/access\/:stockStaff\/history?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=rejected&through_id=1&currency=ZMI%24%2FD&code=y",
                             "variable": [
                                 {
                                     "id": "stockStore",
@@ -18290,9 +18369,9 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "store_id",
@@ -18320,7 +18399,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "submitted",
+                                    "value": "draft",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -18343,7 +18422,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/my-stores?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=submitted&through_id=1&currency=ZMI%24%2FD&code=y"
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/my-stores?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=draft&through_id=1&currency=ZMI%24%2FD&code=y"
                         },
                         "method": "GET",
                         "header": [
@@ -18403,9 +18482,9 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "store_id",
@@ -18456,7 +18535,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/balances?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=cancelled&through_id=1&currency=ZMI%24%2FD&code=y"
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/balances?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=cancelled&through_id=1&currency=ZMI%24%2FD&code=y"
                         },
                         "method": "GET",
                         "header": [
@@ -18516,9 +18595,9 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "",
+                                    "value": "1",
                                     "description": "",
-                                    "disabled": true
+                                    "disabled": false
                                 },
                                 {
                                     "key": "store_id",
@@ -18546,7 +18625,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "posted",
+                                    "value": "draft",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -18569,7 +18648,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/movements?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=posted&through_id=1&currency=ZMI%24%2FD&code=y"
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/movements?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=draft&through_id=1&currency=ZMI%24%2FD&code=y"
                         },
                         "method": "GET",
                         "header": [
@@ -18659,7 +18738,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "draft",
+                                    "value": "rejected",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -18682,7 +18761,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/reconciliation?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=draft&through_id=1&currency=ZMI%24%2FD&code=y"
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/reconciliation?page=1&per_page=22&q=g&active=&store_id=16&drug_id=17&batch_id=15&kind=y&status=rejected&through_id=1&currency=ZMI%24%2FD&code=y"
                         },
                         "method": "GET",
                         "header": [
@@ -18772,7 +18851,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "draft",
+                                    "value": "submitted",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -18795,7 +18874,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/operations?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=draft&through_id=1&currency=ZMI%24%2FD&code=y"
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/operations?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=submitted&through_id=1&currency=ZMI%24%2FD&code=y"
                         },
                         "method": "GET",
                         "header": [
@@ -18858,7 +18937,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"kind\":\"transfer\",\"source_store_id\":7,\"destination_store_id\":16,\"source_store_version\":17,\"destination_store_version\":15,\"supplier_id\":8,\"supplier_version\":1,\"invoice_number\":\"d\",\"currency\":\"ZMI$\\\/D\",\"reference\":\"y\",\"items\":[{\"batch_id\":1,\"drug_version\":22,\"pack_id\":7,\"pack_count\":\"zmiyvdljnikhwayk\",\"quantity\":\"cmyuwpwlvqwrsitc\",\"unit_cost\":\"pscqldzsnrwtujwv\",\"source_balance_version\":24}]}"
+                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"kind\":\"adjustment_in\",\"source_store_id\":7,\"destination_store_id\":16,\"source_store_version\":17,\"destination_store_version\":15,\"supplier_id\":8,\"supplier_version\":1,\"invoice_number\":\"d\",\"currency\":\"ZMI$\\\/D\",\"reference\":\"y\",\"items\":[{\"batch_id\":1,\"drug_version\":22,\"pack_id\":7,\"pack_count\":\"zmiyvdljnikhwayk\",\"quantity\":\"cmyuwpwlvqwrsitc\",\"unit_cost\":\"pscqldzsnrwtujwv\",\"source_balance_version\":24}]}"
                         },
                         "description": "Route name: api.v1.stock.store.\n\nRequired permission checks: stock.view. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
@@ -19000,7 +19079,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "cancelled",
+                                    "value": "rejected",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -19023,7 +19102,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/stock\/operations\/:stockOperation\/history?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=cancelled&through_id=1&currency=ZMI%24%2FD&code=y",
+                            "raw": "{{baseUrl}}\/api\/v1\/stock\/operations\/:stockOperation\/history?page=1&per_page=22&q=g&active=1&store_id=16&drug_id=17&batch_id=15&kind=y&status=rejected&through_id=1&currency=ZMI%24%2FD&code=y",
                             "variable": [
                                 {
                                     "id": "stockOperation",
@@ -19102,7 +19181,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"version\":7,\"kind\":\"receipt\",\"source_store_id\":16,\"destination_store_id\":17,\"source_store_version\":15,\"destination_store_version\":8,\"supplier_id\":1,\"supplier_version\":1,\"invoice_number\":\"l\",\"currency\":\"ZMI$\\\/D\",\"reference\":\"y\",\"items\":[{\"batch_id\":1,\"drug_version\":22,\"pack_id\":7,\"pack_count\":\"zmiyvdljnikhwayk\",\"quantity\":\"cmyuwpwlvqwrsitc\",\"unit_cost\":\"pscqldzsnrwtujwv\",\"source_balance_version\":24}]}"
+                            "raw": "{\"reason\":\"b\",\"current_password\":\"n\",\"version\":7,\"kind\":\"damage\",\"source_store_id\":16,\"destination_store_id\":17,\"source_store_version\":15,\"destination_store_version\":8,\"supplier_id\":1,\"supplier_version\":1,\"invoice_number\":\"l\",\"currency\":\"ZMI$\\\/D\",\"reference\":\"y\",\"items\":[{\"batch_id\":1,\"drug_version\":22,\"pack_id\":7,\"pack_count\":\"zmiyvdljnikhwayk\",\"quantity\":\"cmyuwpwlvqwrsitc\",\"unit_cost\":\"pscqldzsnrwtujwv\",\"source_balance_version\":24}]}"
                         },
                         "description": "Route name: api.v1.stock.update.\n\nRequired permission checks: stock.view. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },

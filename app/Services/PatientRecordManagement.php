@@ -173,6 +173,9 @@ class PatientRecordManagement
     private function card(Patient $patient, User $actor, array $data): int
     {
         $mrn = $data['mrn'] ?? $patient->mrn;
+        if ($mrn !== $patient->mrn) {
+            app(PatientNumbers::class)->assertNotReserved($mrn);
+        }
         if ($patient->category_id === (int) $data['category_id'] && $patient->mrn === $mrn) {
             throw new WriteConflict('no_patient_change', 'Choose a different category or a new patient number.');
         }

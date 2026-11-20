@@ -69,7 +69,7 @@ class PatientConcurrencyTest extends TestCase
     private function data(): array
     {
         return ['mrn' => 'PARALLEL-001', 'first_name' => 'Concurrent', 'last_name' => 'Patient',
-            'date_of_birth' => '2000-01-01', 'category_id' => PatientCategory::where('code', 'private')->sole()->id,
+            'date_of_birth' => '2000-01-01', 'category_id' => PatientCategory::where('code', 'company')->sole()->id,
             'contacts' => [['name' => 'Synthetic kin', 'relationship' => 'parent', 'phone' => '+2348000000000']]];
     }
 

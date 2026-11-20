@@ -50,7 +50,8 @@ class StorePatientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'mrn' => ['required', 'string', 'max:64', 'regex:/^[A-Z0-9][A-Z0-9\/._-]*$/D', Rule::unique('patient_identifiers', 'identifier')],
+            'mrn' => ['sometimes', 'required', 'string', 'max:64', 'regex:/^[A-Z0-9][A-Z0-9\/._-]*$/D', Rule::unique('patient_identifiers', 'identifier')],
+            'number_reservation_token' => ['sometimes', 'required', 'string', 'regex:/^[a-f0-9]{64}$/D'],
             'first_name' => ['required', 'string', 'max:64'],
             'last_name' => ['required', 'string', 'max:64'],
             'middle_name' => ['sometimes', 'nullable', 'string', 'max:64'],

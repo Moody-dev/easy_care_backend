@@ -172,7 +172,8 @@
     "2026_11_18_230113_create_document_exports_table.php": "d69082ad16a357d9da376a883b8fb855c38a8907e0e0dc437d325efc2e845ac4",
     "2026_11_19_022314_add_read_path_indexes.php": "daea88d06ca6eb3c3ca6ca4f8973f2cf706d44985128daf34fef2a124a18d0a2",
     "2026_11_19_034432_create_hospital_price_imports_table.php": "01ca84d89c85136107f02d6e4f8bfdd36955868e6356740b94c114784d2172f5",
-    "2026_11_19_133903_create_accommodation_assessments_table.php": "587aefe3c8c252954fc1969e93cfc70b50033fda8beef9673b986e9ae33eee85"
+    "2026_11_19_133903_create_accommodation_assessments_table.php": "587aefe3c8c252954fc1969e93cfc70b50033fda8beef9673b986e9ae33eee85",
+    "2026_11_20_013045_create_patient_number_reservations.php": "124a893f3fbf54e417d440b01f84c53c2f4f8428f941cf5dc5a2ac2ebfbc4b75"
   },
   "sql_sha256": "0d43e685ead1019afd8d74dc04d3865af9bd3d787b34f81c341f8a0341bd9401",
   "integer_ranges": {
@@ -744,5 +745,10 @@
         4294967295
       ]
     }
+  },
+  "postgres_migrations": {
+    "2026_11_19_194635_create_postgresql_testing_baseline.php": "21632da63748acc1a7df179a6aa86e9dfd16cd330a3d7e212b9c7be7cab1841a",
+    "2026_11_19_204637_preserve_postgresql_integer_storage_bounds.php": "074ef797303d228751479391fb6a392185959c4e0c90cb1af68bdb3696bb0c0a",
+    "2026_11_20_013045_create_patient_number_reservations.php": "9170d94df721fc96d08d1fe95c86ba1ecd26270051cac9d2a88e333b31c68167"
   }
 }

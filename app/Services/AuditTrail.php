@@ -9,6 +9,7 @@ use InvalidArgumentException;
 class AuditTrail
 {
     public const ACTIONS = [
+        'patient.number_reserved',
         'prices.imported', 'prices.units_confirmed', 'admission.accommodation_assessed',
         'export.generated','export.viewed','export.downloaded','export.printed',
         'dashboard.viewed','report.viewed',
@@ -122,6 +123,7 @@ class AuditTrail
             'file.uploaded' => ['byte_size', 'mime_type'],
             'file.integrity_checked' => ['checked', 'missing', 'corrupt', 'orphaned'],
             'patient.created' => ['version', 'category_id', 'contact_count', 'duplicates_acknowledged'],
+            'patient.number_reserved' => ['category_id', 'record_id'],
             'patient.updated' => ['version', 'changed_fields', 'contacts_changed'],
             'prescription.created', 'prescription.updated', 'prescription.signed', 'prescription.amended', 'prescription.voided',
             'prescription.stopped', 'prescription.completed',

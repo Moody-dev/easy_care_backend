@@ -51,6 +51,12 @@ class ApiParameters extends GetFromFormRequestBase
             }
         }
         $customData = [];
+        if ($reflection->getShortName() === 'StorePatientRequest') {
+            $customData = [
+                'mrn' => ['description' => 'Required only for categories using staff-entered numbers. For Private/Walk-in, omit or echo the exact reserved number; it is read-only.'],
+                'number_reservation_token' => ['description' => 'Required for Private/Walk-in. Obtain it from POST /api/v1/patients/number-reservations using the same staff session.'],
+            ];
+        }
         if (count($variants) > 1) {
             foreach ($rules as $key => &$fieldRules) {
                 $required = $requiredIn[$key] ?? [];

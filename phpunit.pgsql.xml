@@ -27,6 +27,8 @@
             <file>tests/Feature/MedicationFulfillmentApiTest.php</file>
             <file>tests/Feature/MedicationPricingTest.php</file>
             <file>tests/Feature/PatientApiTest.php</file>
+            <file>tests/Feature/PatientNumberReservationTest.php</file>
+            <file>tests/Feature/PatientNumberConcurrencyTest.php</file>
             <file>tests/Feature/PatientClinicalHistoryTest.php</file>
             <file>tests/Feature/PatientRecordManagementTest.php</file>
             <file>tests/Feature/PostgresAdmissionConcurrencyTest.php</file>

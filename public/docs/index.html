@@ -164,6 +164,9 @@
                                                                                 <li class="tocify-item level-2" data-unique="patients-GETapi-v1-patients-options">
                                 <a href="#patients-GETapi-v1-patients-options">Patients / Options</a>
                             </li>
+                                                                                <li class="tocify-item level-2" data-unique="patients-POSTapi-v1-patients-number-reservations">
+                                <a href="#patients-POSTapi-v1-patients-number-reservations">Patients / Number Reservations / Store</a>
+                            </li>
                                                                                 <li class="tocify-item level-2" data-unique="patients-POSTapi-v1-patients-duplicate-check">
                                 <a href="#patients-POSTapi-v1-patients-duplicate-check">Patients / Duplicates</a>
                             </li>
@@ -1151,6 +1154,12 @@
 <h2 id="permissions-and-visibility">Permissions and visibility</h2>
 <p>Each endpoint lists its route permission checks. Staff need active accounts and explicit grants; administrator or department membership does not automatically grant patient, clinical, stock, billing or reporting access. Restricted or merged records, clinician assignment, store membership and workflow state can further limit access. An options response describes supported choices; it does not grant permission to save them. A 404 can conceal an inaccessible record.</p>
 <h2 id="writes-versions-and-retries">Writes, versions and retries</h2>
+<h3 id="reserved-registration-numbers">Reserved registration numbers</h3>
+<p>Read <code>GET /api/v1/patients/options</code> first. Private uses <code>PVT</code> and Walk-in uses <code>WLK</code>; their <code>numbering_mode</code> is <code>reservation_required</code>. Other categories retain <code>staff_entered</code> numbering until their formats are confirmed.</p>
+<p>For Private/Walk-in, send <code>POST /api/v1/patients/number-reservations</code> with <code>{"category_id":1}</code> using the selected category's actual ID, session cookies, CSRF and an <code>Idempotency-Key</code>. Staff need both patient-view and patient-create permissions. Display the returned <code>data.mrn</code> in a read-only field and retain <code>data.number_reservation_token</code>. Retrying the same reservation key returns the same number and token; changing category needs a new reservation intent/key. IDs in examples are synthetic.</p>
+<p>Submit the token with the registration demographics to <code>POST /api/v1/patients</code>, using a separate registration idempotency key. Omit <code>mrn</code> or echo the reserved value exactly. The backend verifies the category and staff ownership, creates the patient and consumes the reservation atomically. If the save fails, the reservation remains available to that staff member. If the response is lost, retry the original registration key and payload; do not create a new registration intent for the consumed token.</p>
+<p>Each prefix advances independently (<code>PVT-01</code>, <code>PVT-02</code>, ...; <code>WLK-01</code>, <code>WLK-02</code>, ...). Counters start above matching existing and retired identifiers. Numbers are retained without automatic expiry/reuse, so abandoning or switching a form can leave gaps; a gap is not an extra patient. Reservations belong to the requesting staff account, not a browser tab or patient record. Do not share tokens across staff accounts. Existing patient numbers are unchanged, and demographic editing cannot change them. The frontend team implements the read-only field and these requests; this backend change does not alter its screens.</p>
+<h3 id="command-submission">Command submission</h3>
 <p>Endpoints marked as commands require <code>Idempotency-Key</code>: 16–128 characters, starting with a letter/digit and containing letters, digits, dots, colons, underscores or hyphens. Generate a UUID for each new intent and set the Postman <code>idempotency_key</code> variable before sending it. If the response is lost, retry the identical method, path, payload and key as the same staff member. Do not automatically generate a new key on every retry. Changed payloads require a new intent; old keys expire and are not permanent business identifiers.</p>
 <p>Supply the latest saved <code>version</code>, related record versions, <code>workflow_version</code>, <code>account_version</code> or <code>expected_version</code> fields required by that particular endpoint. A conflict requires refreshing the affected records before resubmitting an intentional change. Never guess versions or increment them client-side. The <code>Idempotency-Replayed</code> response header indicates a retained command replay; current permissions and visibility still apply.</p>
 <p>Password confirmation uses <code>current_password</code> where required. Approval routes may require a different authorized staff member; a visible button is not authorization. Clinical templates, diagnostic schemas and tariffs are versioned. Load published options/forms before constructing the related payload. Signed and posted records retain their originals; use supported correction workflows.</p>
@@ -2126,7 +2135,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/patients/3642559314232/history?kind=entry&amp;status=voided&amp;encounter_id=1&amp;include_superseded=&amp;page=22&amp;per_page=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/patients/3642559314232/history?kind=entry&amp;status=signed&amp;encounter_id=1&amp;include_superseded=&amp;page=22&amp;per_page=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -2137,7 +2146,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "kind": "entry",
-    "status": "voided",
+    "status": "signed",
     "encounter_id": "1",
     "include_superseded": "0",
     "page": "22",
@@ -2267,10 +2276,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-patients--patient--history"
-               value="voided"
+               value="signed"
                data-component="query">
     <br>
-<p>Example: <code>voided</code></p>
+<p>Example: <code>signed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>signed</code></li> <li><code>voided</code></li></ul>
             </div>
@@ -5256,6 +5265,239 @@ You can check the Dev Tools console for debugging information.</code></pre>
             </div>
                         </form>
 
+                    <h2 id="patients-POSTapi-v1-patients-number-reservations">Patients / Number Reservations / Store</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Route name: api.v1.patients.number-reservations.store.</p>
+<p>Required permission checks: patients.view, patients.create. Record visibility and workflow restrictions also apply.</p>
+<p>Requires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required.</p>
+
+<span id="example-requests-POSTapi-v1-patients-number-reservations">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "https://easycare-development-api-production.up.railway.app/api/v1/patients/number-reservations" \
+    --header "Accept: application/json" \
+    --header "Content-Type: application/json" \
+    --header "X-CSRF-TOKEN: {{csrf_token}}" \
+    --header "Idempotency-Key: {{idempotency_key}}" \
+    --data "{
+    \"category_id\": 16
+}"
+</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "https://easycare-development-api-production.up.railway.app/api/v1/patients/number-reservations"
+);
+
+const headers = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "X-CSRF-TOKEN": "{{csrf_token}}",
+    "Idempotency-Key": "{{idempotency_key}}",
+};
+
+let body = {
+    "category_id": 16
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-patients-number-reservations">
+            <blockquote>
+            <p>Example response (200, Same-key retry returns the original reservation):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;category_id&quot;: 1,
+        &quot;mrn&quot;: &quot;PVT-01&quot;,
+        &quot;number_reservation_token&quot;: &quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;,
+        &quot;numbering_mode&quot;: &quot;reserved&quot;,
+        &quot;read_only&quot;: true
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (201, Synthetic new reservation; replace example IDs/token with returned values):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;category_id&quot;: 1,
+        &quot;mrn&quot;: &quot;PVT-01&quot;,
+        &quot;number_reservation_token&quot;: &quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&quot;,
+        &quot;numbering_mode&quot;: &quot;reserved&quot;,
+        &quot;read_only&quot;: true
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, No valid staff session):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Please sign in to continue.&quot;,
+    &quot;code&quot;: &quot;unauthenticated&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Permission or workflow access denied):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;You do not have permission to perform this action.&quot;,
+    &quot;code&quot;: &quot;forbidden&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (419, Missing or expired session/CSRF protection):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Your session has expired. Please sign in again.&quot;,
+    &quot;code&quot;: &quot;session_expired&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (422, Validation error envelope):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;The submitted data is invalid.&quot;,
+    &quot;code&quot;: &quot;validation_failed&quot;,
+    &quot;errors&quot;: {
+        &quot;field_name&quot;: [
+            &quot;Example validation message; actual field names depend on this request.&quot;
+        ]
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (429, Rate limited; respect Retry-After):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Too many requests. Please try again later.&quot;,
+    &quot;code&quot;: &quot;too_many_requests&quot;
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-POSTapi-v1-patients-number-reservations" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-patients-number-reservations"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-patients-number-reservations"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-patients-number-reservations" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-patients-number-reservations">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-patients-number-reservations" data-method="POST"
+      data-path="api/v1/patients/number-reservations"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-patients-number-reservations', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/patients/number-reservations</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-patients-number-reservations"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-patients-number-reservations"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>X-CSRF-TOKEN</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="X-CSRF-TOKEN"                data-endpoint="POSTapi-v1-patients-number-reservations"
+               value="{{csrf_token}}"
+               data-component="header">
+    <br>
+<p>Example: <code>{{csrf_token}}</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Idempotency-Key</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Idempotency-Key"                data-endpoint="POSTapi-v1-patients-number-reservations"
+               value="{{idempotency_key}}"
+               data-component="header">
+    <br>
+<p>Example: <code>{{idempotency_key}}</code></p>
+            </div>
+                                <h4 class="fancy-heading-panel"><b>Body Parameters</b></h4>
+        <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>category_id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="category_id"                data-endpoint="POSTapi-v1-patients-number-reservations"
+               value="16"
+               data-component="body">
+    <br>
+<p>Must be at least 1. Example: <code>16</code></p>
+        </div>
+        </form>
+
                     <h2 id="patients-POSTapi-v1-patients-duplicate-check">Patients / Duplicates</h2>
 
 <p>
@@ -5943,10 +6185,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Idempotency-Key: {{idempotency_key}}" \
     --data "{
     \"mrn\": \"b\",
-    \"first_name\": \"n\",
-    \"last_name\": \"g\",
-    \"middle_name\": \"z\",
-    \"sex\": \"m\",
+    \"number_reservation_token\": \"f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$\\/D\",
+    \"first_name\": \"o\",
+    \"last_name\": \"q\",
+    \"middle_name\": \"i\",
+    \"sex\": \"t\",
     \"date_of_birth\": \"2022-12-14\",
     \"dob_estimated\": true,
     \"email\": \"zbailey@example.net\",
@@ -5985,10 +6228,11 @@ const headers = {
 
 let body = {
     "mrn": "b",
-    "first_name": "n",
-    "last_name": "g",
-    "middle_name": "z",
-    "sex": "m",
+    "number_reservation_token": "f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$\/D",
+    "first_name": "o",
+    "last_name": "q",
+    "middle_name": "i",
+    "sex": "t",
     "date_of_birth": "2022-12-14",
     "dob_estimated": true,
     "email": "zbailey@example.net",
@@ -6196,14 +6440,26 @@ You can check the Dev Tools console for debugging information.</code></pre>
         <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>mrn</code></b>&nbsp;&nbsp;
 <small>string</small>&nbsp;
- &nbsp;
+<i>optional</i> &nbsp;
  &nbsp;
                 <input type="text" style="display: none"
                               name="mrn"                data-endpoint="POSTapi-v1-patients"
                value="b"
                data-component="body">
     <br>
-<p>Must match the regex /^[A-Z0-9][A-Z0-9\/._-]*$/D. Must not be greater than 64 characters. Example: <code>b</code></p>
+<p>Required only for categories using staff-entered numbers. For Private/Walk-in, omit or echo the exact reserved number; it is read-only. Must match the regex /^[A-Z0-9][A-Z0-9\/._-]*$/D. Must not be greater than 64 characters. Example: <code>b</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>number_reservation_token</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="number_reservation_token"                data-endpoint="POSTapi-v1-patients"
+               value="f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$/D"
+               data-component="body">
+    <br>
+<p>Required for Private/Walk-in. Obtain it from POST /api/v1/patients/number-reservations using the same staff session. Must match the regex /^[a-f0-9]{64}$/D. Example: <code>f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$/D</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>first_name</code></b>&nbsp;&nbsp;
@@ -6212,10 +6468,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="first_name"                data-endpoint="POSTapi-v1-patients"
-               value="n"
+               value="o"
                data-component="body">
     <br>
-<p>Must not be greater than 64 characters. Example: <code>n</code></p>
+<p>Must not be greater than 64 characters. Example: <code>o</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>last_name</code></b>&nbsp;&nbsp;
@@ -6224,10 +6480,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="last_name"                data-endpoint="POSTapi-v1-patients"
-               value="g"
+               value="q"
                data-component="body">
     <br>
-<p>Must not be greater than 64 characters. Example: <code>g</code></p>
+<p>Must not be greater than 64 characters. Example: <code>q</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>middle_name</code></b>&nbsp;&nbsp;
@@ -6236,10 +6492,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="middle_name"                data-endpoint="POSTapi-v1-patients"
-               value="z"
+               value="i"
                data-component="body">
     <br>
-<p>Must not be greater than 64 characters. Example: <code>z</code></p>
+<p>Must not be greater than 64 characters. Example: <code>i</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>sex</code></b>&nbsp;&nbsp;
@@ -6248,10 +6504,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sex"                data-endpoint="POSTapi-v1-patients"
-               value="m"
+               value="t"
                data-component="body">
     <br>
-<p>Must not be greater than 64 characters. Example: <code>m</code></p>
+<p>Must not be greater than 64 characters. Example: <code>t</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>date_of_birth</code></b>&nbsp;&nbsp;
@@ -6474,7 +6730,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"middle_name\": \"g\",
     \"sex\": \"z\",
     \"date_of_birth\": \"2022-12-14\",
-    \"dob_estimated\": false,
+    \"dob_estimated\": true,
     \"email\": \"zbailey@example.net\",
     \"phone\": \"+3642559314$\\/D\",
     \"marital_status\": \"k\",
@@ -6515,7 +6771,7 @@ let body = {
     "middle_name": "g",
     "sex": "z",
     "date_of_birth": "2022-12-14",
-    "dob_estimated": false,
+    "dob_estimated": true,
     "email": "zbailey@example.net",
     "phone": "+3642559314$\/D",
     "marital_status": "k",
@@ -6811,7 +7067,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>email</code></b>&nbsp;&nbsp;
@@ -7003,7 +7259,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"patient_id\": 22,
     \"patient_version\": 7,
     \"identity_verified\": true,
-    \"care_setting\": \"IPD\",
+    \"care_setting\": \"EMERGENCY\",
     \"reason\": \"z\"
 }"
 </code></pre></div>
@@ -7026,7 +7282,7 @@ let body = {
     "patient_id": 22,
     "patient_version": 7,
     "identity_verified": true,
-    "care_setting": "IPD",
+    "care_setting": "EMERGENCY",
     "reason": "z"
 };
 
@@ -7252,10 +7508,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="care_setting"                data-endpoint="POSTapi-v1-appointments--appointment--arrive"
-               value="IPD"
+               value="EMERGENCY"
                data-component="body">
     <br>
-<p>Example: <code>IPD</code></p>
+<p>Example: <code>EMERGENCY</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>OPD</code></li> <li><code>IPD</code></li> <li><code>EMERGENCY</code></li></ul>
         </div>
@@ -7400,7 +7656,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/appointments/clinicians?q=b&amp;status=cancelled&amp;doctor_id=22&amp;patient_id=7&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;sort=-created_at&amp;page=16&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/appointments/clinicians?q=b&amp;status=cancelled&amp;doctor_id=22&amp;patient_id=7&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;sort=created_at&amp;page=16&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -7416,7 +7672,7 @@ const params = {
     "patient_id": "7",
     "from_date": "2026-11-20",
     "to_date": "2026-11-20",
-    "sort": "-created_at",
+    "sort": "created_at",
     "page": "16",
     "per_page": "17",
 };
@@ -7591,10 +7847,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-v1-appointments-clinicians"
-               value="-created_at"
+               value="created_at"
                data-component="query">
     <br>
-<p>Example: <code>-created_at</code></p>
+<p>Example: <code>created_at</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>starts_at</code></li> <li><code>-starts_at</code></li> <li><code>created_at</code></li> <li><code>-created_at</code></li></ul>
             </div>
@@ -8003,7 +8259,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/appointments/3642559314232/history?q=b&amp;status=no_show&amp;doctor_id=22&amp;patient_id=7&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;sort=created_at&amp;page=16&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/appointments/3642559314232/history?q=b&amp;status=no_show&amp;doctor_id=22&amp;patient_id=7&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;sort=-created_at&amp;page=16&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -8019,7 +8275,7 @@ const params = {
     "patient_id": "7",
     "from_date": "2026-11-20",
     "to_date": "2026-11-20",
-    "sort": "created_at",
+    "sort": "-created_at",
     "page": "16",
     "per_page": "17",
 };
@@ -8207,10 +8463,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-v1-appointments--appointment--history"
-               value="created_at"
+               value="-created_at"
                data-component="query">
     <br>
-<p>Example: <code>created_at</code></p>
+<p>Example: <code>-created_at</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>starts_at</code></li> <li><code>-starts_at</code></li> <li><code>created_at</code></li> <li><code>-created_at</code></li></ul>
             </div>
@@ -8267,8 +8523,8 @@ Must be one of:
     \"phone\": \"+3642559314$\\/D\",
     \"starts_at\": \"architecto\",
     \"ends_at\": \"architecto\",
-    \"booking_channel\": \"Email\",
-    \"visit_type\": \"Surgical Consultation\",
+    \"booking_channel\": \"Social Media\",
+    \"visit_type\": \"Routine Check-Up\",
     \"specialist_name\": \"n\",
     \"specialist_email\": \"ashly64@example.com\",
     \"patient_id\": 1,
@@ -8296,8 +8552,8 @@ let body = {
     "phone": "+3642559314$\/D",
     "starts_at": "architecto",
     "ends_at": "architecto",
-    "booking_channel": "Email",
-    "visit_type": "Surgical Consultation",
+    "booking_channel": "Social Media",
+    "visit_type": "Routine Check-Up",
     "specialist_name": "n",
     "specialist_email": "ashly64@example.com",
     "patient_id": 1,
@@ -8516,10 +8772,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="booking_channel"                data-endpoint="POSTapi-v1-appointments"
-               value="Email"
+               value="Social Media"
                data-component="body">
     <br>
-<p>Example: <code>Email</code></p>
+<p>Example: <code>Social Media</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>Voice Call</code></li> <li><code>Social Media</code></li> <li><code>Email</code></li> <li><code>Referral</code></li> <li><code>In-House</code></li> <li><code>Walk-In</code></li></ul>
         </div>
@@ -8530,10 +8786,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="visit_type"                data-endpoint="POSTapi-v1-appointments"
-               value="Surgical Consultation"
+               value="Routine Check-Up"
                data-component="body">
     <br>
-<p>Example: <code>Surgical Consultation</code></p>
+<p>Example: <code>Routine Check-Up</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>General Consultation</code></li> <li><code>Surgical Consultation</code></li> <li><code>Follow-Up Appointment</code></li> <li><code>Emergency Care Visit</code></li> <li><code>Routine Check-Up</code></li> <li><code>Specialist Referral</code></li> <li><code>Telehealth Session</code></li> <li><code>Antenatal Care</code></li> <li><code>Post Natal Care</code></li> <li><code>Immunization</code></li> <li><code>Family Planning</code></li> <li><code>Child Birth</code></li></ul>
         </div>
@@ -8626,8 +8882,8 @@ Must be one of:
     \"phone\": \"+3642559314$\\/D\",
     \"starts_at\": \"architecto\",
     \"ends_at\": \"architecto\",
-    \"booking_channel\": \"Walk-In\",
-    \"visit_type\": \"Antenatal Care\",
+    \"booking_channel\": \"Referral\",
+    \"visit_type\": \"Family Planning\",
     \"specialist_name\": \"n\",
     \"specialist_email\": \"ashly64@example.com\",
     \"doctor_id\": 1,
@@ -8655,8 +8911,8 @@ let body = {
     "phone": "+3642559314$\/D",
     "starts_at": "architecto",
     "ends_at": "architecto",
-    "booking_channel": "Walk-In",
-    "visit_type": "Antenatal Care",
+    "booking_channel": "Referral",
+    "visit_type": "Family Planning",
     "specialist_name": "n",
     "specialist_email": "ashly64@example.com",
     "doctor_id": 1,
@@ -8888,10 +9144,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="booking_channel"                data-endpoint="PATCHapi-v1-appointments--id-"
-               value="Walk-In"
+               value="Referral"
                data-component="body">
     <br>
-<p>Example: <code>Walk-In</code></p>
+<p>Example: <code>Referral</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>Voice Call</code></li> <li><code>Social Media</code></li> <li><code>Email</code></li> <li><code>Referral</code></li> <li><code>In-House</code></li> <li><code>Walk-In</code></li></ul>
         </div>
@@ -8902,10 +9158,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="visit_type"                data-endpoint="PATCHapi-v1-appointments--id-"
-               value="Antenatal Care"
+               value="Family Planning"
                data-component="body">
     <br>
-<p>Example: <code>Antenatal Care</code></p>
+<p>Example: <code>Family Planning</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>General Consultation</code></li> <li><code>Surgical Consultation</code></li> <li><code>Follow-Up Appointment</code></li> <li><code>Emergency Care Visit</code></li> <li><code>Routine Check-Up</code></li> <li><code>Specialist Referral</code></li> <li><code>Telehealth Session</code></li> <li><code>Antenatal Care</code></li> <li><code>Post Natal Care</code></li> <li><code>Immunization</code></li> <li><code>Family Planning</code></li> <li><code>Child Birth</code></li></ul>
         </div>
@@ -9786,7 +10042,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/clinicians?q=b&amp;status=confirmed&amp;doctor_id=22&amp;patient_id=7&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;sort=-created_at&amp;page=16&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/clinicians?q=b&amp;status=cancelled&amp;doctor_id=22&amp;patient_id=7&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;sort=-starts_at&amp;page=16&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -9797,12 +10053,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "q": "b",
-    "status": "confirmed",
+    "status": "cancelled",
     "doctor_id": "22",
     "patient_id": "7",
     "from_date": "2026-11-20",
     "to_date": "2026-11-20",
-    "sort": "-created_at",
+    "sort": "-starts_at",
     "page": "16",
     "per_page": "17",
 };
@@ -9915,10 +10171,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-encounters-clinicians"
-               value="confirmed"
+               value="cancelled"
                data-component="query">
     <br>
-<p>Example: <code>confirmed</code></p>
+<p>Example: <code>cancelled</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>booked</code></li> <li><code>confirmed</code></li> <li><code>attended</code></li> <li><code>cancelled</code></li> <li><code>no_show</code></li></ul>
             </div>
@@ -9977,10 +10233,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-v1-encounters-clinicians"
-               value="-created_at"
+               value="-starts_at"
                data-component="query">
     <br>
-<p>Example: <code>-created_at</code></p>
+<p>Example: <code>-starts_at</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>starts_at</code></li> <li><code>-starts_at</code></li> <li><code>created_at</code></li> <li><code>-created_at</code></li></ul>
             </div>
@@ -10025,7 +10281,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters?status=closed&amp;queue=unassigned&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=EMERGENCY&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters?status=cancelled&amp;queue=unassigned&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=IPD&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -10035,11 +10291,11 @@ Must be one of:
 );
 
 const params = {
-    "status": "closed",
+    "status": "cancelled",
     "queue": "unassigned",
     "doctor_id": "1",
     "patient_id": "22",
-    "care_setting": "EMERGENCY",
+    "care_setting": "IPD",
     "from_date": "2026-11-20",
     "to_date": "2026-11-20",
     "page": "7",
@@ -10142,10 +10398,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-encounters"
-               value="closed"
+               value="cancelled"
                data-component="query">
     <br>
-<p>Example: <code>closed</code></p>
+<p>Example: <code>cancelled</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>open</code></li> <li><code>in_progress</code></li> <li><code>closed</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -10194,10 +10450,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="care_setting"                data-endpoint="GETapi-v1-encounters"
-               value="EMERGENCY"
+               value="IPD"
                data-component="query">
     <br>
-<p>Example: <code>EMERGENCY</code></p>
+<p>Example: <code>IPD</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>OPD</code></li> <li><code>IPD</code></li> <li><code>EMERGENCY</code></li></ul>
             </div>
@@ -10391,7 +10647,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/history?status=open&amp;queue=waiting&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=OPD&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/history?status=open&amp;queue=in_progress&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=IPD&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -10402,10 +10658,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "status": "open",
-    "queue": "waiting",
+    "queue": "in_progress",
     "doctor_id": "1",
     "patient_id": "22",
-    "care_setting": "OPD",
+    "care_setting": "IPD",
     "from_date": "2026-11-20",
     "to_date": "2026-11-20",
     "page": "7",
@@ -10535,10 +10791,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="queue"                data-endpoint="GETapi-v1-encounters--encounter--history"
-               value="waiting"
+               value="in_progress"
                data-component="query">
     <br>
-<p>Example: <code>waiting</code></p>
+<p>Example: <code>in_progress</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>unassigned</code></li> <li><code>waiting</code></li> <li><code>in_progress</code></li></ul>
             </div>
@@ -10573,10 +10829,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="care_setting"                data-endpoint="GETapi-v1-encounters--encounter--history"
-               value="OPD"
+               value="IPD"
                data-component="query">
     <br>
-<p>Example: <code>OPD</code></p>
+<p>Example: <code>IPD</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>OPD</code></li> <li><code>IPD</code></li> <li><code>EMERGENCY</code></li></ul>
             </div>
@@ -10645,7 +10901,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/assignments?status=in_progress&amp;queue=in_progress&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=OPD&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/assignments?status=cancelled&amp;queue=unassigned&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=OPD&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -10655,8 +10911,8 @@ Must be one of:
 );
 
 const params = {
-    "status": "in_progress",
-    "queue": "in_progress",
+    "status": "cancelled",
+    "queue": "unassigned",
     "doctor_id": "1",
     "patient_id": "22",
     "care_setting": "OPD",
@@ -10775,10 +11031,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-encounters--encounter--assignments"
-               value="in_progress"
+               value="cancelled"
                data-component="query">
     <br>
-<p>Example: <code>in_progress</code></p>
+<p>Example: <code>cancelled</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>open</code></li> <li><code>in_progress</code></li> <li><code>closed</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -10789,10 +11045,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="queue"                data-endpoint="GETapi-v1-encounters--encounter--assignments"
-               value="in_progress"
+               value="unassigned"
                data-component="query">
     <br>
-<p>Example: <code>in_progress</code></p>
+<p>Example: <code>unassigned</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>unassigned</code></li> <li><code>waiting</code></li> <li><code>in_progress</code></li></ul>
             </div>
@@ -10910,7 +11166,7 @@ Must be one of:
     \"patient_version\": 22,
     \"identity_verified\": true,
     \"care_setting\": \"OPD\",
-    \"visit_type\": \"Routine Check-Up\"
+    \"visit_type\": \"Follow-Up Appointment\"
 }"
 </code></pre></div>
 
@@ -10932,7 +11188,7 @@ let body = {
     "patient_version": 22,
     "identity_verified": true,
     "care_setting": "OPD",
-    "visit_type": "Routine Check-Up"
+    "visit_type": "Follow-Up Appointment"
 };
 
 fetch(url, {
@@ -11146,10 +11402,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="visit_type"                data-endpoint="POSTapi-v1-encounters"
-               value="Routine Check-Up"
+               value="Follow-Up Appointment"
                data-component="body">
     <br>
-<p>Example: <code>Routine Check-Up</code></p>
+<p>Example: <code>Follow-Up Appointment</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>General Consultation</code></li> <li><code>Surgical Consultation</code></li> <li><code>Follow-Up Appointment</code></li> <li><code>Emergency Care Visit</code></li> <li><code>Routine Check-Up</code></li> <li><code>Specialist Referral</code></li> <li><code>Telehealth Session</code></li> <li><code>Antenatal Care</code></li> <li><code>Post Natal Care</code></li> <li><code>Immunization</code></li> <li><code>Family Planning</code></li> <li><code>Child Birth</code></li></ul>
         </div>
@@ -11180,7 +11436,7 @@ Must be one of:
     \"version\": 1,
     \"reason\": \"n\",
     \"doctor_id\": 7,
-    \"consultation_type\": \"Specialist Referral\"
+    \"consultation_type\": \"Follow-Up Appointment\"
 }"
 </code></pre></div>
 
@@ -11201,7 +11457,7 @@ let body = {
     "version": 1,
     "reason": "n",
     "doctor_id": 7,
-    "consultation_type": "Specialist Referral"
+    "consultation_type": "Follow-Up Appointment"
 };
 
 fetch(url, {
@@ -11404,10 +11660,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="consultation_type"                data-endpoint="POSTapi-v1-encounters--encounter--assign"
-               value="Specialist Referral"
+               value="Follow-Up Appointment"
                data-component="body">
     <br>
-<p>Example: <code>Specialist Referral</code></p>
+<p>Example: <code>Follow-Up Appointment</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>General Consultation</code></li> <li><code>Surgical Consultation</code></li> <li><code>Follow-Up Appointment</code></li> <li><code>Emergency Care Visit</code></li> <li><code>Routine Check-Up</code></li> <li><code>Specialist Referral</code></li> <li><code>Telehealth Session</code></li> <li><code>Antenatal Care</code></li> <li><code>Post Natal Care</code></li> <li><code>Immunization</code></li> <li><code>Family Planning</code></li> <li><code>Child Birth</code></li></ul>
         </div>
@@ -11438,7 +11694,7 @@ Must be one of:
     \"version\": 1,
     \"reason\": \"n\",
     \"doctor_id\": 7,
-    \"consultation_type\": \"Post Natal Care\",
+    \"consultation_type\": \"Immunization\",
     \"assignment_id\": 16,
     \"assignment_version\": 17
 }"
@@ -11461,7 +11717,7 @@ let body = {
     "version": 1,
     "reason": "n",
     "doctor_id": 7,
-    "consultation_type": "Post Natal Care",
+    "consultation_type": "Immunization",
     "assignment_id": 16,
     "assignment_version": 17
 };
@@ -11666,10 +11922,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="consultation_type"                data-endpoint="POSTapi-v1-encounters--encounter--reassign"
-               value="Post Natal Care"
+               value="Immunization"
                data-component="body">
     <br>
-<p>Example: <code>Post Natal Care</code></p>
+<p>Example: <code>Immunization</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>General Consultation</code></li> <li><code>Surgical Consultation</code></li> <li><code>Follow-Up Appointment</code></li> <li><code>Emergency Care Visit</code></li> <li><code>Routine Check-Up</code></li> <li><code>Specialist Referral</code></li> <li><code>Telehealth Session</code></li> <li><code>Antenatal Care</code></li> <li><code>Post Natal Care</code></li> <li><code>Immunization</code></li> <li><code>Family Planning</code></li> <li><code>Child Birth</code></li></ul>
         </div>
@@ -13400,7 +13656,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/admissions/3642559314232/history?status=discharged&amp;patient_id=1&amp;encounter_id=22&amp;ward_id=7&amp;page=16&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/admissions/3642559314232/history?status=admitted&amp;patient_id=1&amp;encounter_id=22&amp;ward_id=7&amp;page=16&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -13410,7 +13666,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "status": "discharged",
+    "status": "admitted",
     "patient_id": "1",
     "encounter_id": "22",
     "ward_id": "7",
@@ -13527,10 +13783,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-admissions--admission--history"
-               value="discharged"
+               value="admitted"
                data-component="query">
     <br>
-<p>Example: <code>discharged</code></p>
+<p>Example: <code>admitted</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>admitted</code></li> <li><code>discharge_authorized</code></li> <li><code>discharged</code></li></ul>
             </div>
@@ -13611,7 +13867,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/admissions/3642559314232/allocations?status=admitted&amp;patient_id=1&amp;encounter_id=22&amp;ward_id=7&amp;page=16&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/admissions/3642559314232/allocations?status=discharge_authorized&amp;patient_id=1&amp;encounter_id=22&amp;ward_id=7&amp;page=16&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -13621,7 +13877,7 @@ Must be one of:
 );
 
 const params = {
-    "status": "admitted",
+    "status": "discharge_authorized",
     "patient_id": "1",
     "encounter_id": "22",
     "ward_id": "7",
@@ -13738,10 +13994,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-admissions--admission--allocations"
-               value="admitted"
+               value="discharge_authorized"
                data-component="query">
     <br>
-<p>Example: <code>admitted</code></p>
+<p>Example: <code>discharge_authorized</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>admitted</code></li> <li><code>discharge_authorized</code></li> <li><code>discharged</code></li></ul>
             </div>
@@ -14743,7 +14999,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"workflow_version\": 16,
     \"assignment_id\": 17,
     \"assignment_version\": 15,
-    \"exit_type\": \"discharge\",
+    \"exit_type\": \"dama\",
     \"discharge_summary\": \"y\"
 }"
 </code></pre></div>
@@ -14768,7 +15024,7 @@ let body = {
     "workflow_version": 16,
     "assignment_id": 17,
     "assignment_version": 15,
-    "exit_type": "discharge",
+    "exit_type": "dama",
     "discharge_summary": "y"
 };
 
@@ -15008,10 +15264,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="exit_type"                data-endpoint="POSTapi-v1-admissions--admission--authorize-discharge"
-               value="discharge"
+               value="dama"
                data-component="body">
     <br>
-<p>Example: <code>discharge</code></p>
+<p>Example: <code>dama</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>discharge</code></li> <li><code>referral</code></li> <li><code>dama</code></li></ul>
         </div>
@@ -15332,7 +15588,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/audit-events?action=prescription.amended&amp;outcome=succeeded&amp;channel=http&amp;actor_id=16&amp;subject_type=stock_catalog&amp;subject_id=22&amp;from=2026-11-20&amp;to=2026-11-20&amp;through_id=84&amp;page=66&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/audit-events?action=investigation.result_attachment_download_authorized&amp;outcome=denied&amp;channel=console&amp;actor_id=16&amp;subject_type=notification&amp;subject_id=22&amp;from=2026-11-20&amp;to=2026-11-20&amp;through_id=84&amp;page=66&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -15342,11 +15598,11 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "action": "prescription.amended",
-    "outcome": "succeeded",
-    "channel": "http",
+    "action": "investigation.result_attachment_download_authorized",
+    "outcome": "denied",
+    "channel": "console",
     "actor_id": "16",
-    "subject_type": "stock_catalog",
+    "subject_type": "notification",
     "subject_id": "22",
     "from": "2026-11-20",
     "to": "2026-11-20",
@@ -15451,12 +15707,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="action"                data-endpoint="GETapi-v1-audit-events"
-               value="prescription.amended"
+               value="investigation.result_attachment_download_authorized"
                data-component="query">
     <br>
-<p>Example: <code>prescription.amended</code></p>
+<p>Example: <code>investigation.result_attachment_download_authorized</code></p>
 Must be one of:
-<ul style="list-style-type: square;"><li><code>prices.imported</code></li> <li><code>prices.units_confirmed</code></li> <li><code>admission.accommodation_assessed</code></li> <li><code>export.generated</code></li> <li><code>export.viewed</code></li> <li><code>export.downloaded</code></li> <li><code>export.printed</code></li> <li><code>dashboard.viewed</code></li> <li><code>report.viewed</code></li> <li><code>reminder.created</code></li> <li><code>reminder.updated</code></li> <li><code>reminder.cancelled</code></li> <li><code>reminder.viewed</code></li> <li><code>reminder.processed</code></li> <li><code>notification.read</code></li> <li><code>notification.unread</code></li> <li><code>notification.snoozed</code></li> <li><code>notification.viewed</code></li> <li><code>hmo.provider-create</code></li> <li><code>hmo.provider-update</code></li> <li><code>hmo.plan-create</code></li> <li><code>hmo.plan-update</code></li> <li><code>hmo.tariff-import</code></li> <li><code>hmo.tariff-review</code></li> <li><code>hmo.coverage-create</code></li> <li><code>hmo.coverage-revoke</code></li> <li><code>hmo.preauth-create</code></li> <li><code>hmo.preauth-revoke</code></li> <li><code>hmo.invoice</code></li> <li><code>hmo.claim-submit</code></li> <li><code>hmo.claim-resubmit</code></li> <li><code>hmo.decision-record</code></li> <li><code>hmo.decision-review</code></li> <li><code>hmo.remittance-create</code></li> <li><code>hmo.remittance-review</code></li> <li><code>hmo.allocation-record</code></li> <li><code>hmo.allocation-review</code></li> <li><code>hmo.catalog_viewed</code></li> <li><code>hmo.viewed</code></li> <li><code>hmo.csv_downloaded</code></li> <li><code>hmo.reconciled</code></li> <li><code>billing.service</code></li> <li><code>billing.price</code></li> <li><code>billing.performed</code></li> <li><code>billing.invoice</code></li> <li><code>billing.receipt</code></li> <li><code>billing.allocate</code></li> <li><code>billing.credit-request</code></li> <li><code>billing.refund-request</code></li> <li><code>billing.approve</code></li> <li><code>billing.reject</code></li> <li><code>billing.catalog_viewed</code></li> <li><code>billing.viewed</code></li> <li><code>billing.history_viewed</code></li> <li><code>billing.reconciled</code></li> <li><code>medication.authorize</code></li> <li><code>medication.dispense</code></li> <li><code>medication.return-request</code></li> <li><code>medication.return-approve</code></li> <li><code>medication.return-reject</code></li> <li><code>medication.administer</code></li> <li><code>medication.correct</code></li> <li><code>medication.listed</code></li> <li><code>medication.viewed</code></li> <li><code>medication.history_viewed</code></li> <li><code>stock.catalog_changed</code></li> <li><code>stock.access_changed</code></li> <li><code>stock.created</code></li> <li><code>stock.updated</code></li> <li><code>stock.submitted</code></li> <li><code>stock.posted</code></li> <li><code>stock.rejected</code></li> <li><code>stock.cancelled</code></li> <li><code>stock.listed</code></li> <li><code>stock.viewed</code></li> <li><code>stock.history_viewed</code></li> <li><code>stock.reconciled</code></li> <li><code>investigation.result_created</code></li> <li><code>investigation.result_updated</code></li> <li><code>investigation.result_submitted</code></li> <li><code>investigation.result_verified</code></li> <li><code>investigation.result_released</code></li> <li><code>investigation.result_amended</code></li> <li><code>investigation.result_voided</code></li> <li><code>investigation.results_listed</code></li> <li><code>investigation.result_viewed</code></li> <li><code>investigation.result_history_viewed</code></li> <li><code>investigation.result_attachment_download_authorized</code></li> <li><code>investigation.requested</code></li> <li><code>investigation.collected</code></li> <li><code>investigation.processing</code></li> <li><code>investigation.cancelled</code></li> <li><code>investigation.orders_listed</code></li> <li><code>investigation.order_viewed</code></li> <li><code>investigation.queue_viewed</code></li> <li><code>investigation.history_viewed</code></li> <li><code>investigation.published</code></li> <li><code>investigation.listed</code></li> <li><code>investigation.viewed</code></li> <li><code>investigation.schemas_viewed</code></li> <li><code>care.opened</code></li> <li><code>care.completed</code></li> <li><code>care.birth_recorded</code></li> <li><code>care.birth_linked</code></li> <li><code>care.listed</code></li> <li><code>care.viewed</code></li> <li><code>care.form_published</code></li> <li><code>admission.admitted</code></li> <li><code>admission.allocated</code></li> <li><code>admission.transferred</code></li> <li><code>admission.released</code></li> <li><code>admission.discharge_authorized</code></li> <li><code>admission.discharged</code></li> <li><code>admission.listed</code></li> <li><code>admission.viewed</code></li> <li><code>admission.history_viewed</code></li> <li><code>location.created</code></li> <li><code>location.updated</code></li> <li><code>location.listed</code></li> <li><code>location.viewed</code></li> <li><code>prescription.created</code></li> <li><code>prescription.updated</code></li> <li><code>prescription.signed</code></li> <li><code>prescription.amended</code></li> <li><code>prescription.voided</code></li> <li><code>prescription.stopped</code></li> <li><code>prescription.completed</code></li> <li><code>prescription.listed</code></li> <li><code>prescription.viewed</code></li> <li><code>prescription.history_viewed</code></li> <li><code>patient.history_viewed</code></li> <li><code>clinical.created</code></li> <li><code>clinical.updated</code></li> <li><code>clinical.signed</code></li> <li><code>clinical.amended</code></li> <li><code>clinical.voided</code></li> <li><code>clinical.listed</code></li> <li><code>clinical.viewed</code></li> <li><code>clinical.history_viewed</code></li> <li><code>appointment.attended</code></li> <li><code>encounter.opened</code></li> <li><code>encounter.assigned</code></li> <li><code>encounter.reassigned</code></li> <li><code>encounter.accepted</code></li> <li><code>encounter.completed</code></li> <li><code>encounter.cancelled</code></li> <li><code>encounter.listed</code></li> <li><code>encounter.viewed</code></li> <li><code>encounter.history_viewed</code></li> <li><code>appointment.created</code></li> <li><code>appointment.updated</code></li> <li><code>appointment.rescheduled</code></li> <li><code>appointment.confirmed</code></li> <li><code>appointment.cancelled</code></li> <li><code>appointment.no_show</code></li> <li><code>appointment.listed</code></li> <li><code>appointment.viewed</code></li> <li><code>appointment.history_viewed</code></li> <li><code>staff.created</code></li> <li><code>staff.updated</code></li> <li><code>staff.recovery_issued</code></li> <li><code>staff.password_reset</code></li> <li><code>role.permission_granted</code></li> <li><code>role.permission_revoked</code></li> <li><code>auth.login</code></li> <li><code>auth.logout</code></li> <li><code>audit.viewed</code></li> <li><code>command.replayed</code></li> <li><code>file.uploaded</code></li> <li><code>file.listed</code></li> <li><code>file.viewed</code></li> <li><code>file.download_authorized</code></li> <li><code>file.integrity_checked</code></li> <li><code>patient.created</code></li> <li><code>patient.updated</code></li> <li><code>patient.listed</code></li> <li><code>patient.viewed</code></li> <li><code>patient.duplicates_checked</code></li> <li><code>patient.flagged</code></li> <li><code>patient.flag_resolved</code></li> <li><code>patient.flags_viewed</code></li> <li><code>patient.card_changed</code></li> <li><code>patient.card_history_viewed</code></li> <li><code>patient.access_restricted</code></li> <li><code>patient.access_restored</code></li> <li><code>patient.access_state_viewed</code></li> <li><code>patient.merge_requested</code></li> <li><code>patient.merge_approved</code></li> <li><code>patient.merge_rejected</code></li> <li><code>patient.merge_cancelled</code></li> <li><code>patient.merge_requests_viewed</code></li></ul>
+<ul style="list-style-type: square;"><li><code>patient.number_reserved</code></li> <li><code>prices.imported</code></li> <li><code>prices.units_confirmed</code></li> <li><code>admission.accommodation_assessed</code></li> <li><code>export.generated</code></li> <li><code>export.viewed</code></li> <li><code>export.downloaded</code></li> <li><code>export.printed</code></li> <li><code>dashboard.viewed</code></li> <li><code>report.viewed</code></li> <li><code>reminder.created</code></li> <li><code>reminder.updated</code></li> <li><code>reminder.cancelled</code></li> <li><code>reminder.viewed</code></li> <li><code>reminder.processed</code></li> <li><code>notification.read</code></li> <li><code>notification.unread</code></li> <li><code>notification.snoozed</code></li> <li><code>notification.viewed</code></li> <li><code>hmo.provider-create</code></li> <li><code>hmo.provider-update</code></li> <li><code>hmo.plan-create</code></li> <li><code>hmo.plan-update</code></li> <li><code>hmo.tariff-import</code></li> <li><code>hmo.tariff-review</code></li> <li><code>hmo.coverage-create</code></li> <li><code>hmo.coverage-revoke</code></li> <li><code>hmo.preauth-create</code></li> <li><code>hmo.preauth-revoke</code></li> <li><code>hmo.invoice</code></li> <li><code>hmo.claim-submit</code></li> <li><code>hmo.claim-resubmit</code></li> <li><code>hmo.decision-record</code></li> <li><code>hmo.decision-review</code></li> <li><code>hmo.remittance-create</code></li> <li><code>hmo.remittance-review</code></li> <li><code>hmo.allocation-record</code></li> <li><code>hmo.allocation-review</code></li> <li><code>hmo.catalog_viewed</code></li> <li><code>hmo.viewed</code></li> <li><code>hmo.csv_downloaded</code></li> <li><code>hmo.reconciled</code></li> <li><code>billing.service</code></li> <li><code>billing.price</code></li> <li><code>billing.performed</code></li> <li><code>billing.invoice</code></li> <li><code>billing.receipt</code></li> <li><code>billing.allocate</code></li> <li><code>billing.credit-request</code></li> <li><code>billing.refund-request</code></li> <li><code>billing.approve</code></li> <li><code>billing.reject</code></li> <li><code>billing.catalog_viewed</code></li> <li><code>billing.viewed</code></li> <li><code>billing.history_viewed</code></li> <li><code>billing.reconciled</code></li> <li><code>medication.authorize</code></li> <li><code>medication.dispense</code></li> <li><code>medication.return-request</code></li> <li><code>medication.return-approve</code></li> <li><code>medication.return-reject</code></li> <li><code>medication.administer</code></li> <li><code>medication.correct</code></li> <li><code>medication.listed</code></li> <li><code>medication.viewed</code></li> <li><code>medication.history_viewed</code></li> <li><code>stock.catalog_changed</code></li> <li><code>stock.access_changed</code></li> <li><code>stock.created</code></li> <li><code>stock.updated</code></li> <li><code>stock.submitted</code></li> <li><code>stock.posted</code></li> <li><code>stock.rejected</code></li> <li><code>stock.cancelled</code></li> <li><code>stock.listed</code></li> <li><code>stock.viewed</code></li> <li><code>stock.history_viewed</code></li> <li><code>stock.reconciled</code></li> <li><code>investigation.result_created</code></li> <li><code>investigation.result_updated</code></li> <li><code>investigation.result_submitted</code></li> <li><code>investigation.result_verified</code></li> <li><code>investigation.result_released</code></li> <li><code>investigation.result_amended</code></li> <li><code>investigation.result_voided</code></li> <li><code>investigation.results_listed</code></li> <li><code>investigation.result_viewed</code></li> <li><code>investigation.result_history_viewed</code></li> <li><code>investigation.result_attachment_download_authorized</code></li> <li><code>investigation.requested</code></li> <li><code>investigation.collected</code></li> <li><code>investigation.processing</code></li> <li><code>investigation.cancelled</code></li> <li><code>investigation.orders_listed</code></li> <li><code>investigation.order_viewed</code></li> <li><code>investigation.queue_viewed</code></li> <li><code>investigation.history_viewed</code></li> <li><code>investigation.published</code></li> <li><code>investigation.listed</code></li> <li><code>investigation.viewed</code></li> <li><code>investigation.schemas_viewed</code></li> <li><code>care.opened</code></li> <li><code>care.completed</code></li> <li><code>care.birth_recorded</code></li> <li><code>care.birth_linked</code></li> <li><code>care.listed</code></li> <li><code>care.viewed</code></li> <li><code>care.form_published</code></li> <li><code>admission.admitted</code></li> <li><code>admission.allocated</code></li> <li><code>admission.transferred</code></li> <li><code>admission.released</code></li> <li><code>admission.discharge_authorized</code></li> <li><code>admission.discharged</code></li> <li><code>admission.listed</code></li> <li><code>admission.viewed</code></li> <li><code>admission.history_viewed</code></li> <li><code>location.created</code></li> <li><code>location.updated</code></li> <li><code>location.listed</code></li> <li><code>location.viewed</code></li> <li><code>prescription.created</code></li> <li><code>prescription.updated</code></li> <li><code>prescription.signed</code></li> <li><code>prescription.amended</code></li> <li><code>prescription.voided</code></li> <li><code>prescription.stopped</code></li> <li><code>prescription.completed</code></li> <li><code>prescription.listed</code></li> <li><code>prescription.viewed</code></li> <li><code>prescription.history_viewed</code></li> <li><code>patient.history_viewed</code></li> <li><code>clinical.created</code></li> <li><code>clinical.updated</code></li> <li><code>clinical.signed</code></li> <li><code>clinical.amended</code></li> <li><code>clinical.voided</code></li> <li><code>clinical.listed</code></li> <li><code>clinical.viewed</code></li> <li><code>clinical.history_viewed</code></li> <li><code>appointment.attended</code></li> <li><code>encounter.opened</code></li> <li><code>encounter.assigned</code></li> <li><code>encounter.reassigned</code></li> <li><code>encounter.accepted</code></li> <li><code>encounter.completed</code></li> <li><code>encounter.cancelled</code></li> <li><code>encounter.listed</code></li> <li><code>encounter.viewed</code></li> <li><code>encounter.history_viewed</code></li> <li><code>appointment.created</code></li> <li><code>appointment.updated</code></li> <li><code>appointment.rescheduled</code></li> <li><code>appointment.confirmed</code></li> <li><code>appointment.cancelled</code></li> <li><code>appointment.no_show</code></li> <li><code>appointment.listed</code></li> <li><code>appointment.viewed</code></li> <li><code>appointment.history_viewed</code></li> <li><code>staff.created</code></li> <li><code>staff.updated</code></li> <li><code>staff.recovery_issued</code></li> <li><code>staff.password_reset</code></li> <li><code>role.permission_granted</code></li> <li><code>role.permission_revoked</code></li> <li><code>auth.login</code></li> <li><code>auth.logout</code></li> <li><code>audit.viewed</code></li> <li><code>command.replayed</code></li> <li><code>file.uploaded</code></li> <li><code>file.listed</code></li> <li><code>file.viewed</code></li> <li><code>file.download_authorized</code></li> <li><code>file.integrity_checked</code></li> <li><code>patient.created</code></li> <li><code>patient.updated</code></li> <li><code>patient.listed</code></li> <li><code>patient.viewed</code></li> <li><code>patient.duplicates_checked</code></li> <li><code>patient.flagged</code></li> <li><code>patient.flag_resolved</code></li> <li><code>patient.flags_viewed</code></li> <li><code>patient.card_changed</code></li> <li><code>patient.card_history_viewed</code></li> <li><code>patient.access_restricted</code></li> <li><code>patient.access_restored</code></li> <li><code>patient.access_state_viewed</code></li> <li><code>patient.merge_requested</code></li> <li><code>patient.merge_approved</code></li> <li><code>patient.merge_rejected</code></li> <li><code>patient.merge_cancelled</code></li> <li><code>patient.merge_requests_viewed</code></li></ul>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>outcome</code></b>&nbsp;&nbsp;
@@ -15465,10 +15721,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="outcome"                data-endpoint="GETapi-v1-audit-events"
-               value="succeeded"
+               value="denied"
                data-component="query">
     <br>
-<p>Example: <code>succeeded</code></p>
+<p>Example: <code>denied</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>succeeded</code></li> <li><code>denied</code></li> <li><code>failed</code></li></ul>
             </div>
@@ -15479,10 +15735,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="channel"                data-endpoint="GETapi-v1-audit-events"
-               value="http"
+               value="console"
                data-component="query">
     <br>
-<p>Example: <code>http</code></p>
+<p>Example: <code>console</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>http</code></li> <li><code>console</code></li></ul>
             </div>
@@ -15505,10 +15761,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="subject_type"                data-endpoint="GETapi-v1-audit-events"
-               value="stock_catalog"
+               value="notification"
                data-component="query">
     <br>
-<p>This field is required when <code>subject_id</code> is present. Example: <code>stock_catalog</code></p>
+<p>This field is required when <code>subject_id</code> is present. Example: <code>notification</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>business_report</code></li> <li><code>reminder</code></li> <li><code>notification</code></li> <li><code>hmo_catalog</code></li> <li><code>hmo_account</code></li> <li><code>billing_catalog</code></li> <li><code>billing_account</code></li> <li><code>medication</code></li> <li><code>stock_catalog</code></li> <li><code>stock_operation</code></li> <li><code>staff</code></li> <li><code>role</code></li> <li><code>audit</code></li> <li><code>file</code></li> <li><code>patient</code></li> <li><code>appointment</code></li> <li><code>encounter</code></li> <li><code>clinical</code></li> <li><code>admission</code></li> <li><code>ward</code></li> <li><code>bed</code></li> <li><code>care_program</code></li> <li><code>care_form</code></li> <li><code>investigation_test</code></li> <li><code>investigation_order</code></li> <li><code>investigation_result</code></li></ul>
             </div>
@@ -16063,7 +16319,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"reason\": \"n\",
     \"code\": \"z-8yvqyjn8k7jay.pmy7jcj_vdjrfitppspq_dm$\\/D\",
     \"name\": \"s\",
-    \"category\": \"registration\"
+    \"category\": \"ward\"
 }"
 </code></pre></div>
 
@@ -16085,7 +16341,7 @@ let body = {
     "reason": "n",
     "code": "z-8yvqyjn8k7jay.pmy7jcj_vdjrfitppspq_dm$\/D",
     "name": "s",
-    "category": "registration"
+    "category": "ward"
 };
 
 fetch(url, {
@@ -16287,10 +16543,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="category"                data-endpoint="POSTapi-v1-billing-catalog-services"
-               value="registration"
+               value="ward"
                data-component="body">
     <br>
-<p>Example: <code>registration</code></p>
+<p>Example: <code>ward</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>consultation</code></li> <li><code>procedure</code></li> <li><code>ward</code></li> <li><code>registration</code></li> <li><code>other</code></li> <li><code>laboratory</code></li> <li><code>radiology</code></li></ul>
         </div>
@@ -16322,9 +16578,9 @@ Must be one of:
     \"reason\": \"n\",
     \"expected_version\": 7,
     \"unit_price\": \"zmiyvdljnikhwayk\",
-    \"is_active\": false,
+    \"is_active\": true,
     \"approval_reference\": \"c\",
-    \"effective_at\": \"1530-12-04\"
+    \"effective_at\": \"1275-04-30\"
 }"
 </code></pre></div>
 
@@ -16346,9 +16602,9 @@ let body = {
     "reason": "n",
     "expected_version": 7,
     "unit_price": "zmiyvdljnikhwayk",
-    "is_active": false,
+    "is_active": true,
     "approval_reference": "c",
-    "effective_at": "1530-12-04"
+    "effective_at": "1275-04-30"
 };
 
 fetch(url, {
@@ -16576,7 +16832,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>approval_reference</code></b>&nbsp;&nbsp;
@@ -16597,10 +16853,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="effective_at"                data-endpoint="POSTapi-v1-billing-catalog-services--billingService--prices"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
         </form>
 
@@ -17607,7 +17863,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"encounter_version\": 17,
     \"service_id\": 15,
     \"quantity\": \"yvdljnikhwaykcmy\",
-    \"occurred_at\": \"1530-12-04\",
+    \"occurred_at\": \"1275-04-30\",
     \"reference\": \"g\",
     \"performed_confirmed\": true
 }"
@@ -17634,7 +17890,7 @@ let body = {
     "encounter_version": 17,
     "service_id": 15,
     "quantity": "yvdljnikhwaykcmy",
-    "occurred_at": "1530-12-04",
+    "occurred_at": "1275-04-30",
     "reference": "g",
     "performed_confirmed": true
 };
@@ -17887,10 +18143,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="occurred_at"                data-endpoint="POSTapi-v1-billing-patients--patient--performed-services"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>reference</code></b>&nbsp;&nbsp;
@@ -17958,7 +18214,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"self_pay_confirmed\": true,
     \"sources\": [
         {
-            \"type\": \"performed\",
+            \"type\": \"dispense\",
             \"id\": 1,
             \"price_id\": 22
         }
@@ -17988,7 +18244,7 @@ let body = {
     "self_pay_confirmed": true,
     "sources": [
         {
-            "type": "performed",
+            "type": "dispense",
             "id": 1,
             "price_id": 22
         }
@@ -18251,10 +18507,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sources.0.type"                data-endpoint="POSTapi-v1-billing-patients--patient--invoices"
-               value="performed"
+               value="dispense"
                data-component="body">
     <br>
-<p>Example: <code>performed</code></p>
+<p>Example: <code>dispense</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>performed</code></li> <li><code>investigation</code></li> <li><code>dispense</code></li> <li><code>accommodation</code></li></ul>
                     </div>
@@ -18312,12 +18568,12 @@ Must be one of:
     \"reason\": \"n\",
     \"account_version\": 7,
     \"amount\": \"z\",
-    \"kind\": \"payment\",
+    \"kind\": \"deposit\",
     \"method\": \"cash\",
     \"reference\": \"m\",
     \"payer_name\": \"i\",
     \"payer_phone\": \"y\",
-    \"paid_at\": \"1530-12-04\",
+    \"paid_at\": \"1275-04-30\",
     \"externally_confirmed\": false,
     \"transaction_details\": {
         \"provider\": \"b\",
@@ -18349,12 +18605,12 @@ let body = {
     "reason": "n",
     "account_version": 7,
     "amount": "z",
-    "kind": "payment",
+    "kind": "deposit",
     "method": "cash",
     "reference": "m",
     "payer_name": "i",
     "payer_phone": "y",
-    "paid_at": "1530-12-04",
+    "paid_at": "1275-04-30",
     "externally_confirmed": false,
     "transaction_details": {
         "provider": "b",
@@ -18579,10 +18835,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="kind"                data-endpoint="POSTapi-v1-billing-patients--patient--receipts"
-               value="payment"
+               value="deposit"
                data-component="body">
     <br>
-<p>Example: <code>payment</code></p>
+<p>Example: <code>deposit</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>deposit</code></li> <li><code>payment</code></li></ul>
         </div>
@@ -18643,10 +18899,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="paid_at"                data-endpoint="POSTapi-v1-billing-patients--patient--receipts"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>externally_confirmed</code></b>&nbsp;&nbsp;
@@ -19633,8 +19889,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"account_version\": 7,
     \"payout_reference\": \"z\",
     \"payout_confirmed\": true,
-    \"payout_at\": \"1530-12-04\",
-    \"payout_method\": \"pos\",
+    \"payout_at\": \"1275-04-30\",
+    \"payout_method\": \"cash\",
     \"payee_name\": \"g\",
     \"payout_details\": {
         \"provider\": \"z\",
@@ -19667,8 +19923,8 @@ let body = {
     "account_version": 7,
     "payout_reference": "z",
     "payout_confirmed": true,
-    "payout_at": "1530-12-04",
-    "payout_method": "pos",
+    "payout_at": "1275-04-30",
+    "payout_method": "cash",
     "payee_name": "g",
     "payout_details": {
         "provider": "z",
@@ -19927,10 +20183,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payout_at"                data-endpoint="POSTapi-v1-billing-patients--patient--changes--billingChange--approve"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>payout_method</code></b>&nbsp;&nbsp;
@@ -19939,10 +20195,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="payout_method"                data-endpoint="POSTapi-v1-billing-patients--patient--changes--billingChange--approve"
-               value="pos"
+               value="cash"
                data-component="body">
     <br>
-<p>Example: <code>pos</code></p>
+<p>Example: <code>cash</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>cash</code></li> <li><code>bank_transfer</code></li> <li><code>pos</code></li> <li><code>other</code></li></ul>
         </div>
@@ -20478,7 +20734,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/3642559314232/encounters/3642559314232/records/3642559314232/history?type=immunization&amp;status=active&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/3642559314232/encounters/3642559314232/records/3642559314232/history?type=birth&amp;status=active&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -20488,7 +20744,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "type": "immunization",
+    "type": "birth",
     "status": "active",
     "patient_id": "1",
     "birth_id": "22",
@@ -20629,10 +20885,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="GETapi-v1-care-programs--careProgram--encounters--encounter--records--clinicalRecord--history"
-               value="immunization"
+               value="birth"
                data-component="query">
     <br>
-<p>Example: <code>immunization</code></p>
+<p>Example: <code>birth</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>antenatal</code></li> <li><code>postnatal</code></li> <li><code>family_planning</code></li> <li><code>delivery</code></li> <li><code>immunization</code></li> <li><code>birth</code></li></ul>
             </div>
@@ -22261,7 +22517,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/forms?type=family_planning&amp;status=active&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/forms?type=family_planning&amp;status=completed&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -22272,7 +22528,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "type": "family_planning",
-    "status": "active",
+    "status": "completed",
     "patient_id": "1",
     "birth_id": "22",
     "page": "7",
@@ -22389,10 +22645,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-care-programs-forms"
-               value="active"
+               value="completed"
                data-component="query">
     <br>
-<p>Example: <code>active</code></p>
+<p>Example: <code>completed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>active</code></li> <li><code>completed</code></li></ul>
             </div>
@@ -22461,7 +22717,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs?type=antenatal&amp;status=completed&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs?type=birth&amp;status=active&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -22471,8 +22727,8 @@ Must be one of:
 );
 
 const params = {
-    "type": "antenatal",
-    "status": "completed",
+    "type": "birth",
+    "status": "active",
     "patient_id": "1",
     "birth_id": "22",
     "page": "7",
@@ -22575,10 +22831,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="GETapi-v1-care-programs"
-               value="antenatal"
+               value="birth"
                data-component="query">
     <br>
-<p>Example: <code>antenatal</code></p>
+<p>Example: <code>birth</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>antenatal</code></li> <li><code>postnatal</code></li> <li><code>family_planning</code></li> <li><code>delivery</code></li> <li><code>immunization</code></li> <li><code>birth</code></li></ul>
             </div>
@@ -22589,10 +22845,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-care-programs"
-               value="completed"
+               value="active"
                data-component="query">
     <br>
-<p>Example: <code>completed</code></p>
+<p>Example: <code>active</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>active</code></li> <li><code>completed</code></li></ul>
             </div>
@@ -22670,7 +22926,7 @@ Must be one of:
     --data "{
     \"encounter_version\": 1,
     \"reason\": \"n\",
-    \"type\": \"antenatal\",
+    \"type\": \"postnatal\",
     \"patient_version\": 7,
     \"identity_verified\": true
 }"
@@ -22692,7 +22948,7 @@ const headers = {
 let body = {
     "encounter_version": 1,
     "reason": "n",
-    "type": "antenatal",
+    "type": "postnatal",
     "patient_version": 7,
     "identity_verified": true
 };
@@ -22885,10 +23141,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="POSTapi-v1-encounters--encounter--care-programs"
-               value="antenatal"
+               value="postnatal"
                data-component="body">
     <br>
-<p>Example: <code>antenatal</code></p>
+<p>Example: <code>postnatal</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>antenatal</code></li> <li><code>postnatal</code></li> <li><code>family_planning</code></li> <li><code>delivery</code></li> <li><code>immunization</code></li></ul>
         </div>
@@ -23068,7 +23324,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/3642559314232/births?type=postnatal&amp;status=active&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/3642559314232/births?type=antenatal&amp;status=active&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -23078,7 +23334,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "type": "postnatal",
+    "type": "antenatal",
     "status": "active",
     "patient_id": "1",
     "birth_id": "22",
@@ -23195,10 +23451,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="GETapi-v1-care-programs--careProgram--births"
-               value="postnatal"
+               value="antenatal"
                data-component="query">
     <br>
-<p>Example: <code>postnatal</code></p>
+<p>Example: <code>antenatal</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>antenatal</code></li> <li><code>postnatal</code></li> <li><code>family_planning</code></li> <li><code>delivery</code></li> <li><code>immunization</code></li> <li><code>birth</code></li></ul>
             </div>
@@ -23281,7 +23537,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/3642559314232/records?type=family_planning&amp;status=completed&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/care-programs/3642559314232/records?type=postnatal&amp;status=active&amp;patient_id=1&amp;birth_id=22&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -23291,8 +23547,8 @@ Must be one of:
 );
 
 const params = {
-    "type": "family_planning",
-    "status": "completed",
+    "type": "postnatal",
+    "status": "active",
     "patient_id": "1",
     "birth_id": "22",
     "page": "7",
@@ -23408,10 +23664,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="type"                data-endpoint="GETapi-v1-care-programs--careProgram--records"
-               value="family_planning"
+               value="postnatal"
                data-component="query">
     <br>
-<p>Example: <code>family_planning</code></p>
+<p>Example: <code>postnatal</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>antenatal</code></li> <li><code>postnatal</code></li> <li><code>family_planning</code></li> <li><code>delivery</code></li> <li><code>immunization</code></li> <li><code>birth</code></li></ul>
             </div>
@@ -23422,10 +23678,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-care-programs--careProgram--records"
-               value="completed"
+               value="active"
                data-component="query">
     <br>
-<p>Example: <code>completed</code></p>
+<p>Example: <code>active</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>active</code></li> <li><code>completed</code></li></ul>
             </div>
@@ -24456,7 +24712,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/clinical/templates?kind=diagnosis&amp;status=voided&amp;page=1&amp;per_page=22" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/clinical/templates?kind=entry&amp;status=draft&amp;page=1&amp;per_page=22" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -24466,8 +24722,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "kind": "diagnosis",
-    "status": "voided",
+    "kind": "entry",
+    "status": "draft",
     "page": "1",
     "per_page": "22",
 };
@@ -24568,10 +24824,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="kind"                data-endpoint="GETapi-v1-clinical-templates"
-               value="diagnosis"
+               value="entry"
                data-component="query">
     <br>
-<p>Example: <code>diagnosis</code></p>
+<p>Example: <code>entry</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>vitals</code></li> <li><code>entry</code></li> <li><code>diagnosis</code></li> <li><code>procedure</code></li></ul>
             </div>
@@ -24582,10 +24838,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-clinical-templates"
-               value="voided"
+               value="draft"
                data-component="query">
     <br>
-<p>Example: <code>voided</code></p>
+<p>Example: <code>draft</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>signed</code></li> <li><code>voided</code></li></ul>
             </div>
@@ -24630,7 +24886,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/clinical?kind=vitals&amp;status=voided&amp;page=1&amp;per_page=22" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/clinical?kind=procedure&amp;status=voided&amp;page=1&amp;per_page=22" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -24640,7 +24896,7 @@ Must be one of:
 );
 
 const params = {
-    "kind": "vitals",
+    "kind": "procedure",
     "status": "voided",
     "page": "1",
     "per_page": "22",
@@ -24755,10 +25011,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="kind"                data-endpoint="GETapi-v1-encounters--encounter--clinical"
-               value="vitals"
+               value="procedure"
                data-component="query">
     <br>
-<p>Example: <code>vitals</code></p>
+<p>Example: <code>procedure</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>vitals</code></li> <li><code>entry</code></li> <li><code>diagnosis</code></li> <li><code>procedure</code></li></ul>
             </div>
@@ -25161,7 +25417,7 @@ Must be one of:
     --header "Idempotency-Key: {{idempotency_key}}" \
     --data "{
     \"encounter_version\": 1,
-    \"kind\": \"procedure\",
+    \"kind\": \"entry\",
     \"payload\": []
 }"
 </code></pre></div>
@@ -25181,7 +25437,7 @@ const headers = {
 
 let body = {
     "encounter_version": 1,
-    "kind": "procedure",
+    "kind": "entry",
     "payload": []
 };
 
@@ -25361,10 +25617,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="kind"                data-endpoint="POSTapi-v1-encounters--encounter--clinical"
-               value="procedure"
+               value="entry"
                data-component="body">
     <br>
-<p>Example: <code>procedure</code></p>
+<p>Example: <code>entry</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>vitals</code></li> <li><code>entry</code></li> <li><code>diagnosis</code></li> <li><code>procedure</code></li></ul>
         </div>
@@ -26459,7 +26715,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/dashboard?from_date=8832-04-19&amp;to_date=2052-12-13" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/dashboard?from_date=2927-12-02&amp;to_date=2052-12-13" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -26469,7 +26725,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
 };
 Object.keys(params)
@@ -26569,10 +26825,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-dashboard"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -26607,7 +26863,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/departments?q=b&amp;sort=name&amp;page=22&amp;per_page=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/departments?q=b&amp;sort=-code&amp;page=22&amp;per_page=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -26618,7 +26874,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "q": "b",
-    "sort": "name",
+    "sort": "-code",
     "page": "22",
     "per_page": "7",
 };
@@ -26731,10 +26987,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-v1-departments"
-               value="name"
+               value="-code"
                data-component="query">
     <br>
-<p>Example: <code>name</code></p>
+<p>Example: <code>-code</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>code</code></li> <li><code>-code</code></li> <li><code>name</code></li> <li><code>-name</code></li></ul>
             </div>
@@ -27027,7 +27283,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "X-CSRF-TOKEN: {{csrf_token}}" \
     --header "Idempotency-Key: {{idempotency_key}}" \
     --data "{
-    \"kind\": \"receipt\",
+    \"kind\": \"result\",
     \"format\": \"html\",
     \"source_id\": 1,
     \"report_key\": \"positions\"
@@ -27048,7 +27304,7 @@ const headers = {
 };
 
 let body = {
-    "kind": "receipt",
+    "kind": "result",
     "format": "html",
     "source_id": 1,
     "report_key": "positions"
@@ -27205,10 +27461,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="kind"                data-endpoint="POSTapi-v1-exports"
-               value="receipt"
+               value="result"
                data-component="body">
     <br>
-<p>Example: <code>receipt</code></p>
+<p>Example: <code>result</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>report</code></li> <li><code>invoice</code></li> <li><code>receipt</code></li> <li><code>prescription</code></li> <li><code>clinical</code></li> <li><code>result</code></li></ul>
         </div>
@@ -30217,8 +30473,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --data "{
     \"current_password\": \"b\",
     \"reason\": \"n\",
-    \"is_active\": true,
-    \"preauth_required\": true,
+    \"is_active\": false,
+    \"preauth_required\": false,
     \"details\": {
         \"phone\": \"g\",
         \"email\": \"rowan.gulgowski@example.com\",
@@ -30248,8 +30504,8 @@ const headers = {
 let body = {
     "current_password": "b",
     "reason": "n",
-    "is_active": true,
-    "preauth_required": true,
+    "is_active": false,
+    "preauth_required": false,
     "details": {
         "phone": "g",
         "email": "rowan.gulgowski@example.com",
@@ -30450,7 +30706,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>preauth_required</code></b>&nbsp;&nbsp;
@@ -30472,7 +30728,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
@@ -30609,7 +30865,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"current_password\": \"b\",
     \"reason\": \"n\",
     \"is_active\": false,
-    \"preauth_required\": true,
+    \"preauth_required\": false,
     \"details\": {
         \"phone\": \"g\",
         \"email\": \"rowan.gulgowski@example.com\",
@@ -30639,7 +30895,7 @@ let body = {
     "current_password": "b",
     "reason": "n",
     "is_active": false,
-    "preauth_required": true,
+    "preauth_required": false,
     "details": {
         "phone": "g",
         "email": "rowan.gulgowski@example.com",
@@ -30874,7 +31130,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
@@ -31403,8 +31659,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --data "{
     \"current_password\": \"b\",
     \"reason\": \"n\",
-    \"is_active\": false,
-    \"preauth_required\": true,
+    \"is_active\": true,
+    \"preauth_required\": false,
     \"details\": {
         \"phone\": \"g\",
         \"email\": \"rowan.gulgowski@example.com\",
@@ -31433,8 +31689,8 @@ const headers = {
 let body = {
     "current_password": "b",
     "reason": "n",
-    "is_active": false,
-    "preauth_required": true,
+    "is_active": true,
+    "preauth_required": false,
     "details": {
         "phone": "g",
         "email": "rowan.gulgowski@example.com",
@@ -31647,7 +31903,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>preauth_required</code></b>&nbsp;&nbsp;
@@ -31669,7 +31925,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
@@ -31798,7 +32054,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"filename\": \"m\",
     \"csv_content\": \"i\",
     \"approval_reference\": \"y\",
-    \"effective_at\": \"1530-12-04\"
+    \"effective_at\": \"1283-07-05\"
 }"
 </code></pre></div>
 
@@ -31823,7 +32079,7 @@ let body = {
     "filename": "m",
     "csv_content": "i",
     "approval_reference": "y",
-    "effective_at": "1530-12-04"
+    "effective_at": "1283-07-05"
 };
 
 fetch(url, {
@@ -32061,10 +32317,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="effective_at"                data-endpoint="POSTapi-v1-hmo-imports"
-               value="1530-12-04"
+               value="1283-07-05"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1283-07-05</code></p>
         </div>
         </form>
 
@@ -32377,9 +32633,9 @@ Must be one of:
     \"provider_id\": 7,
     \"amount\": \"z\",
     \"reference\": \"m\",
-    \"method\": \"cash\",
+    \"method\": \"pos\",
     \"payer_name\": \"i\",
-    \"received_at\": \"1530-12-04\",
+    \"received_at\": \"1283-07-05\",
     \"externally_confirmed\": true,
     \"transaction_details\": [
         \"g\"
@@ -32406,9 +32662,9 @@ let body = {
     "provider_id": 7,
     "amount": "z",
     "reference": "m",
-    "method": "cash",
+    "method": "pos",
     "payer_name": "i",
-    "received_at": "1530-12-04",
+    "received_at": "1283-07-05",
     "externally_confirmed": true,
     "transaction_details": [
         "g"
@@ -32626,10 +32882,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="method"                data-endpoint="POSTapi-v1-hmo-remittances"
-               value="cash"
+               value="pos"
                data-component="body">
     <br>
-<p>Example: <code>cash</code></p>
+<p>Example: <code>pos</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>cash</code></li> <li><code>bank_transfer</code></li> <li><code>pos</code></li> <li><code>other</code></li></ul>
         </div>
@@ -32652,10 +32908,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="received_at"                data-endpoint="POSTapi-v1-hmo-remittances"
-               value="1530-12-04"
+               value="1283-07-05"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1283-07-05</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>externally_confirmed</code></b>&nbsp;&nbsp;
@@ -34958,7 +35214,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"account_version\": 7,
     \"plan_id\": 16,
     \"member_number\": \"m\",
-    \"valid_from\": \"1530-12-04\",
+    \"valid_from\": \"1283-07-05\",
     \"valid_until\": \"2052-12-13\",
     \"verification_reference\": \"n\",
     \"verified\": true,
@@ -34986,7 +35242,7 @@ let body = {
     "account_version": 7,
     "plan_id": 16,
     "member_number": "m",
-    "valid_from": "1530-12-04",
+    "valid_from": "1283-07-05",
     "valid_until": "2052-12-13",
     "verification_reference": "n",
     "verified": true,
@@ -35218,10 +35474,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="valid_from"                data-endpoint="POSTapi-v1-hmo-patients--patient--coverages"
-               value="1530-12-04"
+               value="1283-07-05"
                data-component="body">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-01</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-01</code>. Example: <code>1283-07-05</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>valid_until</code></b>&nbsp;&nbsp;
@@ -35582,8 +35838,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"status\": \"approved\",
     \"limit\": \"v\",
     \"reference\": \"d\",
-    \"approved_at\": \"1530-12-04\",
-    \"valid_from\": \"1530-12-04\",
+    \"approved_at\": \"1275-04-30\",
+    \"valid_from\": \"1275-04-30\",
     \"valid_until\": \"2052-12-13\",
     \"externally_verified\": true
 }"
@@ -35614,8 +35870,8 @@ let body = {
     "status": "approved",
     "limit": "v",
     "reference": "d",
-    "approved_at": "1530-12-04",
-    "valid_from": "1530-12-04",
+    "approved_at": "1275-04-30",
+    "valid_from": "1275-04-30",
     "valid_until": "2052-12-13",
     "externally_verified": true
 };
@@ -35920,10 +36176,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="approved_at"                data-endpoint="POSTapi-v1-hmo-patients--patient--preauthorizations"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>valid_from</code></b>&nbsp;&nbsp;
@@ -35932,10 +36188,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="valid_from"                data-endpoint="POSTapi-v1-hmo-patients--patient--preauthorizations"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>valid_until</code></b>&nbsp;&nbsp;
@@ -36258,7 +36514,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"split_confirmed\": true,
     \"sources\": [
         {
-            \"type\": \"investigation\",
+            \"type\": \"performed\",
             \"id\": 1,
             \"tariff_id\": 22,
             \"patient_amount\": \"g\",
@@ -36293,7 +36549,7 @@ let body = {
     "split_confirmed": true,
     "sources": [
         {
-            "type": "investigation",
+            "type": "performed",
             "id": 1,
             "tariff_id": 22,
             "patient_amount": "g",
@@ -36572,10 +36828,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sources.0.type"                data-endpoint="POSTapi-v1-hmo-patients--patient--invoices"
-               value="investigation"
+               value="performed"
                data-component="body">
     <br>
-<p>Example: <code>investigation</code></p>
+<p>Example: <code>performed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>performed</code></li> <li><code>investigation</code></li> <li><code>dispense</code></li></ul>
                     </div>
@@ -36682,7 +36938,7 @@ Must be one of:
     \"account_version\": 7,
     \"invoice_id\": 16,
     \"reference\": \"m\",
-    \"submitted_at\": \"1530-12-04\",
+    \"submitted_at\": \"1275-04-30\",
     \"externally_submitted\": true
 }"
 </code></pre></div>
@@ -36706,7 +36962,7 @@ let body = {
     "account_version": 7,
     "invoice_id": 16,
     "reference": "m",
-    "submitted_at": "1530-12-04",
+    "submitted_at": "1275-04-30",
     "externally_submitted": true
 };
 
@@ -36934,10 +37190,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="submitted_at"                data-endpoint="POSTapi-v1-hmo-patients--patient--claims"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>externally_submitted</code></b>&nbsp;&nbsp;
@@ -36989,7 +37245,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"reason\": \"n\",
     \"account_version\": 7,
     \"reference\": \"z\",
-    \"submitted_at\": \"1530-12-04\",
+    \"submitted_at\": \"1275-04-30\",
     \"externally_submitted\": true
 }"
 </code></pre></div>
@@ -37012,7 +37268,7 @@ let body = {
     "reason": "n",
     "account_version": 7,
     "reference": "z",
-    "submitted_at": "1530-12-04",
+    "submitted_at": "1275-04-30",
     "externally_submitted": true
 };
 
@@ -37240,10 +37496,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="submitted_at"                data-endpoint="POSTapi-v1-hmo-patients--patient--claims--hmoRecord--resubmit"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>externally_submitted</code></b>&nbsp;&nbsp;
@@ -37297,7 +37553,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"claim_id\": 16,
     \"submission_id\": 17,
     \"reference\": \"i\",
-    \"occurred_at\": \"1530-12-04\",
+    \"occurred_at\": \"1275-04-30\",
     \"lines\": [
         {
             \"item_id\": 1,
@@ -37328,7 +37584,7 @@ let body = {
     "claim_id": 16,
     "submission_id": 17,
     "reference": "i",
-    "occurred_at": "1530-12-04",
+    "occurred_at": "1275-04-30",
     "lines": [
         {
             "item_id": 1,
@@ -37574,10 +37830,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="occurred_at"                data-endpoint="POSTapi-v1-hmo-patients--patient--decisions"
-               value="1530-12-04"
+               value="1275-04-30"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1530-12-04</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Example: <code>1275-04-30</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
@@ -37655,7 +37911,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"reason\": \"n\",
     \"account_version\": 7,
     \"version\": 16,
-    \"outcome\": \"accepted\",
+    \"outcome\": \"rejected\",
     \"externally_verified\": true
 }"
 </code></pre></div>
@@ -37678,7 +37934,7 @@ let body = {
     "reason": "n",
     "account_version": 7,
     "version": 16,
-    "outcome": "accepted",
+    "outcome": "rejected",
     "externally_verified": true
 };
 
@@ -37906,10 +38162,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="outcome"                data-endpoint="POSTapi-v1-hmo-patients--patient--decisions--hmoRecord--review"
-               value="accepted"
+               value="rejected"
                data-component="body">
     <br>
-<p>Example: <code>accepted</code></p>
+<p>Example: <code>rejected</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>accepted</code></li> <li><code>rejected</code></li></ul>
         </div>
@@ -38736,7 +38992,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/results?patient_id=1&amp;encounter_id=22&amp;item_id=7&amp;author_id=16&amp;status=voided&amp;current=1&amp;page=17&amp;per_page=15" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/results?patient_id=1&amp;encounter_id=22&amp;item_id=7&amp;author_id=16&amp;status=draft&amp;current=&amp;page=17&amp;per_page=15" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -38750,8 +39006,8 @@ const params = {
     "encounter_id": "22",
     "item_id": "7",
     "author_id": "16",
-    "status": "voided",
-    "current": "1",
+    "status": "draft",
+    "current": "0",
     "page": "17",
     "per_page": "15",
 };
@@ -38900,10 +39156,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-investigations-results"
-               value="voided"
+               value="draft"
                data-component="query">
     <br>
-<p>Example: <code>voided</code></p>
+<p>Example: <code>draft</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>verified</code></li> <li><code>released</code></li> <li><code>voided</code></li></ul>
             </div>
@@ -38927,7 +39183,7 @@ Must be one of:
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
@@ -38970,7 +39226,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/items/3642559314232/results?patient_id=1&amp;encounter_id=22&amp;item_id=7&amp;author_id=16&amp;status=submitted&amp;current=&amp;page=17&amp;per_page=15" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/items/3642559314232/results?patient_id=1&amp;encounter_id=22&amp;item_id=7&amp;author_id=16&amp;status=voided&amp;current=&amp;page=17&amp;per_page=15" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -38984,7 +39240,7 @@ const params = {
     "encounter_id": "22",
     "item_id": "7",
     "author_id": "16",
-    "status": "submitted",
+    "status": "voided",
     "current": "0",
     "page": "17",
     "per_page": "15",
@@ -39147,10 +39403,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-investigations-items--investigationItem--results"
-               value="submitted"
+               value="voided"
                data-component="query">
     <br>
-<p>Example: <code>submitted</code></p>
+<p>Example: <code>voided</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>verified</code></li> <li><code>released</code></li> <li><code>voided</code></li></ul>
             </div>
@@ -39642,7 +39898,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/items/3642559314232/results/3642559314232/history?patient_id=1&amp;encounter_id=22&amp;item_id=7&amp;author_id=16&amp;status=released&amp;current=1&amp;page=17&amp;per_page=15" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/items/3642559314232/results/3642559314232/history?patient_id=1&amp;encounter_id=22&amp;item_id=7&amp;author_id=16&amp;status=draft&amp;current=1&amp;page=17&amp;per_page=15" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -39656,7 +39912,7 @@ const params = {
     "encounter_id": "22",
     "item_id": "7",
     "author_id": "16",
-    "status": "released",
+    "status": "draft",
     "current": "1",
     "page": "17",
     "per_page": "15",
@@ -39831,10 +40087,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-investigations-items--investigationItem--results--investigationResult--history"
-               value="released"
+               value="draft"
                data-component="query">
     <br>
-<p>Example: <code>released</code></p>
+<p>Example: <code>draft</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>verified</code></li> <li><code>released</code></li> <li><code>voided</code></li></ul>
             </div>
@@ -41904,7 +42160,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/orders?patient_id=1&amp;encounter_id=22&amp;ordered_by=7&amp;order_id=16&amp;department=laboratory&amp;status=collected&amp;priority=routine&amp;active=&amp;page=17&amp;per_page=15" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/orders?patient_id=1&amp;encounter_id=22&amp;ordered_by=7&amp;order_id=16&amp;department=radiology&amp;status=collected&amp;priority=routine&amp;active=&amp;page=17&amp;per_page=15" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -41918,7 +42174,7 @@ const params = {
     "encounter_id": "22",
     "ordered_by": "7",
     "order_id": "16",
-    "department": "laboratory",
+    "department": "radiology",
     "status": "collected",
     "priority": "routine",
     "active": "0",
@@ -42070,10 +42326,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="department"                data-endpoint="GETapi-v1-investigations-orders"
-               value="laboratory"
+               value="radiology"
                data-component="query">
     <br>
-<p>Example: <code>laboratory</code></p>
+<p>Example: <code>radiology</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>laboratory</code></li> <li><code>radiology</code></li></ul>
             </div>
@@ -42168,7 +42424,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/queue?patient_id=1&amp;encounter_id=22&amp;ordered_by=7&amp;order_id=16&amp;department=laboratory&amp;status=cancelled&amp;priority=routine&amp;active=&amp;page=17&amp;per_page=15" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/queue?patient_id=1&amp;encounter_id=22&amp;ordered_by=7&amp;order_id=16&amp;department=laboratory&amp;status=completed&amp;priority=urgent&amp;active=&amp;page=17&amp;per_page=15" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -42183,8 +42439,8 @@ const params = {
     "ordered_by": "7",
     "order_id": "16",
     "department": "laboratory",
-    "status": "cancelled",
-    "priority": "routine",
+    "status": "completed",
+    "priority": "urgent",
     "active": "0",
     "page": "17",
     "per_page": "15",
@@ -42348,10 +42604,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-investigations-queue"
-               value="cancelled"
+               value="completed"
                data-component="query">
     <br>
-<p>Example: <code>cancelled</code></p>
+<p>Example: <code>completed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>requested</code></li> <li><code>collected</code></li> <li><code>processing</code></li> <li><code>completed</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -42362,10 +42618,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="priority"                data-endpoint="GETapi-v1-investigations-queue"
-               value="routine"
+               value="urgent"
                data-component="query">
     <br>
-<p>Example: <code>routine</code></p>
+<p>Example: <code>urgent</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>routine</code></li> <li><code>urgent</code></li></ul>
             </div>
@@ -42919,7 +43175,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/orders/3642559314232/history?patient_id=1&amp;encounter_id=22&amp;ordered_by=7&amp;order_id=16&amp;department=laboratory&amp;status=processing&amp;priority=routine&amp;active=&amp;page=17&amp;per_page=15" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/investigations/orders/3642559314232/history?patient_id=1&amp;encounter_id=22&amp;ordered_by=7&amp;order_id=16&amp;department=laboratory&amp;status=processing&amp;priority=urgent&amp;active=&amp;page=17&amp;per_page=15" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -42935,7 +43191,7 @@ const params = {
     "order_id": "16",
     "department": "laboratory",
     "status": "processing",
-    "priority": "routine",
+    "priority": "urgent",
     "active": "0",
     "page": "17",
     "per_page": "15",
@@ -43126,10 +43382,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="priority"                data-endpoint="GETapi-v1-investigations-orders--investigationOrder--history"
-               value="routine"
+               value="urgent"
                data-component="query">
     <br>
-<p>Example: <code>routine</code></p>
+<p>Example: <code>urgent</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>routine</code></li> <li><code>urgent</code></li></ul>
             </div>
@@ -44932,7 +45188,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/locations/wards?ward_id=1&amp;active=1&amp;available=1&amp;page=22&amp;per_page=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/locations/wards?ward_id=1&amp;active=&amp;available=&amp;page=22&amp;per_page=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -44943,8 +45199,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "ward_id": "1",
-    "active": "1",
-    "available": "1",
+    "active": "0",
+    "available": "0",
     "page": "22",
     "per_page": "7",
 };
@@ -45070,7 +45326,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>available</code></b>&nbsp;&nbsp;
@@ -45092,7 +45348,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
@@ -48076,8 +48332,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"version\": 16,
     \"dispense_id\": 17,
     \"quantity\": \"iyvdljnikhwaykcm\",
-    \"disposition\": \"expired\",
-    \"usable_confirmed\": true
+    \"disposition\": \"damaged\",
+    \"usable_confirmed\": false
 }"
 </code></pre></div>
 
@@ -48101,8 +48357,8 @@ let body = {
     "version": 16,
     "dispense_id": 17,
     "quantity": "iyvdljnikhwaykcm",
-    "disposition": "expired",
-    "usable_confirmed": true
+    "disposition": "damaged",
+    "usable_confirmed": false
 };
 
 fetch(url, {
@@ -48341,10 +48597,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="disposition"                data-endpoint="POSTapi-v1-medications--medication--return-request"
-               value="expired"
+               value="damaged"
                data-component="body">
     <br>
-<p>Example: <code>expired</code></p>
+<p>Example: <code>damaged</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>usable</code></li> <li><code>damaged</code></li> <li><code>expired</code></li></ul>
         </div>
@@ -48368,7 +48624,7 @@ Must be one of:
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
         </form>
 
@@ -48968,7 +49224,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"version\": 16,
     \"dispense_id\": 17,
     \"quantity\": \"iyvdljnikhwaykcm\",
-    \"observed_at\": \"2026-11-20T01:18:13\"
+    \"observed_at\": \"2026-11-20T01:48:35\"
 }"
 </code></pre></div>
 
@@ -48992,7 +49248,7 @@ let body = {
     "version": 16,
     "dispense_id": 17,
     "quantity": "iyvdljnikhwaykcm",
-    "observed_at": "2026-11-20T01:18:13"
+    "observed_at": "2026-11-20T01:48:35"
 };
 
 fetch(url, {
@@ -49231,10 +49487,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="observed_at"                data-endpoint="POSTapi-v1-medications--medication--administer"
-               value="2026-11-20T01:18:13"
+               value="2026-11-20T01:48:35"
                data-component="body">
     <br>
-<p>Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a valid date. Example: <code>2026-11-20T01:18:13</code></p>
+<p>Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a valid date. Example: <code>2026-11-20T01:48:35</code></p>
         </div>
         </form>
 
@@ -49266,7 +49522,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"version\": 16,
     \"dispense_id\": 17,
     \"quantity\": \"iyvdljnikhwaykcm\",
-    \"observed_at\": \"2026-11-20T01:18:13\",
+    \"observed_at\": \"2026-11-20T01:48:35\",
     \"administration_id\": 8
 }"
 </code></pre></div>
@@ -49291,7 +49547,7 @@ let body = {
     "version": 16,
     "dispense_id": 17,
     "quantity": "iyvdljnikhwaykcm",
-    "observed_at": "2026-11-20T01:18:13",
+    "observed_at": "2026-11-20T01:48:35",
     "administration_id": 8
 };
 
@@ -49531,10 +49787,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="observed_at"                data-endpoint="POSTapi-v1-medications--medication--correct"
-               value="2026-11-20T01:18:13"
+               value="2026-11-20T01:48:35"
                data-component="body">
     <br>
-<p>Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a valid date. Example: <code>2026-11-20T01:18:13</code></p>
+<p>Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a valid date. Example: <code>2026-11-20T01:48:35</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>administration_id</code></b>&nbsp;&nbsp;
@@ -49687,7 +49943,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --data "{
     \"page\": 16,
     \"per_page\": 22,
-    \"include_inactive\": false,
+    \"include_inactive\": true,
     \"reminder_id\": 67
 }"
 </code></pre></div>
@@ -49706,7 +49962,7 @@ const headers = {
 let body = {
     "page": 16,
     "per_page": 22,
-    "include_inactive": false,
+    "include_inactive": true,
     "reminder_id": 67
 };
 
@@ -49861,7 +50117,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>reminder_id</code></b>&nbsp;&nbsp;
@@ -50627,7 +50883,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --header "Idempotency-Key: {{idempotency_key}}" \
     --data "{
     \"version\": 1,
-    \"snooze_until\": \"9867-09-18\"
+    \"snooze_until\": \"3962-03-04\"
 }"
 </code></pre></div>
 
@@ -50646,7 +50902,7 @@ const headers = {
 
 let body = {
     "version": 1,
-    "snooze_until": "9867-09-18"
+    "snooze_until": "3962-03-04"
 };
 
 fetch(url, {
@@ -50825,10 +51081,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="snooze_until"                data-endpoint="POSTapi-v1-notifications--notification--snooze"
-               value="9867-09-18"
+               value="3962-03-04"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>. Example: <code>9867-09-18</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>. Example: <code>3962-03-04</code></p>
         </div>
         </form>
 
@@ -50963,7 +51219,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/prescriptions?status=voided&amp;order_status=completed&amp;page=1&amp;per_page=22" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/prescriptions?status=signed&amp;order_status=completed&amp;page=1&amp;per_page=22" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -50973,7 +51229,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "status": "voided",
+    "status": "signed",
     "order_status": "completed",
     "page": "1",
     "per_page": "22",
@@ -51088,10 +51344,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-encounters--encounter--prescriptions"
-               value="voided"
+               value="signed"
                data-component="query">
     <br>
-<p>Example: <code>voided</code></p>
+<p>Example: <code>signed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>signed</code></li> <li><code>voided</code></li></ul>
             </div>
@@ -51287,7 +51543,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/prescriptions/3642559314232/history?status=voided&amp;order_status=completed&amp;page=1&amp;per_page=22" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/encounters/3642559314232/prescriptions/3642559314232/history?status=signed&amp;order_status=active&amp;page=1&amp;per_page=22" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -51297,8 +51553,8 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "status": "voided",
-    "order_status": "completed",
+    "status": "signed",
+    "order_status": "active",
     "page": "1",
     "per_page": "22",
 };
@@ -51424,10 +51680,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-encounters--encounter--prescriptions--clinicalRecord--history"
-               value="voided"
+               value="signed"
                data-component="query">
     <br>
-<p>Example: <code>voided</code></p>
+<p>Example: <code>signed</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>signed</code></li> <li><code>voided</code></li></ul>
             </div>
@@ -51438,10 +51694,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="order_status"                data-endpoint="GETapi-v1-encounters--encounter--prescriptions--clinicalRecord--history"
-               value="completed"
+               value="active"
                data-component="query">
     <br>
-<p>Example: <code>completed</code></p>
+<p>Example: <code>active</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>active</code></li> <li><code>stopped</code></li> <li><code>completed</code></li></ul>
             </div>
@@ -53312,7 +53568,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/queues?status=cancelled&amp;queue=in_progress&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=OPD&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/queues?status=cancelled&amp;queue=unassigned&amp;doctor_id=1&amp;patient_id=22&amp;care_setting=OPD&amp;from_date=2026-11-20&amp;to_date=2026-11-20&amp;page=7&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -53323,7 +53579,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "status": "cancelled",
-    "queue": "in_progress",
+    "queue": "unassigned",
     "doctor_id": "1",
     "patient_id": "22",
     "care_setting": "OPD",
@@ -53443,10 +53699,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="queue"                data-endpoint="GETapi-v1-queues"
-               value="in_progress"
+               value="unassigned"
                data-component="query">
     <br>
-<p>Example: <code>in_progress</code></p>
+<p>Example: <code>unassigned</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>unassigned</code></li> <li><code>waiting</code></li> <li><code>in_progress</code></li></ul>
             </div>
@@ -53836,7 +54092,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --data "{
     \"page\": 16,
     \"per_page\": 22,
-    \"is_active\": true
+    \"is_active\": false
 }"
 </code></pre></div>
 
@@ -53854,7 +54110,7 @@ const headers = {
 let body = {
     "page": 16,
     "per_page": 22,
-    "is_active": true
+    "is_active": false
 };
 
 fetch(url, {
@@ -53996,7 +54252,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
         </form>
 
@@ -54671,9 +54927,9 @@ You can check the Dev Tools console for debugging information.</code></pre>
     --data "{
     \"title\": \"b\",
     \"body\": \"n\",
-    \"starts_at\": \"9866-07-25\",
+    \"starts_at\": \"3962-03-04\",
     \"timezone\": \"Africa\\/Lagos\",
-    \"frequency\": \"daily\",
+    \"frequency\": \"weekly\",
     \"interval\": 7,
     \"occurrence_count\": 16,
     \"ends_at\": \"2052-12-13\",
@@ -54701,9 +54957,9 @@ const headers = {
 let body = {
     "title": "b",
     "body": "n",
-    "starts_at": "9866-07-25",
+    "starts_at": "3962-03-04",
     "timezone": "Africa\/Lagos",
-    "frequency": "daily",
+    "frequency": "weekly",
     "interval": 7,
     "occurrence_count": 16,
     "ends_at": "2052-12-13",
@@ -54889,10 +55145,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="POSTapi-v1-reminders"
-               value="9866-07-25"
+               value="3962-03-04"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>. Example: <code>9866-07-25</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>. Example: <code>3962-03-04</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>timezone</code></b>&nbsp;&nbsp;
@@ -54915,10 +55171,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="frequency"                data-endpoint="POSTapi-v1-reminders"
-               value="daily"
+               value="weekly"
                data-component="body">
     <br>
-<p>Example: <code>daily</code></p>
+<p>Example: <code>weekly</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>once</code></li> <li><code>daily</code></li> <li><code>weekly</code></li> <li><code>monthly</code></li></ul>
         </div>
@@ -55022,9 +55278,9 @@ Must be one of:
     --data "{
     \"title\": \"b\",
     \"body\": \"n\",
-    \"starts_at\": \"9866-07-25\",
+    \"starts_at\": \"3962-03-04\",
     \"timezone\": \"Africa\\/Lagos\",
-    \"frequency\": \"daily\",
+    \"frequency\": \"monthly\",
     \"interval\": 7,
     \"occurrence_count\": 16,
     \"ends_at\": \"2052-12-13\",
@@ -55051,9 +55307,9 @@ const headers = {
 let body = {
     "title": "b",
     "body": "n",
-    "starts_at": "9866-07-25",
+    "starts_at": "3962-03-04",
     "timezone": "Africa\/Lagos",
-    "frequency": "daily",
+    "frequency": "monthly",
     "interval": 7,
     "occurrence_count": 16,
     "ends_at": "2052-12-13",
@@ -55251,10 +55507,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="starts_at"                data-endpoint="PATCHapi-v1-reminders--reminder-"
-               value="9866-07-25"
+               value="3962-03-04"
                data-component="body">
     <br>
-<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>. Example: <code>9866-07-25</code></p>
+<p>Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>. Example: <code>3962-03-04</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>timezone</code></b>&nbsp;&nbsp;
@@ -55277,10 +55533,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="frequency"                data-endpoint="PATCHapi-v1-reminders--reminder-"
-               value="daily"
+               value="monthly"
                data-component="body">
     <br>
-<p>Example: <code>daily</code></p>
+<p>Example: <code>monthly</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>once</code></li> <li><code>daily</code></li> <li><code>weekly</code></li> <li><code>monthly</code></li></ul>
         </div>
@@ -55581,7 +55837,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/options?from_date=8832-04-19&amp;to_date=2052-12-13" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/options?from_date=2927-12-02&amp;to_date=2052-12-13" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -55591,7 +55847,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
 };
 Object.keys(params)
@@ -55691,10 +55947,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-options"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -55725,7 +55981,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/activity?from_date=8832-04-19&amp;to_date=2052-12-13&amp;patient_id=22&amp;encounter_id=7&amp;doctor_id=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/activity?from_date=2927-12-02&amp;to_date=2052-12-13&amp;patient_id=22&amp;encounter_id=7&amp;doctor_id=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -55735,7 +55991,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "patient_id": "22",
     "encounter_id": "7",
@@ -55838,10 +56094,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-activity"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -55908,7 +56164,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/trend?from_date=8832-04-19&amp;to_date=2052-12-13&amp;patient_id=22&amp;encounter_id=7&amp;doctor_id=16&amp;module=registry" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/trend?from_date=2927-12-02&amp;to_date=2052-12-13&amp;patient_id=22&amp;encounter_id=7&amp;doctor_id=16&amp;module=encounters" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -55918,12 +56174,12 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "patient_id": "22",
     "encounter_id": "7",
     "doctor_id": "16",
-    "module": "registry",
+    "module": "encounters",
 };
 Object.keys(params)
     .forEach(key =&gt; url.searchParams.append(key, params[key]));
@@ -56022,10 +56278,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-trend"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -56082,10 +56338,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="module"                data-endpoint="GETapi-v1-reports-trend"
-               value="registry"
+               value="encounters"
                data-component="query">
     <br>
-<p>Example: <code>registry</code></p>
+<p>Example: <code>encounters</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>registry</code></li> <li><code>appointments</code></li> <li><code>encounters</code></li> <li><code>admissions</code></li> <li><code>clinical</code></li> <li><code>prescriptions</code></li> <li><code>care</code></li> <li><code>diagnostics</code></li> <li><code>results</code></li> <li><code>medications</code></li> <li><code>staff</code></li> <li><code>reminders</code></li> <li><code>notifications</code></li></ul>
             </div>
@@ -56106,7 +56362,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/inventory?from_date=8832-04-19&amp;to_date=2052-12-13&amp;store_id=22&amp;drug_id=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/inventory?from_date=2927-12-02&amp;to_date=2052-12-13&amp;store_id=22&amp;drug_id=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -56116,7 +56372,7 @@ Must be one of:
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "store_id": "22",
     "drug_id": "7",
@@ -56218,10 +56474,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-inventory"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -56276,7 +56532,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/positions?from_date=8832-04-19&amp;to_date=2052-12-13&amp;store_id=22&amp;drug_id=7&amp;page=66&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/positions?from_date=2927-12-02&amp;to_date=2052-12-13&amp;store_id=22&amp;drug_id=7&amp;page=66&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -56286,7 +56542,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "store_id": "22",
     "drug_id": "7",
@@ -56390,10 +56646,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-positions"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -56472,7 +56728,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/movements?from_date=8832-04-19&amp;to_date=2052-12-13&amp;store_id=22&amp;drug_id=7&amp;page=66&amp;per_page=17" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/movements?from_date=2927-12-02&amp;to_date=2052-12-13&amp;store_id=22&amp;drug_id=7&amp;page=66&amp;per_page=17" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -56482,7 +56738,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "store_id": "22",
     "drug_id": "7",
@@ -56586,10 +56842,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-movements"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -56668,7 +56924,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/billing?from_date=8832-04-19&amp;to_date=2052-12-13&amp;patient_id=22" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/billing?from_date=2927-12-02&amp;to_date=2052-12-13&amp;patient_id=22" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -56678,7 +56934,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "patient_id": "22",
 };
@@ -56779,10 +57035,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-billing"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -56825,7 +57081,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/accounts?from_date=8832-04-19&amp;to_date=2052-12-13&amp;patient_id=22&amp;page=67&amp;per_page=16" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/accounts?from_date=2927-12-02&amp;to_date=2052-12-13&amp;patient_id=22&amp;page=67&amp;per_page=16" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -56835,7 +57091,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "patient_id": "22",
     "page": "67",
@@ -56938,10 +57194,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-accounts"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -57008,7 +57264,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/hmo?from_date=8832-04-19&amp;to_date=2052-12-13&amp;patient_id=22" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/reports/hmo?from_date=2927-12-02&amp;to_date=2052-12-13&amp;patient_id=22" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -57018,7 +57274,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 );
 
 const params = {
-    "from_date": "8832-04-19",
+    "from_date": "2927-12-02",
     "to_date": "2052-12-13",
     "patient_id": "22",
 };
@@ -57119,10 +57375,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="from_date"                data-endpoint="GETapi-v1-reports-hmo"
-               value="8832-04-19"
+               value="2927-12-02"
                data-component="query">
     <br>
-<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>8832-04-19</code></p>
+<p>Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>. Example: <code>2927-12-02</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>to_date</code></b>&nbsp;&nbsp;
@@ -57169,7 +57425,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/staff?q=b&amp;sort=-name&amp;page=22&amp;per_page=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/staff?q=b&amp;sort=username&amp;page=22&amp;per_page=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -57180,7 +57436,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "q": "b",
-    "sort": "-name",
+    "sort": "username",
     "page": "22",
     "per_page": "7",
 };
@@ -57293,10 +57549,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-v1-staff"
-               value="-name"
+               value="username"
                data-component="query">
     <br>
-<p>Example: <code>-name</code></p>
+<p>Example: <code>username</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>name</code></li> <li><code>-name</code></li> <li><code>username</code></li> <li><code>-username</code></li></ul>
             </div>
@@ -57470,7 +57726,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/staff-management?q=b&amp;sort=-username&amp;page=22&amp;per_page=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/staff-management?q=b&amp;sort=name&amp;page=22&amp;per_page=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -57481,7 +57737,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 const params = {
     "q": "b",
-    "sort": "-username",
+    "sort": "name",
     "page": "22",
     "per_page": "7",
 };
@@ -57594,10 +57850,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="sort"                data-endpoint="GETapi-v1-staff-management"
-               value="-username"
+               value="name"
                data-component="query">
     <br>
-<p>Example: <code>-username</code></p>
+<p>Example: <code>name</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>name</code></li> <li><code>-name</code></li> <li><code>username</code></li> <li><code>-username</code></li></ul>
             </div>
@@ -58274,7 +58530,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"role_codes\": [
         \"architecto\"
     ],
-    \"is_active\": false,
+    \"is_active\": true,
     \"current_password\": \"n\",
     \"version\": 67
 }"
@@ -58303,7 +58559,7 @@ let body = {
     "role_codes": [
         "architecto"
     ],
-    "is_active": false,
+    "is_active": true,
     "current_password": "n",
     "version": 67
 };
@@ -58583,7 +58839,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>current_password</code></b>&nbsp;&nbsp;
@@ -58906,7 +59162,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/catalog/architecto?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=submitted&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/catalog/architecto?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=rejected&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -58919,12 +59175,12 @@ const params = {
     "page": "1",
     "per_page": "22",
     "q": "g",
-    "active": "1",
+    "active": "0",
     "store_id": "16",
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "submitted",
+    "status": "rejected",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -59088,7 +59344,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices. Example: <code>true</code></p>
+<p>Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices. Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -59145,10 +59401,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-catalog--id-"
-               value="submitted"
+               value="rejected"
                data-component="query">
     <br>
-<p>Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices. Example: <code>submitted</code></p>
+<p>Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices. Example: <code>rejected</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -59342,7 +59598,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/catalog/units|drugs|packs|suppliers|stores|batches|prices/3642559314232/history?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=rejected&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/catalog/units|drugs|packs|suppliers|stores|batches|prices/3642559314232/history?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=cancelled&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -59360,7 +59616,7 @@ const params = {
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "rejected",
+    "status": "cancelled",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -59593,10 +59849,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-catalog--catalog---stockRecord--history"
-               value="rejected"
+               value="cancelled"
                data-component="query">
     <br>
-<p>Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices. Example: <code>rejected</code></p>
+<p>Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices. Example: <code>cancelled</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -59689,7 +59945,7 @@ Must be one of:
     \"expires_on\": \"2026-11-20\",
     \"currency\": \"ZMI$\\/D\",
     \"amount\": \"yvdljnikhwaykcmy\",
-    \"effective_at\": \"2026-11-20T01:18:13.000000Z\"
+    \"effective_at\": \"2026-11-20T01:48:35.000000Z\"
 }"
 </code></pre></div>
 
@@ -59736,7 +59992,7 @@ let body = {
     "expires_on": "2026-11-20",
     "currency": "ZMI$\/D",
     "amount": "yvdljnikhwaykcmy",
-    "effective_at": "2026-11-20T01:18:13.000000Z"
+    "effective_at": "2026-11-20T01:48:35.000000Z"
 };
 
 fetch(url, {
@@ -60263,10 +60519,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="effective_at"                data-endpoint="POSTapi-v1-stock-catalog--id-"
-               value="2026-11-20T01:18:13.000000Z"
+               value="2026-11-20T01:48:35.000000Z"
                data-component="body">
     <br>
-<p>Applies to catalog: prices. Must be a valid date in the format <code>Y-m-d\TH:i:s.u\Z</code>. Example: <code>2026-11-20T01:18:13.000000Z</code></p>
+<p>Applies to catalog: prices. Must be a valid date in the format <code>Y-m-d\TH:i:s.u\Z</code>. Example: <code>2026-11-20T01:48:35.000000Z</code></p>
         </div>
         </form>
 
@@ -60313,7 +60569,7 @@ Must be one of:
     \"kind\": \"selling\",
     \"currency\": \"ZMI$\\/D\",
     \"amount\": \"yvdljnikhwaykcmy\",
-    \"effective_at\": \"2026-11-20T01:18:14.000000Z\"
+    \"effective_at\": \"2026-11-20T01:48:35.000000Z\"
 }"
 </code></pre></div>
 
@@ -60352,7 +60608,7 @@ let body = {
     "kind": "selling",
     "currency": "ZMI$\/D",
     "amount": "yvdljnikhwaykcmy",
-    "effective_at": "2026-11-20T01:18:14.000000Z"
+    "effective_at": "2026-11-20T01:48:35.000000Z"
 };
 
 fetch(url, {
@@ -60795,10 +61051,10 @@ Must be one of:
  &nbsp;
                 <input type="text" style="display: none"
                               name="effective_at"                data-endpoint="PATCHapi-v1-stock-catalog--id---stockRecord-"
-               value="2026-11-20T01:18:14.000000Z"
+               value="2026-11-20T01:48:35.000000Z"
                data-component="body">
     <br>
-<p>Applies to catalog: prices. Must be a valid date in the format <code>Y-m-d\TH:i:s.u\Z</code>. Example: <code>2026-11-20T01:18:14.000000Z</code></p>
+<p>Applies to catalog: prices. Must be a valid date in the format <code>Y-m-d\TH:i:s.u\Z</code>. Example: <code>2026-11-20T01:48:35.000000Z</code></p>
         </div>
         </form>
 
@@ -60817,7 +61073,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/stores/3642559314232/access?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=cancelled&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/stores/3642559314232/access?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=posted&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -60830,12 +61086,12 @@ const params = {
     "page": "1",
     "per_page": "22",
     "q": "g",
-    "active": "1",
+    "active": "0",
     "store_id": "16",
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "cancelled",
+    "status": "posted",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -60999,7 +61255,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -61056,10 +61312,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-stores--stockStore--access"
-               value="cancelled"
+               value="posted"
                data-component="query">
     <br>
-<p>Example: <code>cancelled</code></p>
+<p>Example: <code>posted</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -61116,7 +61372,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/stores/3642559314232/access/3642559314232/history?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=submitted&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/stores/3642559314232/access/3642559314232/history?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=rejected&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -61134,7 +61390,7 @@ const params = {
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "submitted",
+    "status": "rejected",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -61367,10 +61623,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-stores--stockStore--access--stockStaff--history"
-               value="submitted"
+               value="rejected"
                data-component="query">
     <br>
-<p>Example: <code>submitted</code></p>
+<p>Example: <code>rejected</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -61817,7 +62073,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/my-stores?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=submitted&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/my-stores?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=draft&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -61830,12 +62086,12 @@ const params = {
     "page": "1",
     "per_page": "22",
     "q": "g",
-    "active": "1",
+    "active": "0",
     "store_id": "16",
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "submitted",
+    "status": "draft",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -61986,7 +62242,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -62043,10 +62299,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-my-stores"
-               value="submitted"
+               value="draft"
                data-component="query">
     <br>
-<p>Example: <code>submitted</code></p>
+<p>Example: <code>draft</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -62103,7 +62359,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/balances?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=cancelled&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/balances?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=cancelled&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -62116,7 +62372,7 @@ const params = {
     "page": "1",
     "per_page": "22",
     "q": "g",
-    "active": "1",
+    "active": "0",
     "store_id": "16",
     "drug_id": "17",
     "batch_id": "15",
@@ -62272,7 +62528,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -62389,7 +62645,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/movements?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=posted&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/movements?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=draft&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -62402,12 +62658,12 @@ const params = {
     "page": "1",
     "per_page": "22",
     "q": "g",
-    "active": "0",
+    "active": "1",
     "store_id": "16",
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "posted",
+    "status": "draft",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -62558,7 +62814,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -62615,10 +62871,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-movements"
-               value="posted"
+               value="draft"
                data-component="query">
     <br>
-<p>Example: <code>posted</code></p>
+<p>Example: <code>draft</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -62675,7 +62931,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/reconciliation?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=draft&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/reconciliation?page=1&amp;per_page=22&amp;q=g&amp;active=&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=rejected&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -62693,7 +62949,7 @@ const params = {
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "draft",
+    "status": "rejected",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -62901,10 +63157,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-reconciliation"
-               value="draft"
+               value="rejected"
                data-component="query">
     <br>
-<p>Example: <code>draft</code></p>
+<p>Example: <code>rejected</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -62961,7 +63217,7 @@ Must be one of:
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/operations?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=draft&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/operations?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=submitted&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -62979,7 +63235,7 @@ const params = {
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "draft",
+    "status": "submitted",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -63187,10 +63443,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-operations"
-               value="draft"
+               value="submitted"
                data-component="query">
     <br>
-<p>Example: <code>draft</code></p>
+<p>Example: <code>submitted</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -63256,7 +63512,7 @@ Must be one of:
     --data "{
     \"reason\": \"b\",
     \"current_password\": \"n\",
-    \"kind\": \"transfer\",
+    \"kind\": \"adjustment_in\",
     \"source_store_id\": 7,
     \"destination_store_id\": 16,
     \"source_store_version\": 17,
@@ -63296,7 +63552,7 @@ const headers = {
 let body = {
     "reason": "b",
     "current_password": "n",
-    "kind": "transfer",
+    "kind": "adjustment_in",
     "source_store_id": 7,
     "destination_store_id": 16,
     "source_store_version": 17,
@@ -63494,10 +63750,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="kind"                data-endpoint="POSTapi-v1-stock-operations"
-               value="transfer"
+               value="adjustment_in"
                data-component="body">
     <br>
-<p>Example: <code>transfer</code></p>
+<p>Example: <code>adjustment_in</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>receipt</code></li> <li><code>opening</code></li> <li><code>transfer</code></li> <li><code>requisition</code></li> <li><code>adjustment_in</code></li> <li><code>adjustment_out</code></li> <li><code>damage</code></li> <li><code>expiry</code></li></ul>
         </div>
@@ -63847,7 +64103,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/operations/3642559314232/history?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=cancelled&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/stock/operations/3642559314232/history?page=1&amp;per_page=22&amp;q=g&amp;active=1&amp;store_id=16&amp;drug_id=17&amp;batch_id=15&amp;kind=y&amp;status=rejected&amp;through_id=1&amp;currency=ZMI%24%2FD&amp;code=y" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -63865,7 +64121,7 @@ const params = {
     "drug_id": "17",
     "batch_id": "15",
     "kind": "y",
-    "status": "cancelled",
+    "status": "rejected",
     "through_id": "1",
     "currency": "ZMI$/D",
     "code": "y",
@@ -64086,10 +64342,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="status"                data-endpoint="GETapi-v1-stock-operations--stockOperation--history"
-               value="cancelled"
+               value="rejected"
                data-component="query">
     <br>
-<p>Example: <code>cancelled</code></p>
+<p>Example: <code>rejected</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>draft</code></li> <li><code>submitted</code></li> <li><code>posted</code></li> <li><code>rejected</code></li> <li><code>cancelled</code></li></ul>
             </div>
@@ -64156,7 +64412,7 @@ Must be one of:
     \"reason\": \"b\",
     \"current_password\": \"n\",
     \"version\": 7,
-    \"kind\": \"receipt\",
+    \"kind\": \"damage\",
     \"source_store_id\": 16,
     \"destination_store_id\": 17,
     \"source_store_version\": 15,
@@ -64197,7 +64453,7 @@ let body = {
     "reason": "b",
     "current_password": "n",
     "version": 7,
-    "kind": "receipt",
+    "kind": "damage",
     "source_store_id": 16,
     "destination_store_id": 17,
     "source_store_version": 15,
@@ -64420,10 +64676,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
  &nbsp;
                 <input type="text" style="display: none"
                               name="kind"                data-endpoint="PATCHapi-v1-stock-operations--stockOperation-"
-               value="receipt"
+               value="damage"
                data-component="body">
     <br>
-<p>Example: <code>receipt</code></p>
+<p>Example: <code>damage</code></p>
 Must be one of:
 <ul style="list-style-type: square;"><li><code>receipt</code></li> <li><code>opening</code></li> <li><code>transfer</code></li> <li><code>requisition</code></li> <li><code>adjustment_in</code></li> <li><code>adjustment_out</code></li> <li><code>damage</code></li> <li><code>expiry</code></li></ul>
         </div>

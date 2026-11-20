@@ -26,11 +26,17 @@ class PatientRegistry
         return $this->locked($actor, function (User $actor) use ($data): Patient {
             Gate::forUser($actor)->authorize('create', Patient::class);
             $this->reviewDuplicates($actor, $data);
-            PatientCategory::query()->findOrFail($data['category_id']);
+            $category = PatientCategory::query()->lockForUpdate()->findOrFail($data['category_id']);
+            $reservation = app(PatientNumbers::class)->claim($actor, $category, $data);
             $patient = new Patient;
             $patient->fill(collect($data)->only(self::DEMOGRAPHICS)->all());
-            $patient->forceFill(['mrn' => $data['mrn'], 'category_id' => (int) $data['category_id'], 'created_by' => $actor->id]);
+            $patient->forceFill(['mrn' => $reservation?->number ?? $data['mrn'], 'category_id' => (int) $data['category_id'], 'created_by' => $actor->id]);
             $patient->save();
+            if ($reservation !== null) {
+                DB::table('patient_number_reservations')->where('id', $reservation->id)->update([
+                    'patient_id' => $patient->id, 'consumed_at' => now('UTC'), 'updated_at' => now('UTC'),
+                ]);
+            }
             $this->contacts($patient, $data['contacts'] ?? []);
             $this->audit->record('patient.created', $actor->id, 'patient', $patient->id, [
                 'version' => $patient->version, 'category_id' => $patient->category_id,

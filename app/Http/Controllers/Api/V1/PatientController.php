@@ -78,7 +78,11 @@ class PatientController extends Controller
 
     public function options(): JsonResponse
     {
-        return response()->json(['data' => ['categories' => PatientCategory::query()->orderBy('name')->get(['id', 'code', 'name'])]]);
+        return response()->json(['data' => ['categories' => PatientCategory::query()->orderBy('name')->get(['id', 'code', 'name'])
+            ->map(fn (PatientCategory $category): array => $category->only(['id', 'code', 'name']) + [
+                'numbering_mode' => isset(\App\Services\PatientNumbers::PREFIXES[$category->code]) ? 'reservation_required' : 'staff_entered',
+                'number_prefix' => \App\Services\PatientNumbers::PREFIXES[$category->code] ?? null,
+            ])]]);
     }
 
     public function show(Request $request, int $patient, AuditTrail $audit, PatientIdentityResolver $identities): PatientResource

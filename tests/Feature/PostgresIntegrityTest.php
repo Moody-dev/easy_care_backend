@@ -31,7 +31,9 @@ class PostgresIntegrityTest extends TestCase
             $this->assertTrue(DB::getSchemaBuilder()->hasTable($table), $table);
         }
         $guards = DB::selectOne("SELECT count(*) AS total FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'easycare' AND NOT t.tgisinternal");
-        $this->assertSame($manifest['triggers'], (int) $guards->total);
+        $this->assertSame($manifest['triggers'] + 7, (int) $guards->total);
+        $this->assertTrue(DB::getSchemaBuilder()->hasTable('patient_number_sequences'));
+        $this->assertTrue(DB::getSchemaBuilder()->hasTable('patient_number_reservations'));
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('permissions', 125);
     }

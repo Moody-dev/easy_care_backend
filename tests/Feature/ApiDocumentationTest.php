@@ -24,7 +24,8 @@ class ApiDocumentationTest extends TestCase
         $routes = Route::getRoutes()->getRoutesByName();
         $patient = ExtractedEndpointData::fromRoute($routes['api.v1.patients.store']);
         $parameters = (new ApiParameters($config))($patient);
-        $this->assertTrue($parameters['mrn']['required']);
+        $this->assertTrue($parameters['mrn']['sometimes']);
+        $this->assertArrayHasKey('number_reservation_token', $parameters);
         $this->assertTrue($parameters['first_name']['required']);
         $this->assertArrayNotHasKey('page', $parameters);
         $metadata = (new ApiMetadata($config))($patient);

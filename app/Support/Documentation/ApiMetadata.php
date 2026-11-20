@@ -37,6 +37,7 @@ class ApiMetadata extends Strategy
 
     public static function isCommand(ExtractedEndpointData $endpoint): bool
     {
-        return str_contains(self::methodSource($endpoint), '$commands->run(');
+        return $endpoint->route->getName() === 'api.v1.patients.number-reservations.store'
+            || str_contains(self::methodSource($endpoint), '$commands->run(');
     }
 }

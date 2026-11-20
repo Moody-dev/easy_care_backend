@@ -22,7 +22,14 @@ class PostgresSchema
         foreach ($files as $file) {
             $hashes[basename($file)] = hash('sha256', str_replace("\r\n", "\n", file_get_contents($file)));
         }
-        if ($hashes !== $manifest['migrations'] || hash('sha256', str_replace("\r\n", "\n", file_get_contents(database_path('schema/postgres-testing.sql')))) !== $manifest['sql_sha256']) {
+        $postgresHashes = [];
+        $postgresFiles = glob(database_path('postgresql/*.php'));
+        sort($postgresFiles, SORT_STRING);
+        foreach ($postgresFiles as $file) {
+            $postgresHashes[basename($file)] = hash('sha256', str_replace("\r\n", "\n", file_get_contents($file)));
+        }
+        if ($hashes !== $manifest['migrations'] || $postgresHashes !== ($manifest['postgres_migrations'] ?? [])
+            || hash('sha256', str_replace("\r\n", "\n", file_get_contents(database_path('schema/postgres-testing.sql')))) !== $manifest['sql_sha256']) {
             throw new RuntimeException('The PostgreSQL testing baseline must be reviewed against the current MySQL migrations before use.');
         }
     }

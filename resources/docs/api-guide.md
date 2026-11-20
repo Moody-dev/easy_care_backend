@@ -22,6 +22,18 @@ Each endpoint lists its route permission checks. Staff need active accounts and 
 
 ## Writes, versions and retries
 
+### Reserved registration numbers
+
+Read `GET /api/v1/patients/options` first. Private uses `PVT` and Walk-in uses `WLK`; their `numbering_mode` is `reservation_required`. Other categories retain `staff_entered` numbering until their formats are confirmed.
+
+For Private/Walk-in, send `POST /api/v1/patients/number-reservations` with `{"category_id":1}` using the selected category's actual ID, session cookies, CSRF and an `Idempotency-Key`. Staff need both patient-view and patient-create permissions. Display the returned `data.mrn` in a read-only field and retain `data.number_reservation_token`. Retrying the same reservation key returns the same number and token; changing category needs a new reservation intent/key. IDs in examples are synthetic.
+
+Submit the token with the registration demographics to `POST /api/v1/patients`, using a separate registration idempotency key. Omit `mrn` or echo the reserved value exactly. The backend verifies the category and staff ownership, creates the patient and consumes the reservation atomically. If the save fails, the reservation remains available to that staff member. If the response is lost, retry the original registration key and payload; do not create a new registration intent for the consumed token.
+
+Each prefix advances independently (`PVT-01`, `PVT-02`, ...; `WLK-01`, `WLK-02`, ...). Counters start above matching existing and retired identifiers. Numbers are retained without automatic expiry/reuse, so abandoning or switching a form can leave gaps; a gap is not an extra patient. Reservations belong to the requesting staff account, not a browser tab or patient record. Do not share tokens across staff accounts. Existing patient numbers are unchanged, and demographic editing cannot change them. The frontend team implements the read-only field and these requests; this backend change does not alter its screens.
+
+### Command submission
+
 Endpoints marked as commands require `Idempotency-Key`: 16–128 characters, starting with a letter/digit and containing letters, digits, dots, colons, underscores or hyphens. Generate a UUID for each new intent and set the Postman `idempotency_key` variable before sending it. If the response is lost, retry the identical method, path, payload and key as the same staff member. Do not automatically generate a new key on every retry. Changed payloads require a new intent; old keys expire and are not permanent business identifiers.
 
 Supply the latest saved `version`, related record versions, `workflow_version`, `account_version` or `expected_version` fields required by that particular endpoint. A conflict requires refreshing the affected records before resubmitting an intentional change. Never guess versions or increment them client-side. The `Idempotency-Replayed` response header indicates a retained command replay; current permissions and visibility still apply.

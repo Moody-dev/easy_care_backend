@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 'EasyCare API Reference'
-  description: "# Frontend integration guide\n\nThis is the Laravel API reference for the shared Railway testing environment. All endpoint paths below include `/api/v1`; do not add that prefix twice. Set the Postman `baseUrl` to the server origin, without `/api/v1`. The hospital installation continues to use Laravel and MySQL. Supabase is the temporary testing database; frontend clients call Laravel rather than Supabase tables.\n\n## Session login and CSRF\n\nAuthentication uses a staff session cookie, not a bearer token or Supabase Auth. Obtain an authorized test account from the backend team; there is no public signup. Documentation access does not grant API access.\n\n1. Send `GET /api/v1/auth/csrf-token`. Retain its cookies and the `data.csrf_token` value.\n2. Send `POST /api/v1/auth/login` with JSON `{\"email_or_username\":\"YOUR_TEST_USERNAME\",\"password\":\"YOUR_TEST_PASSWORD\"}` and header `X-CSRF-TOKEN` containing the bootstrap token. Send the same session cookies.\n3. Login rotates the session and returns a fresh `data.csrf_token`. Replace the saved token and retain the updated cookie. `GET /api/v1/auth/me` restores the current user, roles, effective permissions and session information.\n4. Send the latest CSRF token and cookies with every POST, PUT, PATCH or DELETE. Send `Accept: application/json`; JSON requests also use `Content-Type: application/json`.\n5. `POST /api/v1/auth/logout` signs out and returns 204 with no body. On 401/419, restore the session or repeat login rather than retrying a write blindly.\n\nIn browser code use `credentials: \"include\"`. The deployed session cookie is Secure, HttpOnly and SameSite=Lax. The planned Vercel frontend proxy must forward the request cookies, CSRF headers, response Set-Cookie headers and appropriate cookie attributes for its same-origin route. Direct cross-site browser login from Vercel to Railway needs a separately reviewed cookie setup; permissive CORS alone does not enable it. Frontend integration remains the frontend team's work.\n\nIn Postman keep the cookie jar enabled. Import `collection.json`; the collection captures `data.csrf_token` from bootstrap/login/session responses into its `csrf_token` variable. Supply your own test credentials in the login request. No working credentials are included in the downloads.\n\n## Permissions and visibility\n\nEach endpoint lists its route permission checks. Staff need active accounts and explicit grants; administrator or department membership does not automatically grant patient, clinical, stock, billing or reporting access. Restricted or merged records, clinician assignment, store membership and workflow state can further limit access. An options response describes supported choices; it does not grant permission to save them. A 404 can conceal an inaccessible record.\n\n## Writes, versions and retries\n\nEndpoints marked as commands require `Idempotency-Key`: 16–128 characters, starting with a letter/digit and containing letters, digits, dots, colons, underscores or hyphens. Generate a UUID for each new intent and set the Postman `idempotency_key` variable before sending it. If the response is lost, retry the identical method, path, payload and key as the same staff member. Do not automatically generate a new key on every retry. Changed payloads require a new intent; old keys expire and are not permanent business identifiers.\n\nSupply the latest saved `version`, related record versions, `workflow_version`, `account_version` or `expected_version` fields required by that particular endpoint. A conflict requires refreshing the affected records before resubmitting an intentional change. Never guess versions or increment them client-side. The `Idempotency-Replayed` response header indicates a retained command replay; current permissions and visibility still apply.\n\nPassword confirmation uses `current_password` where required. Approval routes may require a different authorized staff member; a visible button is not authorization. Clinical templates, diagnostic schemas and tariffs are versioned. Load published options/forms before constructing the related payload. Signed and posted records retain their originals; use supported correction workflows.\n\n## Responses and data formats\n\nRead each endpoint's request schema and examples. Examples are synthetic and are not hospital policy, stock, medication recommendations, prices or real records. Error examples show the common envelope; not every failure is possible in every workflow. Success examples are included only where explicitly documented, rather than invented from live records.\n\nErrors use `{\"message\":\"...\",\"code\":\"...\"}`; validation errors add an `errors` map of field names to message arrays. Common statuses are 401 (sign in), 403 (permission/workflow), 404 (missing or hidden), 409 (state/version conflict), 419 (session/CSRF), 422 (invalid fields), 429 (rate limit; honor `Retry-After`), and 503 (temporarily unavailable). Conflict codes can be more specific than `conflict`.\n\nPaginated resources provide `data`, `links` and `meta`; some billing, stock and reporting endpoints return Laravel's direct paginator shape instead. Follow the returned links rather than assuming every list has the same wrapper. Supply supported `page` and `per_page` query fields; ordinary defaults are 25 and a maximum of 100 unless the endpoint says otherwise.\n\nUse ISO 8601 timestamps with an explicit UTC offset where requested. Hospital business-day rules use Africa/Lagos. Send exact decimal quantities and money as strings where the schema requires strings; do not use floating-point calculations for prices or balances. NGN transaction totals are stored as exact kobo. Physical POS/cash/bank payments happen outside the platform; the API records their details and confirmations.\n\nUploads use multipart/form-data with the endpoint's file field; let the browser/client generate the multipart boundary. Protected files remain permission controlled. Report exports are private, expiring saved artifacts and may become unavailable if source access or versions change. Do not assume a download URL is public or permanent.\n\n## Frontend connection sequence\n\nStart with health, CSRF, login, session restore and logout. Then implement options, lists, details and paginated search before writes. Handle validation messages and permission denials, then add idempotency, version conflicts and workflow approvals. Verify the session proxy and each module using authorized synthetic test data. This reference does not change any frontend code or connect its dummy screens.\n"
+  description: "# Frontend integration guide\n\nThis is the Laravel API reference for the shared Railway testing environment. All endpoint paths below include `/api/v1`; do not add that prefix twice. Set the Postman `baseUrl` to the server origin, without `/api/v1`. The hospital installation continues to use Laravel and MySQL. Supabase is the temporary testing database; frontend clients call Laravel rather than Supabase tables.\n\n## Session login and CSRF\n\nAuthentication uses a staff session cookie, not a bearer token or Supabase Auth. Obtain an authorized test account from the backend team; there is no public signup. Documentation access does not grant API access.\n\n1. Send `GET /api/v1/auth/csrf-token`. Retain its cookies and the `data.csrf_token` value.\n2. Send `POST /api/v1/auth/login` with JSON `{\"email_or_username\":\"YOUR_TEST_USERNAME\",\"password\":\"YOUR_TEST_PASSWORD\"}` and header `X-CSRF-TOKEN` containing the bootstrap token. Send the same session cookies.\n3. Login rotates the session and returns a fresh `data.csrf_token`. Replace the saved token and retain the updated cookie. `GET /api/v1/auth/me` restores the current user, roles, effective permissions and session information.\n4. Send the latest CSRF token and cookies with every POST, PUT, PATCH or DELETE. Send `Accept: application/json`; JSON requests also use `Content-Type: application/json`.\n5. `POST /api/v1/auth/logout` signs out and returns 204 with no body. On 401/419, restore the session or repeat login rather than retrying a write blindly.\n\nIn browser code use `credentials: \"include\"`. The deployed session cookie is Secure, HttpOnly and SameSite=Lax. The planned Vercel frontend proxy must forward the request cookies, CSRF headers, response Set-Cookie headers and appropriate cookie attributes for its same-origin route. Direct cross-site browser login from Vercel to Railway needs a separately reviewed cookie setup; permissive CORS alone does not enable it. Frontend integration remains the frontend team's work.\n\nIn Postman keep the cookie jar enabled. Import `collection.json`; the collection captures `data.csrf_token` from bootstrap/login/session responses into its `csrf_token` variable. Supply your own test credentials in the login request. No working credentials are included in the downloads.\n\n## Permissions and visibility\n\nEach endpoint lists its route permission checks. Staff need active accounts and explicit grants; administrator or department membership does not automatically grant patient, clinical, stock, billing or reporting access. Restricted or merged records, clinician assignment, store membership and workflow state can further limit access. An options response describes supported choices; it does not grant permission to save them. A 404 can conceal an inaccessible record.\n\n## Writes, versions and retries\n\n### Reserved registration numbers\n\nRead `GET /api/v1/patients/options` first. Private uses `PVT` and Walk-in uses `WLK`; their `numbering_mode` is `reservation_required`. Other categories retain `staff_entered` numbering until their formats are confirmed.\n\nFor Private/Walk-in, send `POST /api/v1/patients/number-reservations` with `{\"category_id\":1}` using the selected category's actual ID, session cookies, CSRF and an `Idempotency-Key`. Staff need both patient-view and patient-create permissions. Display the returned `data.mrn` in a read-only field and retain `data.number_reservation_token`. Retrying the same reservation key returns the same number and token; changing category needs a new reservation intent/key. IDs in examples are synthetic.\n\nSubmit the token with the registration demographics to `POST /api/v1/patients`, using a separate registration idempotency key. Omit `mrn` or echo the reserved value exactly. The backend verifies the category and staff ownership, creates the patient and consumes the reservation atomically. If the save fails, the reservation remains available to that staff member. If the response is lost, retry the original registration key and payload; do not create a new registration intent for the consumed token.\n\nEach prefix advances independently (`PVT-01`, `PVT-02`, ...; `WLK-01`, `WLK-02`, ...). Counters start above matching existing and retired identifiers. Numbers are retained without automatic expiry/reuse, so abandoning or switching a form can leave gaps; a gap is not an extra patient. Reservations belong to the requesting staff account, not a browser tab or patient record. Do not share tokens across staff accounts. Existing patient numbers are unchanged, and demographic editing cannot change them. The frontend team implements the read-only field and these requests; this backend change does not alter its screens.\n\n### Command submission\n\nEndpoints marked as commands require `Idempotency-Key`: 16–128 characters, starting with a letter/digit and containing letters, digits, dots, colons, underscores or hyphens. Generate a UUID for each new intent and set the Postman `idempotency_key` variable before sending it. If the response is lost, retry the identical method, path, payload and key as the same staff member. Do not automatically generate a new key on every retry. Changed payloads require a new intent; old keys expire and are not permanent business identifiers.\n\nSupply the latest saved `version`, related record versions, `workflow_version`, `account_version` or `expected_version` fields required by that particular endpoint. A conflict requires refreshing the affected records before resubmitting an intentional change. Never guess versions or increment them client-side. The `Idempotency-Replayed` response header indicates a retained command replay; current permissions and visibility still apply.\n\nPassword confirmation uses `current_password` where required. Approval routes may require a different authorized staff member; a visible button is not authorization. Clinical templates, diagnostic schemas and tariffs are versioned. Load published options/forms before constructing the related payload. Signed and posted records retain their originals; use supported correction workflows.\n\n## Responses and data formats\n\nRead each endpoint's request schema and examples. Examples are synthetic and are not hospital policy, stock, medication recommendations, prices or real records. Error examples show the common envelope; not every failure is possible in every workflow. Success examples are included only where explicitly documented, rather than invented from live records.\n\nErrors use `{\"message\":\"...\",\"code\":\"...\"}`; validation errors add an `errors` map of field names to message arrays. Common statuses are 401 (sign in), 403 (permission/workflow), 404 (missing or hidden), 409 (state/version conflict), 419 (session/CSRF), 422 (invalid fields), 429 (rate limit; honor `Retry-After`), and 503 (temporarily unavailable). Conflict codes can be more specific than `conflict`.\n\nPaginated resources provide `data`, `links` and `meta`; some billing, stock and reporting endpoints return Laravel's direct paginator shape instead. Follow the returned links rather than assuming every list has the same wrapper. Supply supported `page` and `per_page` query fields; ordinary defaults are 25 and a maximum of 100 unless the endpoint says otherwise.\n\nUse ISO 8601 timestamps with an explicit UTC offset where requested. Hospital business-day rules use Africa/Lagos. Send exact decimal quantities and money as strings where the schema requires strings; do not use floating-point calculations for prices or balances. NGN transaction totals are stored as exact kobo. Physical POS/cash/bank payments happen outside the platform; the API records their details and confirmations.\n\nUploads use multipart/form-data with the endpoint's file field; let the browser/client generate the multipart boundary. Protected files remain permission controlled. Report exports are private, expiring saved artifacts and may become unavailable if source access or versions change. Do not assume a download URL is public or permanent.\n\n## Frontend connection sequence\n\nStart with health, CSRF, login, session restore and logout. Then implement options, lists, details and paginated search before writes. Handle validation messages and permission denials, then add idempotency, version conflicts and workflow approvals. Verify the session proxy and each module using authorized synthetic test data. This reference does not change any frontend code or connect its dummy screens.\n"
   version: v1
 servers:
   -
@@ -806,12 +806,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: voided
+          example: signed
           required: false
           schema:
             type: string
             description: ''
-            example: voided
+            example: signed
             enum:
               - signed
               - voided
@@ -2655,6 +2655,209 @@ paths:
       security:
         -
           staffSession: []
+  /api/v1/patients/number-reservations:
+    post:
+      summary: 'Patients / Number Reservations / Store'
+      operationId: patientsNumberReservationsStore
+      description: "Route name: api.v1.patients.number-reservations.store.\n\nRequired permission checks: patients.view, patients.create. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
+      parameters:
+        -
+          in: header
+          name: X-CSRF-TOKEN
+          description: ''
+          example: '{{csrf_token}}'
+          schema:
+            type: string
+        -
+          in: header
+          name: Idempotency-Key
+          description: ''
+          example: '{{idempotency_key}}'
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Same-key retry returns the original reservation'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    id: 1
+                    category_id: 1
+                    mrn: PVT-01
+                    number_reservation_token: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                    numbering_mode: reserved
+                    read_only: true
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      category_id:
+                        type: integer
+                        example: 1
+                      mrn:
+                        type: string
+                        example: PVT-01
+                      number_reservation_token:
+                        type: string
+                        example: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                      numbering_mode:
+                        type: string
+                        example: reserved
+                      read_only:
+                        type: boolean
+                        example: true
+        201:
+          description: 'Synthetic new reservation; replace example IDs/token with returned values'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    id: 1
+                    category_id: 1
+                    mrn: PVT-01
+                    number_reservation_token: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                    numbering_mode: reserved
+                    read_only: true
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      category_id:
+                        type: integer
+                        example: 1
+                      mrn:
+                        type: string
+                        example: PVT-01
+                      number_reservation_token:
+                        type: string
+                        example: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                      numbering_mode:
+                        type: string
+                        example: reserved
+                      read_only:
+                        type: boolean
+                        example: true
+        401:
+          description: 'No valid staff session'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Please sign in to continue.'
+                  code: unauthenticated
+                properties:
+                  message:
+                    type: string
+                    example: 'Please sign in to continue.'
+                  code:
+                    type: string
+                    example: unauthenticated
+        403:
+          description: 'Permission or workflow access denied'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'You do not have permission to perform this action.'
+                  code: forbidden
+                properties:
+                  message:
+                    type: string
+                    example: 'You do not have permission to perform this action.'
+                  code:
+                    type: string
+                    example: forbidden
+        419:
+          description: 'Missing or expired session/CSRF protection'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Your session has expired. Please sign in again.'
+                  code: session_expired
+                properties:
+                  message:
+                    type: string
+                    example: 'Your session has expired. Please sign in again.'
+                  code:
+                    type: string
+                    example: session_expired
+        422:
+          description: 'Validation error envelope'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'The submitted data is invalid.'
+                  code: validation_failed
+                  errors:
+                    field_name:
+                      - 'Example validation message; actual field names depend on this request.'
+                properties:
+                  message:
+                    type: string
+                    example: 'The submitted data is invalid.'
+                  code:
+                    type: string
+                    example: validation_failed
+                  errors:
+                    type: object
+                    properties:
+                      field_name:
+                        type: array
+                        example:
+                          - 'Example validation message; actual field names depend on this request.'
+                        items:
+                          type: string
+        429:
+          description: 'Rate limited; respect Retry-After'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Too many requests. Please try again later.'
+                  code: too_many_requests
+                properties:
+                  message:
+                    type: string
+                    example: 'Too many requests. Please try again later.'
+                  code:
+                    type: string
+                    example: too_many_requests
+      tags:
+        - Patients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_id:
+                  type: integer
+                  description: 'Must be at least 1.'
+                  example: 16
+              required:
+                - category_id
+      security:
+        -
+          staffSession: []
   /api/v1/patients/duplicate-check:
     post:
       summary: 'Patients / Duplicates'
@@ -3345,25 +3548,29 @@ paths:
               properties:
                 mrn:
                   type: string
-                  description: 'Must match the regex /^[A-Z0-9][A-Z0-9\/._-]*$/D. Must not be greater than 64 characters.'
+                  description: 'Required only for categories using staff-entered numbers. For Private/Walk-in, omit or echo the exact reserved number; it is read-only. Must match the regex /^[A-Z0-9][A-Z0-9\/._-]*$/D. Must not be greater than 64 characters.'
                   example: b
+                number_reservation_token:
+                  type: string
+                  description: 'Required for Private/Walk-in. Obtain it from POST /api/v1/patients/number-reservations using the same staff session. Must match the regex /^[a-f0-9]{64}$/D.'
+                  example: f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$/D
                 first_name:
                   type: string
                   description: 'Must not be greater than 64 characters.'
-                  example: 'n'
+                  example: o
                 last_name:
                   type: string
                   description: 'Must not be greater than 64 characters.'
-                  example: g
+                  example: q
                 middle_name:
                   type: string
                   description: 'Must not be greater than 64 characters.'
-                  example: z
+                  example: i
                   nullable: true
                 sex:
                   type: string
                   description: 'Must not be greater than 64 characters.'
-                  example: m
+                  example: t
                   nullable: true
                 date_of_birth:
                   type: string
@@ -3445,7 +3652,6 @@ paths:
                   items:
                     type: integer
               required:
-                - mrn
                 - first_name
                 - last_name
                 - category_id
@@ -3935,7 +4141,7 @@ paths:
                 dob_estimated:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                 email:
                   type: string
                   description: 'Must be a valid email address. Must not be greater than 191 characters.'
@@ -4163,7 +4369,7 @@ paths:
                 care_setting:
                   type: string
                   description: ''
-                  example: IPD
+                  example: EMERGENCY
                   enum:
                     - OPD
                     - IPD
@@ -4328,12 +4534,12 @@ paths:
           in: query
           name: sort
           description: ''
-          example: '-created_at'
+          example: created_at
           required: false
           schema:
             type: string
             description: ''
-            example: '-created_at'
+            example: created_at
             enum:
               - starts_at
               - '-starts_at'
@@ -4719,7 +4925,7 @@ paths:
                 booking_channel:
                   type: string
                   description: ''
-                  example: Email
+                  example: 'Social Media'
                   enum:
                     - 'Voice Call'
                     - 'Social Media'
@@ -4730,7 +4936,7 @@ paths:
                 visit_type:
                   type: string
                   description: ''
-                  example: 'Surgical Consultation'
+                  example: 'Routine Check-Up'
                   enum:
                     - 'General Consultation'
                     - 'Surgical Consultation'
@@ -4984,7 +5190,7 @@ paths:
                 booking_channel:
                   type: string
                   description: ''
-                  example: Walk-In
+                  example: Referral
                   enum:
                     - 'Voice Call'
                     - 'Social Media'
@@ -4995,7 +5201,7 @@ paths:
                 visit_type:
                   type: string
                   description: ''
-                  example: 'Antenatal Care'
+                  example: 'Family Planning'
                   enum:
                     - 'General Consultation'
                     - 'Surgical Consultation'
@@ -5124,12 +5330,12 @@ paths:
           in: query
           name: sort
           description: ''
-          example: created_at
+          example: '-created_at'
           required: false
           schema:
             type: string
             description: ''
-            example: created_at
+            example: '-created_at'
             enum:
               - starts_at
               - '-starts_at'
@@ -5734,12 +5940,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: confirmed
+          example: cancelled
           required: false
           schema:
             type: string
             description: ''
-            example: confirmed
+            example: cancelled
             enum:
               - booked
               - confirmed
@@ -5790,12 +5996,12 @@ paths:
           in: query
           name: sort
           description: ''
-          example: '-created_at'
+          example: '-starts_at'
           required: false
           schema:
             type: string
             description: ''
-            example: '-created_at'
+            example: '-starts_at'
             enum:
               - starts_at
               - '-starts_at'
@@ -5885,12 +6091,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: closed
+          example: cancelled
           required: false
           schema:
             type: string
             description: ''
-            example: closed
+            example: cancelled
             enum:
               - open
               - in_progress
@@ -5934,12 +6140,12 @@ paths:
           in: query
           name: care_setting
           description: ''
-          example: EMERGENCY
+          example: IPD
           required: false
           schema:
             type: string
             description: ''
-            example: EMERGENCY
+            example: IPD
             enum:
               - OPD
               - IPD
@@ -6182,7 +6388,7 @@ paths:
                 visit_type:
                   type: string
                   description: ''
-                  example: 'Routine Check-Up'
+                  example: 'Follow-Up Appointment'
                   enum:
                     - 'General Consultation'
                     - 'Surgical Consultation'
@@ -6299,12 +6505,12 @@ paths:
           in: query
           name: queue
           description: ''
-          example: waiting
+          example: in_progress
           required: false
           schema:
             type: string
             description: ''
-            example: waiting
+            example: in_progress
             enum:
               - unassigned
               - waiting
@@ -6333,12 +6539,12 @@ paths:
           in: query
           name: care_setting
           description: ''
-          example: OPD
+          example: IPD
           required: false
           schema:
             type: string
             description: ''
-            example: OPD
+            example: IPD
             enum:
               - OPD
               - IPD
@@ -6456,12 +6662,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: in_progress
+          example: cancelled
           required: false
           schema:
             type: string
             description: ''
-            example: in_progress
+            example: cancelled
             enum:
               - open
               - in_progress
@@ -6471,12 +6677,12 @@ paths:
           in: query
           name: queue
           description: ''
-          example: in_progress
+          example: unassigned
           required: false
           schema:
             type: string
             description: ''
-            example: in_progress
+            example: unassigned
             enum:
               - unassigned
               - waiting
@@ -6755,7 +6961,7 @@ paths:
                 consultation_type:
                   type: string
                   description: ''
-                  example: 'Specialist Referral'
+                  example: 'Follow-Up Appointment'
                   enum:
                     - 'General Consultation'
                     - 'Surgical Consultation'
@@ -6923,7 +7129,7 @@ paths:
                 consultation_type:
                   type: string
                   description: ''
-                  example: 'Post Natal Care'
+                  example: Immunization
                   enum:
                     - 'General Consultation'
                     - 'Surgical Consultation'
@@ -7966,12 +8172,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: discharged
+          example: admitted
           required: false
           schema:
             type: string
             description: ''
-            example: discharged
+            example: admitted
             enum:
               - admitted
               - discharge_authorized
@@ -8099,12 +8305,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: admitted
+          example: discharge_authorized
           required: false
           schema:
             type: string
             description: ''
-            example: admitted
+            example: discharge_authorized
             enum:
               - admitted
               - discharge_authorized
@@ -8886,7 +9092,7 @@ paths:
                 exit_type:
                   type: string
                   description: ''
-                  example: discharge
+                  example: dama
                   enum:
                     - discharge
                     - referral
@@ -9090,13 +9296,14 @@ paths:
           in: query
           name: action
           description: ''
-          example: prescription.amended
+          example: investigation.result_attachment_download_authorized
           required: false
           schema:
             type: string
             description: ''
-            example: prescription.amended
+            example: investigation.result_attachment_download_authorized
             enum:
+              - patient.number_reserved
               - prices.imported
               - prices.units_confirmed
               - admission.accommodation_assessed
@@ -9292,12 +9499,12 @@ paths:
           in: query
           name: outcome
           description: ''
-          example: succeeded
+          example: denied
           required: false
           schema:
             type: string
             description: ''
-            example: succeeded
+            example: denied
             enum:
               - succeeded
               - denied
@@ -9306,12 +9513,12 @@ paths:
           in: query
           name: channel
           description: ''
-          example: http
+          example: console
           required: false
           schema:
             type: string
             description: ''
-            example: http
+            example: console
             enum:
               - http
               - console
@@ -9329,12 +9536,12 @@ paths:
           in: query
           name: subject_type
           description: 'This field is required when <code>subject_id</code> is present.'
-          example: stock_catalog
+          example: notification
           required: false
           schema:
             type: string
             description: 'This field is required when <code>subject_id</code> is present.'
-            example: stock_catalog
+            example: notification
             enum:
               - business_report
               - reminder
@@ -9751,7 +9958,7 @@ paths:
                 category:
                   type: string
                   description: ''
-                  example: registration
+                  example: ward
                   enum:
                     - consultation
                     - procedure
@@ -9984,7 +10191,7 @@ paths:
                 is_active:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                 approval_reference:
                   type: string
                   description: 'Must be at least 5 characters. Must not be greater than 2000 characters.'
@@ -9992,7 +10199,7 @@ paths:
                 effective_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
               required:
                 - current_password
                 - reason
@@ -10693,7 +10900,7 @@ paths:
                 occurred_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 reference:
                   type: string
                   description: 'Must be at least 1 character. Must not be greater than 128 characters.'
@@ -10882,7 +11089,7 @@ paths:
                       type:
                         type: string
                         description: ''
-                        example: performed
+                        example: dispense
                         enum:
                           - performed
                           - investigation
@@ -11061,7 +11268,7 @@ paths:
                 kind:
                   type: string
                   description: ''
-                  example: payment
+                  example: deposit
                   enum:
                     - deposit
                     - payment
@@ -11091,7 +11298,7 @@ paths:
                 paid_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 externally_confirmed:
                   type: boolean
                   description: ''
@@ -11786,11 +11993,11 @@ paths:
                 payout_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 payout_method:
                   type: string
                   description: ''
-                  example: pos
+                  example: cash
                   enum:
                     - cash
                     - bank_transfer
@@ -12256,12 +12463,12 @@ paths:
           in: query
           name: type
           description: ''
-          example: immunization
+          example: birth
           required: false
           schema:
             type: string
             description: ''
-            example: immunization
+            example: birth
             enum:
               - antenatal
               - postnatal
@@ -13181,12 +13388,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: active
+          example: completed
           required: false
           schema:
             type: string
             description: ''
-            example: active
+            example: completed
             enum:
               - active
               - completed
@@ -13294,12 +13501,12 @@ paths:
           in: query
           name: type
           description: ''
-          example: antenatal
+          example: birth
           required: false
           schema:
             type: string
             description: ''
-            example: antenatal
+            example: birth
             enum:
               - antenatal
               - postnatal
@@ -13311,12 +13518,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: completed
+          example: active
           required: false
           schema:
             type: string
             description: ''
-            example: completed
+            example: active
             enum:
               - active
               - completed
@@ -13547,7 +13754,7 @@ paths:
                 type:
                   type: string
                   description: ''
-                  example: antenatal
+                  example: postnatal
                   enum:
                     - antenatal
                     - postnatal
@@ -13659,12 +13866,12 @@ paths:
           in: query
           name: type
           description: ''
-          example: postnatal
+          example: antenatal
           required: false
           schema:
             type: string
             description: ''
-            example: postnatal
+            example: antenatal
             enum:
               - antenatal
               - postnatal
@@ -13948,12 +14155,12 @@ paths:
           in: query
           name: type
           description: ''
-          example: family_planning
+          example: postnatal
           required: false
           schema:
             type: string
             description: ''
-            example: family_planning
+            example: postnatal
             enum:
               - antenatal
               - postnatal
@@ -13965,12 +14172,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: completed
+          example: active
           required: false
           schema:
             type: string
             description: ''
-            example: completed
+            example: active
             enum:
               - active
               - completed
@@ -14480,12 +14687,12 @@ paths:
           in: query
           name: kind
           description: ''
-          example: diagnosis
+          example: entry
           required: false
           schema:
             type: string
             description: ''
-            example: diagnosis
+            example: entry
             enum:
               - vitals
               - entry
@@ -14495,12 +14702,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: voided
+          example: draft
           required: false
           schema:
             type: string
             description: ''
-            example: voided
+            example: draft
             enum:
               - draft
               - signed
@@ -14589,12 +14796,12 @@ paths:
           in: query
           name: kind
           description: ''
-          example: vitals
+          example: procedure
           required: false
           schema:
             type: string
             description: ''
-            example: vitals
+            example: procedure
             enum:
               - vitals
               - entry
@@ -14816,7 +15023,7 @@ paths:
                 kind:
                   type: string
                   description: ''
-                  example: procedure
+                  example: entry
                   enum:
                     - vitals
                     - entry
@@ -15687,12 +15894,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -15778,12 +15985,12 @@ paths:
           in: query
           name: sort
           description: ''
-          example: name
+          example: '-code'
           required: false
           schema:
             type: string
             description: ''
-            example: name
+            example: '-code'
             enum:
               - code
               - '-code'
@@ -16117,7 +16324,7 @@ paths:
                 kind:
                   type: string
                   description: ''
-                  example: receipt
+                  example: result
                   enum:
                     - report
                     - invoice
@@ -17022,11 +17229,11 @@ paths:
                 is_active:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                 preauth_required:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                 details:
                   type: object
                   description: ''
@@ -17719,7 +17926,7 @@ paths:
                 effective_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1283-07-05'
               required:
                 - current_password
                 - reason
@@ -18027,7 +18234,7 @@ paths:
                 method:
                   type: string
                   description: ''
-                  example: cash
+                  example: pos
                   enum:
                     - cash
                     - bank_transfer
@@ -18040,7 +18247,7 @@ paths:
                 received_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1283-07-05'
                 externally_confirmed:
                   type: boolean
                   description: 'Must be accepted.'
@@ -18548,7 +18755,7 @@ paths:
                 preauth_required:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                 details:
                   type: object
                   description: ''
@@ -18733,11 +18940,11 @@ paths:
                 is_active:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                 preauth_required:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
                 details:
                   type: object
                   description: ''
@@ -19338,7 +19545,7 @@ paths:
                 valid_from:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-01</code>.'
-                  example: '1530-12-04'
+                  example: '1283-07-05'
                 valid_until:
                   type: string
                   description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-01</code>. Must be a date after or equal to <code>valid_from</code>.'
@@ -19636,11 +19843,11 @@ paths:
                 approved_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 valid_from:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 valid_until:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date after or equal to <code>valid_from</code>.'
@@ -19988,7 +20195,7 @@ paths:
                 submitted_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 externally_submitted:
                   type: boolean
                   description: 'Must be accepted.'
@@ -20328,7 +20535,7 @@ paths:
                 occurred_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 lines:
                   type: array
                   description: ''
@@ -21441,7 +21648,7 @@ paths:
                       type:
                         type: string
                         description: ''
-                        example: investigation
+                        example: performed
                         enum:
                           - performed
                           - investigation
@@ -21639,7 +21846,7 @@ paths:
                 submitted_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>.'
-                  example: '1530-12-04'
+                  example: '1275-04-30'
                 externally_submitted:
                   type: boolean
                   description: 'Must be accepted.'
@@ -21812,7 +22019,7 @@ paths:
                 outcome:
                   type: string
                   description: ''
-                  example: accepted
+                  example: rejected
                   enum:
                     - accepted
                     - rejected
@@ -22138,12 +22345,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: voided
+          example: draft
           required: false
           schema:
             type: string
             description: ''
-            example: voided
+            example: draft
             enum:
               - draft
               - submitted
@@ -22154,12 +22361,12 @@ paths:
           in: query
           name: current
           description: ''
-          example: true
+          example: false
           required: false
           schema:
             type: boolean
             description: ''
-            example: true
+            example: false
         -
           in: query
           name: page
@@ -22284,12 +22491,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: submitted
+          example: voided
           required: false
           schema:
             type: string
             description: ''
-            example: submitted
+            example: voided
             enum:
               - draft
               - submitted
@@ -22837,12 +23044,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: released
+          example: draft
           required: false
           schema:
             type: string
             description: ''
-            example: released
+            example: draft
             enum:
               - draft
               - submitted
@@ -23993,12 +24200,12 @@ paths:
           in: query
           name: department
           description: ''
-          example: laboratory
+          example: radiology
           required: false
           schema:
             type: string
             description: ''
-            example: laboratory
+            example: radiology
             enum:
               - laboratory
               - radiology
@@ -24178,12 +24385,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: cancelled
+          example: completed
           required: false
           schema:
             type: string
             description: ''
-            example: cancelled
+            example: completed
             enum:
               - requested
               - collected
@@ -24194,12 +24401,12 @@ paths:
           in: query
           name: priority
           description: ''
-          example: routine
+          example: urgent
           required: false
           schema:
             type: string
             description: ''
-            example: routine
+            example: urgent
             enum:
               - routine
               - urgent
@@ -24633,12 +24840,12 @@ paths:
           in: query
           name: priority
           description: ''
-          example: routine
+          example: urgent
           required: false
           schema:
             type: string
             description: ''
-            example: routine
+            example: urgent
             enum:
               - routine
               - urgent
@@ -25767,22 +25974,22 @@ paths:
           in: query
           name: active
           description: ''
-          example: true
+          example: false
           required: false
           schema:
             type: boolean
             description: ''
-            example: true
+            example: false
         -
           in: query
           name: available
           description: ''
-          example: true
+          example: false
           required: false
           schema:
             type: boolean
             description: ''
-            example: true
+            example: false
         -
           in: query
           name: page
@@ -27580,7 +27787,7 @@ paths:
                 disposition:
                   type: string
                   description: ''
-                  example: expired
+                  example: damaged
                   enum:
                     - usable
                     - damaged
@@ -27588,7 +27795,7 @@ paths:
                 usable_confirmed:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
               required:
                 - encounter_version
                 - reason
@@ -28089,7 +28296,7 @@ paths:
                 observed_at:
                   type: string
                   description: 'Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a valid date.'
-                  example: '2026-11-20T01:18:13'
+                  example: '2026-11-20T01:48:35'
               required:
                 - encounter_version
                 - reason
@@ -28259,7 +28466,7 @@ paths:
                 observed_at:
                   type: string
                   description: 'Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a valid date.'
-                  example: '2026-11-20T01:18:13'
+                  example: '2026-11-20T01:48:35'
                 administration_id:
                   type: integer
                   description: 'Must be at least 1. Must not be greater than 999999999999999999.'
@@ -28424,7 +28631,7 @@ paths:
                 include_inactive:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                 reminder_id:
                   type: integer
                   description: 'Must be at least 1.'
@@ -28994,7 +29201,7 @@ paths:
                 snooze_until:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>.'
-                  example: '9867-09-18'
+                  example: '3962-03-04'
               required:
                 - version
                 - snooze_until
@@ -29080,12 +29287,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: voided
+          example: signed
           required: false
           schema:
             type: string
             description: ''
-            example: voided
+            example: signed
             enum:
               - draft
               - signed
@@ -29551,12 +29758,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: voided
+          example: signed
           required: false
           schema:
             type: string
             description: ''
-            example: voided
+            example: signed
             enum:
               - draft
               - signed
@@ -29565,12 +29772,12 @@ paths:
           in: query
           name: order_status
           description: ''
-          example: completed
+          example: active
           required: false
           schema:
             type: string
             description: ''
-            example: completed
+            example: active
             enum:
               - active
               - stopped
@@ -30507,12 +30714,12 @@ paths:
           in: query
           name: queue
           description: ''
-          example: in_progress
+          example: unassigned
           required: false
           schema:
             type: string
             description: ''
-            example: in_progress
+            example: unassigned
             enum:
               - unassigned
               - waiting
@@ -30855,7 +31062,7 @@ paths:
                 is_active:
                   type: boolean
                   description: ''
-                  example: true
+                  example: false
       security:
         -
           staffSession: []
@@ -30992,7 +31199,7 @@ paths:
                 starts_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>.'
-                  example: '9866-07-25'
+                  example: '3962-03-04'
                 timezone:
                   type: string
                   description: ''
@@ -31002,7 +31209,7 @@ paths:
                 frequency:
                   type: string
                   description: ''
-                  example: daily
+                  example: weekly
                   enum:
                     - once
                     - daily
@@ -31504,7 +31711,7 @@ paths:
                 starts_at:
                   type: string
                   description: 'Must be a valid date. Must match the regex /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D. Must be a date after or equal to <code>1000-01-01T00:00:00Z</code>. Must be a date before or equal to <code>9999-12-31T23:59:59Z</code>.'
-                  example: '9866-07-25'
+                  example: '3962-03-04'
                 timezone:
                   type: string
                   description: ''
@@ -31514,7 +31721,7 @@ paths:
                 frequency:
                   type: string
                   description: ''
-                  example: daily
+                  example: monthly
                   enum:
                     - once
                     - daily
@@ -31715,12 +31922,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -31795,12 +32002,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -31905,12 +32112,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -31955,12 +32162,12 @@ paths:
           in: query
           name: module
           description: ''
-          example: registry
+          example: encounters
           required: true
           schema:
             type: string
             description: ''
-            example: registry
+            example: encounters
             enum:
               - registry
               - appointments
@@ -32039,12 +32246,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -32139,12 +32346,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -32259,12 +32466,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -32379,12 +32586,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -32469,12 +32676,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -32579,12 +32786,12 @@ paths:
           in: query
           name: from_date
           description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-          example: '8832-04-19'
+          example: '2927-12-02'
           required: true
           schema:
             type: string
             description: 'Must be a valid date in the format <code>Y-m-d</code>. Must be a date after or equal to <code>1000-01-02</code>. Must be a date before or equal to <code>9999-12-30</code>.'
-            example: '8832-04-19'
+            example: '2927-12-02'
         -
           in: query
           name: to_date
@@ -32680,12 +32887,12 @@ paths:
           in: query
           name: sort
           description: ''
-          example: '-name'
+          example: username
           required: false
           schema:
             type: string
             description: ''
-            example: '-name'
+            example: username
             enum:
               - name
               - '-name'
@@ -32855,12 +33062,12 @@ paths:
           in: query
           name: sort
           description: ''
-          example: '-username'
+          example: name
           required: false
           schema:
             type: string
             description: ''
-            example: '-username'
+            example: name
             enum:
               - name
               - '-name'
@@ -33413,7 +33620,7 @@ paths:
                 is_active:
                   type: boolean
                   description: ''
-                  example: false
+                  example: true
                 current_password:
                   type: string
                   description: 'Must not be greater than 1024 characters.'
@@ -33639,12 +33846,12 @@ paths:
           in: query
           name: active
           description: 'Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.'
-          example: true
+          example: false
           required: false
           schema:
             type: boolean
             description: 'Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.'
-            example: true
+            example: false
         -
           in: query
           name: store_id
@@ -33689,12 +33896,12 @@ paths:
           in: query
           name: status
           description: 'Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.'
-          example: submitted
+          example: rejected
           required: false
           schema:
             type: string
             description: 'Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.'
-            example: submitted
+            example: rejected
             enum:
               - draft
               - submitted
@@ -34041,7 +34248,7 @@ paths:
                 effective_at:
                   type: string
                   description: 'Applies to catalog: prices. Must be a valid date in the format <code>Y-m-d\TH:i:s.u\Z</code>.'
-                  example: '2026-11-20T01:18:13.000000Z'
+                  example: '2026-11-20T01:48:35.000000Z'
               required:
                 - reason
                 - current_password
@@ -34334,7 +34541,7 @@ paths:
                 effective_at:
                   type: string
                   description: 'Applies to catalog: prices. Must be a valid date in the format <code>Y-m-d\TH:i:s.u\Z</code>.'
-                  example: '2026-11-20T01:18:14.000000Z'
+                  example: '2026-11-20T01:48:35.000000Z'
               required:
                 - reason
                 - current_password
@@ -34449,12 +34656,12 @@ paths:
           in: query
           name: status
           description: 'Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.'
-          example: rejected
+          example: cancelled
           required: false
           schema:
             type: string
             description: 'Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.'
-            example: rejected
+            example: cancelled
             enum:
               - draft
               - submitted
@@ -34602,12 +34809,12 @@ paths:
           in: query
           name: active
           description: ''
-          example: true
+          example: false
           required: false
           schema:
             type: boolean
             description: ''
-            example: true
+            example: false
         -
           in: query
           name: store_id
@@ -34652,12 +34859,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: cancelled
+          example: posted
           required: false
           schema:
             type: string
             description: ''
-            example: cancelled
+            example: posted
             enum:
               - draft
               - submitted
@@ -34847,12 +35054,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: submitted
+          example: rejected
           required: false
           schema:
             type: string
             description: ''
-            example: submitted
+            example: rejected
             enum:
               - draft
               - submitted
@@ -35223,12 +35430,12 @@ paths:
           in: query
           name: active
           description: ''
-          example: true
+          example: false
           required: false
           schema:
             type: boolean
             description: ''
-            example: true
+            example: false
         -
           in: query
           name: store_id
@@ -35273,12 +35480,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: submitted
+          example: draft
           required: false
           schema:
             type: string
             description: ''
-            example: submitted
+            example: draft
             enum:
               - draft
               - submitted
@@ -35409,12 +35616,12 @@ paths:
           in: query
           name: active
           description: ''
-          example: true
+          example: false
           required: false
           schema:
             type: boolean
             description: ''
-            example: true
+            example: false
         -
           in: query
           name: store_id
@@ -35595,12 +35802,12 @@ paths:
           in: query
           name: active
           description: ''
-          example: false
+          example: true
           required: false
           schema:
             type: boolean
             description: ''
-            example: false
+            example: true
         -
           in: query
           name: store_id
@@ -35645,12 +35852,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: posted
+          example: draft
           required: false
           schema:
             type: string
             description: ''
-            example: posted
+            example: draft
             enum:
               - draft
               - submitted
@@ -35831,12 +36038,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: draft
+          example: rejected
           required: false
           schema:
             type: string
             description: ''
-            example: draft
+            example: rejected
             enum:
               - draft
               - submitted
@@ -36017,12 +36224,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: draft
+          example: submitted
           required: false
           schema:
             type: string
             description: ''
-            example: draft
+            example: submitted
             enum:
               - draft
               - submitted
@@ -36245,7 +36452,7 @@ paths:
                 kind:
                   type: string
                   description: ''
-                  example: transfer
+                  example: adjustment_in
                   enum:
                     - receipt
                     - opening
@@ -36544,7 +36751,7 @@ paths:
                 kind:
                   type: string
                   description: ''
-                  example: receipt
+                  example: damage
                   enum:
                     - receipt
                     - opening
@@ -36747,12 +36954,12 @@ paths:
           in: query
           name: status
           description: ''
-          example: cancelled
+          example: rejected
           required: false
           schema:
             type: string
             description: ''
-            example: cancelled
+            example: rejected
             enum:
               - draft
               - submitted

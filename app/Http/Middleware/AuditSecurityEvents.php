@@ -50,6 +50,7 @@ class AuditSecurityEvents
             'api.v1.files.show' => 'file.viewed',
             'api.v1.files.download' => 'file.download_authorized',
             'api.v1.patients.store' => 'patient.created',
+            'api.v1.patients.number-reservations.store' => 'patient.number_reserved',
             'api.v1.patients.update' => 'patient.updated',
             'api.v1.patients.index' => 'patient.listed',
             'api.v1.patients.show' => 'patient.viewed',

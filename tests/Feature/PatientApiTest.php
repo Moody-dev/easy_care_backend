@@ -36,7 +36,7 @@ class PatientApiTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $this->registrar = $this->createStaffWithRole('frontdesk');
         $this->grantRolePermissions('frontdesk', ['patients.view', 'patients.create', 'patients.update']);
-        $this->category = PatientCategory::where('code', 'private')->sole()->id;
+        $this->category = PatientCategory::where('code', 'company')->sole()->id;
     }
 
     public function test_registration_persists_demographics_number_and_ordered_contacts_with_private_audit(): void

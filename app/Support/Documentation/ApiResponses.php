@@ -21,6 +21,12 @@ class ApiResponses extends Strategy
         }
         $responses[] = $this->example(429, ['message' => 'Too many requests. Please try again later.', 'code' => 'too_many_requests'], 'Rate limited; respect Retry-After');
         $name = $endpointData->route->getName();
+        if ($name === 'api.v1.patients.number-reservations.store') {
+            $body = ['data' => ['id' => 1, 'category_id' => 1, 'mrn' => 'PVT-01',
+                'number_reservation_token' => str_repeat('a', 64), 'numbering_mode' => 'reserved', 'read_only' => true]];
+            $responses[] = $this->example(201, $body, 'Synthetic new reservation; replace example IDs/token with returned values');
+            $responses[] = $this->example(200, $body, 'Same-key retry returns the original reservation');
+        }
         if ($name === 'api.v1.health') {
             $responses[] = $this->example(200, ['data' => ['application' => 'EasyCare API Testing', 'api_version' => 'v1', 'status' => 'ready']], 'Database readiness');
         }

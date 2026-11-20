@@ -388,6 +388,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                         });
                     });
                 Route::get('patients/options', [PatientController::class, 'options'])->name('patients.options');
+                Route::post('patients/number-reservations', [\App\Http\Controllers\Api\V1\PatientNumberController::class, 'store'])
+                    ->middleware(['can:patients.create', 'throttle:patient-writes'])->name('patients.number-reservations.store');
                 Route::post('patients/duplicate-check', [PatientController::class, 'duplicates'])->name('patients.duplicates');
                 Route::get('patients', [PatientController::class, 'index'])->name('patients.index');
                 Route::get('patients/{patient}', [PatientController::class, 'show'])
