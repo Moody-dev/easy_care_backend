@@ -15884,6 +15884,29 @@ fetch(url, {
 
 <span id="example-responses-GETapi-v1-billing-options">
             <blockquote>
+            <p>Example response (200, Billing settings, supported external payment methods and approval rules):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;currency&quot;: &quot;NGN&quot;,
+        &quot;money_decimal_places&quot;: 2,
+        &quot;rounding&quot;: &quot;half_up_per_line&quot;,
+        &quot;payments_processed_by_platform&quot;: false,
+        &quot;refunds_processed_by_platform&quot;: false,
+        &quot;methods&quot;: [
+            &quot;cash&quot;,
+            &quot;bank_transfer&quot;,
+            &quot;pos&quot;,
+            &quot;other&quot;
+        ],
+        &quot;independent_change_approval&quot;: true,
+        &quot;timezone&quot;: &quot;Africa/Lagos&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>

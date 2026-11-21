@@ -21,6 +21,18 @@ class ApiResponses extends Strategy
         }
         $responses[] = $this->example(429, ['message' => 'Too many requests. Please try again later.', 'code' => 'too_many_requests'], 'Rate limited; respect Retry-After');
         $name = $endpointData->route->getName();
+        if ($name === 'api.v1.billing.options') {
+            $responses[] = $this->example(200, ['data' => [
+                'currency' => 'NGN',
+                'money_decimal_places' => 2,
+                'rounding' => 'half_up_per_line',
+                'payments_processed_by_platform' => false,
+                'refunds_processed_by_platform' => false,
+                'methods' => ['cash', 'bank_transfer', 'pos', 'other'],
+                'independent_change_approval' => true,
+                'timezone' => 'Africa/Lagos',
+            ]], 'Billing settings, supported external payment methods and approval rules');
+        }
         if ($name === 'api.v1.patients.number-reservations.store') {
             $body = ['data' => ['id' => 1, 'category_id' => 1, 'mrn' => 'PVT-01',
                 'number_reservation_token' => str_repeat('a', 64), 'numbering_mode' => 'reserved', 'read_only' => true]];

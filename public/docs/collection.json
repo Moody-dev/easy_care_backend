@@ -4583,6 +4583,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"currency\":\"NGN\",\"money_decimal_places\":2,\"rounding\":\"half_up_per_line\",\"payments_processed_by_platform\":false,\"refunds_processed_by_platform\":false,\"methods\":[\"cash\",\"bank_transfer\",\"pos\",\"other\"],\"independent_change_approval\":true,\"timezone\":\"Africa\\\/Lagos\"}}",
+                            "name": "Billing settings, supported external payment methods and approval rules"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"

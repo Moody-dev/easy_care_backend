@@ -9690,6 +9690,60 @@ paths:
       description: "Route name: api.v1.billing.options.\n\nRequired permission checks: billing.view. Record visibility and workflow restrictions also apply."
       parameters: []
       responses:
+        200:
+          description: 'Billing settings, supported external payment methods and approval rules'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    currency: NGN
+                    money_decimal_places: 2
+                    rounding: half_up_per_line
+                    payments_processed_by_platform: false
+                    refunds_processed_by_platform: false
+                    methods:
+                      - cash
+                      - bank_transfer
+                      - pos
+                      - other
+                    independent_change_approval: true
+                    timezone: Africa/Lagos
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      currency:
+                        type: string
+                        example: NGN
+                      money_decimal_places:
+                        type: integer
+                        example: 2
+                      rounding:
+                        type: string
+                        example: half_up_per_line
+                      payments_processed_by_platform:
+                        type: boolean
+                        example: false
+                      refunds_processed_by_platform:
+                        type: boolean
+                        example: false
+                      methods:
+                        type: array
+                        example:
+                          - cash
+                          - bank_transfer
+                          - pos
+                          - other
+                        items:
+                          type: string
+                      independent_change_approval:
+                        type: boolean
+                        example: true
+                      timezone:
+                        type: string
+                        example: Africa/Lagos
         401:
           description: 'No valid staff session'
           content:
