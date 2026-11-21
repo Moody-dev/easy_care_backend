@@ -205,6 +205,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 204,
+                            "body": "",
+                            "name": "Password reset; start a fresh staff session before signing in"
+                        },
+                        {
+                            "header": [],
                             "code": 419,
                             "body": "{\"message\":\"Your session has expired. Please sign in again.\",\"code\":\"session_expired\"}",
                             "name": "Missing or expired session\/CSRF protection"
@@ -1339,6 +1345,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"categories\":[{\"id\":1,\"code\":\"private\",\"name\":\"Private\",\"numbering_mode\":\"reservation_required\",\"number_prefix\":\"PVT\"},{\"id\":2,\"code\":\"walk-in\",\"name\":\"Walk-in\",\"numbering_mode\":\"reservation_required\",\"number_prefix\":\"WLK\"},{\"id\":3,\"code\":\"staff\",\"name\":\"Staff\",\"numbering_mode\":\"staff_entered\",\"number_prefix\":null}]}}",
+                            "name": "Example categories; use the returned category IDs. Staff-entered categories have a null number_prefix"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -1462,11 +1474,17 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"date_of_birth\":\"2022-12-14\",\"phone\":\"+3642559314$\\\/D\",\"exclude_id\":23}"
+                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"date_of_birth\":\"2022-12-16\",\"phone\":\"+3642559314$\\\/D\",\"exclude_id\":23}"
                         },
                         "description": "Route name: api.v1.patients.duplicates.\n\nRequired permission checks: patients.view. Record visibility and workflow restrictions also apply."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":[{\"id\":1,\"mrn\":\"EXAMPLE-0001\",\"first_name\":\"Example\",\"middle_name\":null,\"last_name\":\"Patient\",\"sex\":null,\"date_of_birth\":null,\"dob_estimated\":false,\"category\":{\"id\":1,\"code\":\"example\",\"name\":\"Example category\"},\"version\":1,\"created_at\":\"2026-11-19T08:00:00.000000Z\",\"updated_at\":\"2026-11-19T08:00:00.000000Z\"}],\"meta\":{\"has_more\":false}}",
+                            "name": "Synthetic patient example; use returned links, identifiers and version values"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -1672,11 +1690,17 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"mrn\":\"b\",\"number_reservation_token\":\"f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$\\\/D\",\"first_name\":\"o\",\"last_name\":\"q\",\"middle_name\":\"i\",\"sex\":\"t\",\"date_of_birth\":\"2022-12-14\",\"dob_estimated\":true,\"email\":\"zbailey@example.net\",\"phone\":\"+3642559314$\\\/D\",\"marital_status\":\"k\",\"religion\":\"h\",\"occupation\":\"w\",\"state_of_origin\":\"a\",\"address\":\"y\",\"category_id\":73,\"contacts\":[{\"name\":\"n\",\"relationship\":\"g\",\"phone\":\"+3642559314$\\\/D\"}],\"acknowledged_duplicate_ids\":[16]}"
+                            "raw": "{\"mrn\":\"b\",\"number_reservation_token\":\"f6e239b134858664042a6fa39089ca56fc04d15a35adcd6b5d54b8d164586b17$\\\/D\",\"first_name\":\"o\",\"last_name\":\"q\",\"middle_name\":\"i\",\"sex\":\"t\",\"date_of_birth\":\"2022-12-16\",\"dob_estimated\":false,\"email\":\"zbailey@example.net\",\"phone\":\"+3642559314$\\\/D\",\"marital_status\":\"k\",\"religion\":\"h\",\"occupation\":\"w\",\"state_of_origin\":\"a\",\"address\":\"y\",\"category_id\":73,\"contacts\":[{\"name\":\"n\",\"relationship\":\"g\",\"phone\":\"+3642559314$\\\/D\"}],\"acknowledged_duplicate_ids\":[16]}"
                         },
                         "description": "Route name: api.v1.patients.store.\n\nRequired permission checks: patients.view, patients.create. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":1,\"mrn\":\"EXAMPLE-0001\",\"first_name\":\"Example\",\"middle_name\":null,\"last_name\":\"Patient\",\"sex\":null,\"date_of_birth\":null,\"dob_estimated\":false,\"category\":{\"id\":1,\"code\":\"example\",\"name\":\"Example category\"},\"version\":1,\"created_at\":\"2026-11-19T08:00:00.000000Z\",\"updated_at\":\"2026-11-19T08:00:00.000000Z\",\"email\":null,\"phone\":null,\"marital_status\":null,\"religion\":null,\"occupation\":null,\"state_of_origin\":null,\"address\":null,\"life_status\":\"unknown\",\"deceased_at\":null,\"created_by\":1,\"contacts\":[],\"identifiers\":[]}}",
+                            "name": "Same-key retry returns the saved patient while the saved version is current"
+                        },
                         {
                             "header": [],
                             "code": 201,
@@ -1847,6 +1871,18 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":1,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"unassigned\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":null}}",
+                            "name": "Same-key retry returns the saved record while the saved version is current"
+                        },
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":1,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"unassigned\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":null}}",
+                            "name": "Synthetic new record; use the returned ID and version"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -1897,6 +1933,12 @@
                         "description": "Route name: api.v1.appointments.options.\n\nRequired permission checks: appointments.view. Record visibility and workflow restrictions also apply."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"timezone\":\"Africa\\\/Lagos\",\"booking_channels\":[\"Voice Call\",\"Social Media\",\"Email\",\"Referral\",\"In-House\",\"Walk-In\"],\"visit_types\":[\"General Consultation\",\"Surgical Consultation\",\"Follow-Up Appointment\",\"Emergency Care Visit\",\"Routine Check-Up\",\"Specialist Referral\",\"Telehealth Session\",\"Antenatal Care\",\"Post Natal Care\",\"Immunization\",\"Family Planning\",\"Child Birth\"],\"statuses\":[\"booked\",\"confirmed\",\"attended\",\"cancelled\",\"no_show\"],\"requires_end_time\":true,\"clinician_overlap_allowed\":false}}",
+                            "name": "Booking choices and scheduling rules"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -1994,6 +2036,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":[{\"id\":7,\"name\":\"Example Clinician\"}],\"meta\":{\"current_page\":1,\"last_page\":1,\"total\":1}}",
+                            "name": "Example page of active clinicians matching the search"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -2089,6 +2137,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":[{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"booked\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":2,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"}],\"links\":{\"first\":\"\\\/api\\\/v1\\\/appointments?page=1\",\"last\":\"\\\/api\\\/v1\\\/appointments?page=1\",\"prev\":null,\"next\":null},\"meta\":{\"current_page\":1,\"from\":1,\"last_page\":1,\"links\":[{\"url\":null,\"label\":\"&laquo; Previous\",\"page\":null,\"active\":false},{\"url\":\"\\\/api\\\/v1\\\/appointments?page=1\",\"label\":\"1\",\"page\":1,\"active\":true},{\"url\":null,\"label\":\"Next &raquo;\",\"page\":null,\"active\":false}],\"path\":\"\\\/api\\\/v1\\\/appointments\",\"per_page\":25,\"to\":1,\"total\":1},\"timezone\":\"Africa\\\/Lagos\"}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -2135,6 +2189,12 @@
                         "description": "Route name: api.v1.appointments.show.\n\nRequired permission checks: appointments.view. Record visibility and workflow restrictions also apply."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"booked\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":2,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"},\"meta\":{\"timezone\":\"Africa\\\/Lagos\"}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -2295,6 +2355,18 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"booked\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":1,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"}}",
+                            "name": "Same-key retry returns the saved record while the saved version is current"
+                        },
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\"data\":{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"booked\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":1,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"}}",
+                            "name": "Synthetic new record; use the returned ID and version"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -2363,11 +2435,17 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"phone\":\"+3642559314$\\\/D\",\"starts_at\":\"architecto\",\"ends_at\":\"architecto\",\"booking_channel\":\"Referral\",\"visit_type\":\"Family Planning\",\"specialist_name\":\"n\",\"specialist_email\":\"ashly64@example.com\",\"doctor_id\":1,\"version\":1,\"reason\":\"l\"}"
+                            "raw": "{\"first_name\":\"b\",\"last_name\":\"n\",\"phone\":\"+3642559314$\\\/D\",\"starts_at\":\"architecto\",\"ends_at\":\"architecto\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"Family Planning\",\"specialist_name\":\"n\",\"specialist_email\":\"ashly64@example.com\",\"doctor_id\":1,\"version\":1,\"reason\":\"l\"}"
                         },
                         "description": "Route name: api.v1.appointments.update.\n\nRequired permission checks: appointments.view, appointments.update. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"booked\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":2,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -2445,6 +2523,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"confirmed\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":2,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -2518,6 +2602,12 @@
                         "description": "Route name: api.v1.appointments.cancel.\n\nRequired permission checks: appointments.view, appointments.update. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"cancelled\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":2,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -2595,6 +2685,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":12,\"first_name\":\"Example\",\"last_name\":\"Patient\",\"phone\":\"08000000000\",\"booking_channel\":\"Walk-In\",\"visit_type\":\"General Consultation\",\"specialist_name\":null,\"specialist_email\":null,\"status\":\"no_show\",\"patient_id\":1,\"doctor_id\":7,\"booked_by\":4,\"version\":2,\"starts_at\":\"2026-11-21T08:00:00.000000Z\",\"ends_at\":\"2026-11-21T08:30:00.000000Z\",\"follow_up_of_id\":null,\"created_at\":\"2026-11-21T07:30:00.000000Z\",\"updated_at\":\"2026-11-21T07:45:00.000000Z\",\"doctor_name\":\"Example Clinician\"}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -2651,6 +2747,12 @@
                         "description": "Route name: api.v1.encounters.options.\n\nRequired permission checks: encounters.view, patients.view. Record visibility and workflow restrictions also apply."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"timezone\":\"Africa\\\/Lagos\",\"care_settings\":[\"OPD\",\"IPD\",\"EMERGENCY\"],\"visit_types\":[\"General Consultation\",\"Surgical Consultation\",\"Follow-Up Appointment\",\"Emergency Care Visit\",\"Routine Check-Up\",\"Specialist Referral\",\"Telehealth Session\",\"Antenatal Care\",\"Post Natal Care\",\"Immunization\",\"Family Planning\",\"Child Birth\"],\"queues\":[\"unassigned\",\"waiting\",\"in_progress\"],\"queue_order\":[\"opened_at\",\"id\"],\"identity_verification_required\":true,\"current_clinicians_per_visit\":1}}",
+                            "name": "Visit settings and clinician queue options"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -2748,6 +2850,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":[{\"id\":7,\"name\":\"Example Clinician\"}],\"meta\":{\"current_page\":1,\"last_page\":1,\"total\":1}}",
+                            "name": "Example page of active clinicians matching the search"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -2843,6 +2951,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":[{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":2,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"waiting\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":{\"id\":6,\"doctor_id\":7,\"assigned_by\":4,\"ended_by\":null,\"consultation_type\":\"General Consultation\",\"status\":\"assigned\",\"version\":1,\"assigned_at\":\"2026-11-21T08:05:00.000000Z\",\"accepted_at\":null,\"ended_at\":null,\"doctor_name\":\"Example Clinician\"}}],\"links\":{\"first\":\"\\\/api\\\/v1\\\/encounters?page=1\",\"last\":\"\\\/api\\\/v1\\\/encounters?page=1\",\"prev\":null,\"next\":null},\"meta\":{\"current_page\":1,\"from\":1,\"last_page\":1,\"links\":[{\"url\":null,\"label\":\"&laquo; Previous\",\"page\":null,\"active\":false},{\"url\":\"\\\/api\\\/v1\\\/encounters?page=1\",\"label\":\"1\",\"page\":1,\"active\":true},{\"url\":null,\"label\":\"Next &raquo;\",\"page\":null,\"active\":false}],\"path\":\"\\\/api\\\/v1\\\/encounters\",\"per_page\":25,\"to\":1,\"total\":1},\"timezone\":\"Africa\\\/Lagos\"}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -2889,6 +3003,12 @@
                         "description": "Route name: api.v1.encounters.show.\n\nRequired permission checks: encounters.view, patients.view. Record visibility and workflow restrictions also apply."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":2,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"waiting\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":{\"id\":6,\"doctor_id\":7,\"assigned_by\":4,\"ended_by\":null,\"consultation_type\":\"General Consultation\",\"status\":\"assigned\",\"version\":1,\"assigned_at\":\"2026-11-21T08:05:00.000000Z\",\"accepted_at\":null,\"ended_at\":null,\"doctor_name\":\"Example Clinician\"}}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -3145,11 +3265,23 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"patient_id\":1,\"patient_version\":22,\"identity_verified\":true,\"care_setting\":\"OPD\",\"visit_type\":\"Follow-Up Appointment\"}"
+                            "raw": "{\"patient_id\":1,\"patient_version\":22,\"identity_verified\":true,\"care_setting\":\"IPD\",\"visit_type\":\"Emergency Care Visit\"}"
                         },
                         "description": "Route name: api.v1.encounters.store.\n\nRequired permission checks: encounters.view, patients.view, encounters.arrive, encounters.view_any. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":null,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":1,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"unassigned\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":null}}",
+                            "name": "Same-key retry returns the saved record while the saved version is current"
+                        },
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":null,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":1,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"unassigned\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":null}}",
+                            "name": "Synthetic new record; use the returned ID and version"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -3220,11 +3352,17 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"version\":1,\"reason\":\"n\",\"doctor_id\":7,\"consultation_type\":\"Follow-Up Appointment\"}"
+                            "raw": "{\"version\":1,\"reason\":\"n\",\"doctor_id\":7,\"consultation_type\":\"Antenatal Care\"}"
                         },
                         "description": "Route name: api.v1.encounters.assign.\n\nRequired permission checks: encounters.view, patients.view, encounters.assign. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":2,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"waiting\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":{\"id\":6,\"doctor_id\":7,\"assigned_by\":4,\"ended_by\":null,\"consultation_type\":\"General Consultation\",\"status\":\"assigned\",\"version\":1,\"assigned_at\":\"2026-11-21T08:05:00.000000Z\",\"accepted_at\":null,\"ended_at\":null,\"doctor_name\":\"Example Clinician\"}}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -3302,6 +3440,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":3,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"waiting\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":{\"id\":6,\"doctor_id\":7,\"assigned_by\":4,\"ended_by\":null,\"consultation_type\":\"General Consultation\",\"status\":\"assigned\",\"version\":1,\"assigned_at\":\"2026-11-21T08:05:00.000000Z\",\"accepted_at\":null,\"ended_at\":null,\"doctor_name\":\"Example Clinician\"}}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -3375,6 +3519,12 @@
                         "description": "Route name: api.v1.encounters.accept.\n\nRequired permission checks: encounters.view, patients.view, encounters.progress. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"in_progress\",\"version\":3,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"in_progress\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":{\"id\":6,\"doctor_id\":7,\"assigned_by\":4,\"ended_by\":null,\"consultation_type\":\"General Consultation\",\"status\":\"accepted\",\"version\":2,\"assigned_at\":\"2026-11-21T08:05:00.000000Z\",\"accepted_at\":\"2026-11-21T08:10:00.000000Z\",\"ended_at\":null,\"doctor_name\":\"Example Clinician\"}}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -3452,6 +3602,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"closed\",\"version\":4,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":\"2026-11-21T08:25:00.000000Z\",\"queue\":null,\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":null}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -3525,6 +3681,12 @@
                         "description": "Route name: api.v1.encounters.cancel.\n\nRequired permission checks: encounters.view, patients.view, encounters.cancel. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },
                     "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"cancelled\",\"version\":2,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":\"2026-11-21T08:25:00.000000Z\",\"queue\":null,\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":null}}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
                         {
                             "header": [],
                             "code": 401,
@@ -12961,7 +13123,7 @@
                                 },
                                 {
                                     "key": "department",
-                                    "value": "radiology",
+                                    "value": "laboratory",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -13080,7 +13242,7 @@
                                 },
                                 {
                                     "key": "department",
-                                    "value": "laboratory",
+                                    "value": "radiology",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -15817,6 +15979,12 @@
                     "response": [
                         {
                             "header": [],
+                            "code": 200,
+                            "body": "{\"data\":[{\"id\":19,\"patient_id\":1,\"appointment_id\":12,\"category_id\":1,\"opened_by\":4,\"visit_type\":\"General Consultation\",\"care_setting\":\"OPD\",\"status\":\"open\",\"version\":2,\"opened_at\":\"2026-11-21T08:00:00.000000Z\",\"closed_at\":null,\"queue\":\"waiting\",\"patient\":{\"id\":1,\"mrn\":\"PVT-01\",\"first_name\":\"Example\",\"last_name\":\"Patient\",\"version\":1},\"current_assignment\":{\"id\":6,\"doctor_id\":7,\"assigned_by\":4,\"ended_by\":null,\"consultation_type\":\"General Consultation\",\"status\":\"assigned\",\"version\":1,\"assigned_at\":\"2026-11-21T08:05:00.000000Z\",\"accepted_at\":null,\"ended_at\":null,\"doctor_name\":\"Example Clinician\"}}],\"links\":{\"first\":\"\\\/api\\\/v1\\\/queues?page=1\",\"last\":\"\\\/api\\\/v1\\\/queues?page=1\",\"prev\":null,\"next\":null},\"meta\":{\"current_page\":1,\"from\":1,\"last_page\":1,\"links\":[{\"url\":null,\"label\":\"&laquo; Previous\",\"page\":null,\"active\":false},{\"url\":\"\\\/api\\\/v1\\\/queues?page=1\",\"label\":\"1\",\"page\":1,\"active\":true},{\"url\":null,\"label\":\"Next &raquo;\",\"page\":null,\"active\":false}],\"path\":\"\\\/api\\\/v1\\\/queues\",\"per_page\":25,\"to\":1,\"total\":1},\"timezone\":\"Africa\\\/Lagos\"}",
+                            "name": "Synthetic saved record or page; use returned IDs and versions"
+                        },
+                        {
+                            "header": [],
                             "code": 401,
                             "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
                             "name": "No valid staff session"
@@ -17578,7 +17746,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "rejected",
+                                    "value": "cancelled",
                                     "description": "Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.",
                                     "disabled": false
                                 },
@@ -17753,7 +17921,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "cancelled",
+                                    "value": "rejected",
                                     "description": "Applies to catalog: units, drugs, packs, suppliers, stores, batches, prices.",
                                     "disabled": false
                                 },
@@ -18601,9 +18769,9 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "1",
+                                    "value": "",
                                     "description": "",
-                                    "disabled": false
+                                    "disabled": true
                                 },
                                 {
                                     "key": "store_id",
@@ -18714,9 +18882,9 @@
                                 },
                                 {
                                     "key": "active",
-                                    "value": "",
+                                    "value": "1",
                                     "description": "",
-                                    "disabled": true
+                                    "disabled": false
                                 },
                                 {
                                     "key": "store_id",
@@ -18857,7 +19025,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "submitted",
+                                    "value": "rejected",
                                     "description": "",
                                     "disabled": false
                                 },
@@ -19085,7 +19253,7 @@
                                 },
                                 {
                                     "key": "status",
-                                    "value": "rejected",
+                                    "value": "submitted",
                                     "description": "",
                                     "disabled": false
                                 },

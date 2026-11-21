@@ -94,6 +94,17 @@ class ApiDocumentationTest extends TestCase
             $login = $spec['paths']['/api/v1/auth/login']['post'];
             $this->assertArrayHasKey('200', $login['responses']);
             $this->assertContains('password', $login['requestBody']['content']['application/json']['schema']['required']);
+            $this->assertArrayHasKey(204, $spec['paths']['/api/v1/auth/password/reset']['post']['responses']);
+            $this->assertArrayHasKey(200, $spec['paths']['/api/v1/patients/options']['get']['responses']);
+            $this->assertArrayHasKey(200, $spec['paths']['/api/v1/patients/duplicate-check']['post']['responses']);
+            foreach (['/api/v1/patients', '/api/v1/appointments', '/api/v1/appointments/{appointment}/arrive', '/api/v1/encounters'] as $uri) {
+                $responses = $spec['paths'][$uri]['post']['responses'];
+                $this->assertArrayHasKey(201, $responses, $uri);
+                $this->assertArrayHasKey(200, $responses, $uri);
+            }
+            $queue = $spec['paths']['/api/v1/queues']['get']['responses'][200]['content']['application/json']['schema']['properties'];
+            $this->assertArrayHasKey('current_assignment', $queue['data']['items']['properties']);
+            $this->assertArrayHasKey('meta', $queue);
             $html = file_get_contents($root.'/public/index.html');
             $this->assertStringContainsString('Frontend integration guide', $html);
             $this->assertStringContainsString('SameSite=Lax', $html);

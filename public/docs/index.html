@@ -1658,6 +1658,12 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-auth-password-reset">
             <blockquote>
+            <p>Example response (204, Password reset; start a fresh staff session before signing in):</p>
+        </blockquote>
+                <pre>
+<code>Empty response</code>
+ </pre>
+            <blockquote>
             <p>Example response (419, Missing or expired session/CSRF protection):</p>
         </blockquote>
                 <pre>
@@ -5191,6 +5197,39 @@ fetch(url, {
 
 <span id="example-responses-GETapi-v1-patients-options">
             <blockquote>
+            <p>Example response (200, Example categories; use the returned category IDs. Staff-entered categories have a null number_prefix):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;categories&quot;: [
+            {
+                &quot;id&quot;: 1,
+                &quot;code&quot;: &quot;private&quot;,
+                &quot;name&quot;: &quot;Private&quot;,
+                &quot;numbering_mode&quot;: &quot;reservation_required&quot;,
+                &quot;number_prefix&quot;: &quot;PVT&quot;
+            },
+            {
+                &quot;id&quot;: 2,
+                &quot;code&quot;: &quot;walk-in&quot;,
+                &quot;name&quot;: &quot;Walk-in&quot;,
+                &quot;numbering_mode&quot;: &quot;reservation_required&quot;,
+                &quot;number_prefix&quot;: &quot;WLK&quot;
+            },
+            {
+                &quot;id&quot;: 3,
+                &quot;code&quot;: &quot;staff&quot;,
+                &quot;name&quot;: &quot;Staff&quot;,
+                &quot;numbering_mode&quot;: &quot;staff_entered&quot;,
+                &quot;number_prefix&quot;: null
+            }
+        ]
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -5555,6 +5594,37 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-patients-duplicate-check">
+            <blockquote>
+            <p>Example response (200, Synthetic patient example; use returned links, identifiers and version values):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;EXAMPLE-0001&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;middle_name&quot;: null,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;sex&quot;: null,
+            &quot;date_of_birth&quot;: null,
+            &quot;dob_estimated&quot;: false,
+            &quot;category&quot;: {
+                &quot;id&quot;: 1,
+                &quot;code&quot;: &quot;example&quot;,
+                &quot;name&quot;: &quot;Example category&quot;
+            },
+            &quot;version&quot;: 1,
+            &quot;created_at&quot;: &quot;2026-11-19T08:00:00.000000Z&quot;,
+            &quot;updated_at&quot;: &quot;2026-11-19T08:00:00.000000Z&quot;
+        }
+    ],
+    &quot;meta&quot;: {
+        &quot;has_more&quot;: false
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -6264,6 +6334,44 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-patients">
+            <blockquote>
+            <p>Example response (200, Same-key retry returns the saved patient while the saved version is current):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 1,
+        &quot;mrn&quot;: &quot;EXAMPLE-0001&quot;,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;middle_name&quot;: null,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;sex&quot;: null,
+        &quot;date_of_birth&quot;: null,
+        &quot;dob_estimated&quot;: false,
+        &quot;category&quot;: {
+            &quot;id&quot;: 1,
+            &quot;code&quot;: &quot;example&quot;,
+            &quot;name&quot;: &quot;Example category&quot;
+        },
+        &quot;version&quot;: 1,
+        &quot;created_at&quot;: &quot;2026-11-19T08:00:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-19T08:00:00.000000Z&quot;,
+        &quot;email&quot;: null,
+        &quot;phone&quot;: null,
+        &quot;marital_status&quot;: null,
+        &quot;religion&quot;: null,
+        &quot;occupation&quot;: null,
+        &quot;state_of_origin&quot;: null,
+        &quot;address&quot;: null,
+        &quot;life_status&quot;: &quot;unknown&quot;,
+        &quot;deceased_at&quot;: null,
+        &quot;created_by&quot;: 1,
+        &quot;contacts&quot;: [],
+        &quot;identifiers&quot;: []
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (201, Synthetic patient example; use returned links, identifiers and version values):</p>
         </blockquote>
@@ -7296,6 +7404,66 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-appointments--appointment--arrive">
             <blockquote>
+            <p>Example response (200, Same-key retry returns the saved record while the saved version is current):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;open&quot;,
+        &quot;version&quot;: 1,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;unassigned&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: null
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (201, Synthetic new record; use the returned ID and version):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;open&quot;,
+        &quot;version&quot;: 1,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;unassigned&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: null
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -7567,6 +7735,48 @@ fetch(url, {
 
 <span id="example-responses-GETapi-v1-appointments-options">
             <blockquote>
+            <p>Example response (200, Booking choices and scheduling rules):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;timezone&quot;: &quot;Africa/Lagos&quot;,
+        &quot;booking_channels&quot;: [
+            &quot;Voice Call&quot;,
+            &quot;Social Media&quot;,
+            &quot;Email&quot;,
+            &quot;Referral&quot;,
+            &quot;In-House&quot;,
+            &quot;Walk-In&quot;
+        ],
+        &quot;visit_types&quot;: [
+            &quot;General Consultation&quot;,
+            &quot;Surgical Consultation&quot;,
+            &quot;Follow-Up Appointment&quot;,
+            &quot;Emergency Care Visit&quot;,
+            &quot;Routine Check-Up&quot;,
+            &quot;Specialist Referral&quot;,
+            &quot;Telehealth Session&quot;,
+            &quot;Antenatal Care&quot;,
+            &quot;Post Natal Care&quot;,
+            &quot;Immunization&quot;,
+            &quot;Family Planning&quot;,
+            &quot;Child Birth&quot;
+        ],
+        &quot;statuses&quot;: [
+            &quot;booked&quot;,
+            &quot;confirmed&quot;,
+            &quot;attended&quot;,
+            &quot;cancelled&quot;,
+            &quot;no_show&quot;
+        ],
+        &quot;requires_end_time&quot;: true,
+        &quot;clinician_overlap_allowed&quot;: false
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -7692,6 +7902,25 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-appointments-clinicians">
+            <blockquote>
+            <p>Example response (200, Example page of active clinicians matching the search):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 7,
+            &quot;name&quot;: &quot;Example Clinician&quot;
+        }
+    ],
+    &quot;meta&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;last_page&quot;: 1,
+        &quot;total&quot;: 1
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -7932,6 +8161,73 @@ fetch(url, {
 
 <span id="example-responses-GETapi-v1-appointments">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 12,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;phone&quot;: &quot;08000000000&quot;,
+            &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+            &quot;visit_type&quot;: &quot;General Consultation&quot;,
+            &quot;specialist_name&quot;: null,
+            &quot;specialist_email&quot;: null,
+            &quot;status&quot;: &quot;booked&quot;,
+            &quot;patient_id&quot;: 1,
+            &quot;doctor_id&quot;: 7,
+            &quot;booked_by&quot;: 4,
+            &quot;version&quot;: 2,
+            &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+            &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+            &quot;follow_up_of_id&quot;: null,
+            &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+            &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+            &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+        }
+    ],
+    &quot;links&quot;: {
+        &quot;first&quot;: &quot;/api/v1/appointments?page=1&quot;,
+        &quot;last&quot;: &quot;/api/v1/appointments?page=1&quot;,
+        &quot;prev&quot;: null,
+        &quot;next&quot;: null
+    },
+    &quot;meta&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;from&quot;: 1,
+        &quot;last_page&quot;: 1,
+        &quot;links&quot;: [
+            {
+                &quot;url&quot;: null,
+                &quot;label&quot;: &quot;&amp;laquo; Previous&quot;,
+                &quot;page&quot;: null,
+                &quot;active&quot;: false
+            },
+            {
+                &quot;url&quot;: &quot;/api/v1/appointments?page=1&quot;,
+                &quot;label&quot;: &quot;1&quot;,
+                &quot;page&quot;: 1,
+                &quot;active&quot;: true
+            },
+            {
+                &quot;url&quot;: null,
+                &quot;label&quot;: &quot;Next &amp;raquo;&quot;,
+                &quot;page&quot;: null,
+                &quot;active&quot;: false
+            }
+        ],
+        &quot;path&quot;: &quot;/api/v1/appointments&quot;,
+        &quot;per_page&quot;: 25,
+        &quot;to&quot;: 1,
+        &quot;total&quot;: 1
+    },
+    &quot;timezone&quot;: &quot;Africa/Lagos&quot;
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -8156,6 +8452,38 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-appointments--id-">
+            <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 12,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;phone&quot;: &quot;08000000000&quot;,
+        &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;specialist_name&quot;: null,
+        &quot;specialist_email&quot;: null,
+        &quot;status&quot;: &quot;booked&quot;,
+        &quot;patient_id&quot;: 1,
+        &quot;doctor_id&quot;: 7,
+        &quot;booked_by&quot;: 4,
+        &quot;version&quot;: 2,
+        &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+        &quot;follow_up_of_id&quot;: null,
+        &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+        &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+    },
+    &quot;meta&quot;: {
+        &quot;timezone&quot;: &quot;Africa/Lagos&quot;
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -8571,6 +8899,64 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-appointments">
             <blockquote>
+            <p>Example response (200, Same-key retry returns the saved record while the saved version is current):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 12,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;phone&quot;: &quot;08000000000&quot;,
+        &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;specialist_name&quot;: null,
+        &quot;specialist_email&quot;: null,
+        &quot;status&quot;: &quot;booked&quot;,
+        &quot;patient_id&quot;: 1,
+        &quot;doctor_id&quot;: 7,
+        &quot;booked_by&quot;: 4,
+        &quot;version&quot;: 1,
+        &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+        &quot;follow_up_of_id&quot;: null,
+        &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+        &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (201, Synthetic new record; use the returned ID and version):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 12,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;phone&quot;: &quot;08000000000&quot;,
+        &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;specialist_name&quot;: null,
+        &quot;specialist_email&quot;: null,
+        &quot;status&quot;: &quot;booked&quot;,
+        &quot;patient_id&quot;: 1,
+        &quot;doctor_id&quot;: 7,
+        &quot;booked_by&quot;: 4,
+        &quot;version&quot;: 1,
+        &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+        &quot;follow_up_of_id&quot;: null,
+        &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+        &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -8930,6 +9316,35 @@ fetch(url, {
 
 <span id="example-responses-PATCHapi-v1-appointments--id-">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 12,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;phone&quot;: &quot;08000000000&quot;,
+        &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;specialist_name&quot;: null,
+        &quot;specialist_email&quot;: null,
+        &quot;status&quot;: &quot;booked&quot;,
+        &quot;patient_id&quot;: 1,
+        &quot;doctor_id&quot;: 7,
+        &quot;booked_by&quot;: 4,
+        &quot;version&quot;: 2,
+        &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+        &quot;follow_up_of_id&quot;: null,
+        &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+        &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -9282,6 +9697,35 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-appointments--appointment--confirm">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 12,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;phone&quot;: &quot;08000000000&quot;,
+        &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;specialist_name&quot;: null,
+        &quot;specialist_email&quot;: null,
+        &quot;status&quot;: &quot;confirmed&quot;,
+        &quot;patient_id&quot;: 1,
+        &quot;doctor_id&quot;: 7,
+        &quot;booked_by&quot;: 4,
+        &quot;version&quot;: 2,
+        &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+        &quot;follow_up_of_id&quot;: null,
+        &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+        &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -9509,6 +9953,35 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-appointments--appointment--cancel">
+            <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 12,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;phone&quot;: &quot;08000000000&quot;,
+        &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;specialist_name&quot;: null,
+        &quot;specialist_email&quot;: null,
+        &quot;status&quot;: &quot;cancelled&quot;,
+        &quot;patient_id&quot;: 1,
+        &quot;doctor_id&quot;: 7,
+        &quot;booked_by&quot;: 4,
+        &quot;version&quot;: 2,
+        &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+        &quot;follow_up_of_id&quot;: null,
+        &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+        &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -9738,6 +10211,35 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-appointments--appointment--no-show">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 12,
+        &quot;first_name&quot;: &quot;Example&quot;,
+        &quot;last_name&quot;: &quot;Patient&quot;,
+        &quot;phone&quot;: &quot;08000000000&quot;,
+        &quot;booking_channel&quot;: &quot;Walk-In&quot;,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;specialist_name&quot;: null,
+        &quot;specialist_email&quot;: null,
+        &quot;status&quot;: &quot;no_show&quot;,
+        &quot;patient_id&quot;: 1,
+        &quot;doctor_id&quot;: 7,
+        &quot;booked_by&quot;: 4,
+        &quot;version&quot;: 2,
+        &quot;starts_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;ends_at&quot;: &quot;2026-11-21T08:30:00.000000Z&quot;,
+        &quot;follow_up_of_id&quot;: null,
+        &quot;created_at&quot;: &quot;2026-11-21T07:30:00.000000Z&quot;,
+        &quot;updated_at&quot;: &quot;2026-11-21T07:45:00.000000Z&quot;,
+        &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -9953,6 +10455,47 @@ fetch(url, {
 
 <span id="example-responses-GETapi-v1-encounters-options">
             <blockquote>
+            <p>Example response (200, Visit settings and clinician queue options):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;timezone&quot;: &quot;Africa/Lagos&quot;,
+        &quot;care_settings&quot;: [
+            &quot;OPD&quot;,
+            &quot;IPD&quot;,
+            &quot;EMERGENCY&quot;
+        ],
+        &quot;visit_types&quot;: [
+            &quot;General Consultation&quot;,
+            &quot;Surgical Consultation&quot;,
+            &quot;Follow-Up Appointment&quot;,
+            &quot;Emergency Care Visit&quot;,
+            &quot;Routine Check-Up&quot;,
+            &quot;Specialist Referral&quot;,
+            &quot;Telehealth Session&quot;,
+            &quot;Antenatal Care&quot;,
+            &quot;Post Natal Care&quot;,
+            &quot;Immunization&quot;,
+            &quot;Family Planning&quot;,
+            &quot;Child Birth&quot;
+        ],
+        &quot;queues&quot;: [
+            &quot;unassigned&quot;,
+            &quot;waiting&quot;,
+            &quot;in_progress&quot;
+        ],
+        &quot;queue_order&quot;: [
+            &quot;opened_at&quot;,
+            &quot;id&quot;
+        ],
+        &quot;identity_verification_required&quot;: true,
+        &quot;current_clinicians_per_visit&quot;: 1
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -10078,6 +10621,25 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-encounters-clinicians">
+            <blockquote>
+            <p>Example response (200, Example page of active clinicians matching the search):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 7,
+            &quot;name&quot;: &quot;Example Clinician&quot;
+        }
+    ],
+    &quot;meta&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;last_page&quot;: 1,
+        &quot;total&quot;: 1
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -10318,6 +10880,86 @@ fetch(url, {
 
 <span id="example-responses-GETapi-v1-encounters">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 19,
+            &quot;patient_id&quot;: 1,
+            &quot;appointment_id&quot;: 12,
+            &quot;category_id&quot;: 1,
+            &quot;opened_by&quot;: 4,
+            &quot;visit_type&quot;: &quot;General Consultation&quot;,
+            &quot;care_setting&quot;: &quot;OPD&quot;,
+            &quot;status&quot;: &quot;open&quot;,
+            &quot;version&quot;: 2,
+            &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+            &quot;closed_at&quot;: null,
+            &quot;queue&quot;: &quot;waiting&quot;,
+            &quot;patient&quot;: {
+                &quot;id&quot;: 1,
+                &quot;mrn&quot;: &quot;PVT-01&quot;,
+                &quot;first_name&quot;: &quot;Example&quot;,
+                &quot;last_name&quot;: &quot;Patient&quot;,
+                &quot;version&quot;: 1
+            },
+            &quot;current_assignment&quot;: {
+                &quot;id&quot;: 6,
+                &quot;doctor_id&quot;: 7,
+                &quot;assigned_by&quot;: 4,
+                &quot;ended_by&quot;: null,
+                &quot;consultation_type&quot;: &quot;General Consultation&quot;,
+                &quot;status&quot;: &quot;assigned&quot;,
+                &quot;version&quot;: 1,
+                &quot;assigned_at&quot;: &quot;2026-11-21T08:05:00.000000Z&quot;,
+                &quot;accepted_at&quot;: null,
+                &quot;ended_at&quot;: null,
+                &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+            }
+        }
+    ],
+    &quot;links&quot;: {
+        &quot;first&quot;: &quot;/api/v1/encounters?page=1&quot;,
+        &quot;last&quot;: &quot;/api/v1/encounters?page=1&quot;,
+        &quot;prev&quot;: null,
+        &quot;next&quot;: null
+    },
+    &quot;meta&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;from&quot;: 1,
+        &quot;last_page&quot;: 1,
+        &quot;links&quot;: [
+            {
+                &quot;url&quot;: null,
+                &quot;label&quot;: &quot;&amp;laquo; Previous&quot;,
+                &quot;page&quot;: null,
+                &quot;active&quot;: false
+            },
+            {
+                &quot;url&quot;: &quot;/api/v1/encounters?page=1&quot;,
+                &quot;label&quot;: &quot;1&quot;,
+                &quot;page&quot;: 1,
+                &quot;active&quot;: true
+            },
+            {
+                &quot;url&quot;: null,
+                &quot;label&quot;: &quot;Next &amp;raquo;&quot;,
+                &quot;page&quot;: null,
+                &quot;active&quot;: false
+            }
+        ],
+        &quot;path&quot;: &quot;/api/v1/encounters&quot;,
+        &quot;per_page&quot;: 25,
+        &quot;to&quot;: 1,
+        &quot;total&quot;: 1
+    },
+    &quot;timezone&quot;: &quot;Africa/Lagos&quot;
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -10544,6 +11186,48 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-encounters--id-">
+            <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;open&quot;,
+        &quot;version&quot;: 2,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;waiting&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: {
+            &quot;id&quot;: 6,
+            &quot;doctor_id&quot;: 7,
+            &quot;assigned_by&quot;: 4,
+            &quot;ended_by&quot;: null,
+            &quot;consultation_type&quot;: &quot;General Consultation&quot;,
+            &quot;status&quot;: &quot;assigned&quot;,
+            &quot;version&quot;: 1,
+            &quot;assigned_at&quot;: &quot;2026-11-21T08:05:00.000000Z&quot;,
+            &quot;accepted_at&quot;: null,
+            &quot;ended_at&quot;: null,
+            &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+        }
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -11201,6 +11885,66 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-encounters">
             <blockquote>
+            <p>Example response (200, Same-key retry returns the saved record while the saved version is current):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: null,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;open&quot;,
+        &quot;version&quot;: 1,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;unassigned&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: null
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (201, Synthetic new record; use the returned ID and version):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: null,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;open&quot;,
+        &quot;version&quot;: 1,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;unassigned&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: null
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -11470,6 +12214,48 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-encounters--encounter--assign">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;open&quot;,
+        &quot;version&quot;: 2,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;waiting&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: {
+            &quot;id&quot;: 6,
+            &quot;doctor_id&quot;: 7,
+            &quot;assigned_by&quot;: 4,
+            &quot;ended_by&quot;: null,
+            &quot;consultation_type&quot;: &quot;General Consultation&quot;,
+            &quot;status&quot;: &quot;assigned&quot;,
+            &quot;version&quot;: 1,
+            &quot;assigned_at&quot;: &quot;2026-11-21T08:05:00.000000Z&quot;,
+            &quot;accepted_at&quot;: null,
+            &quot;ended_at&quot;: null,
+            &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -11731,6 +12517,48 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-encounters--encounter--reassign">
+            <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;open&quot;,
+        &quot;version&quot;: 3,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;waiting&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: {
+            &quot;id&quot;: 6,
+            &quot;doctor_id&quot;: 7,
+            &quot;assigned_by&quot;: 4,
+            &quot;ended_by&quot;: null,
+            &quot;consultation_type&quot;: &quot;General Consultation&quot;,
+            &quot;status&quot;: &quot;assigned&quot;,
+            &quot;version&quot;: 1,
+            &quot;assigned_at&quot;: &quot;2026-11-21T08:05:00.000000Z&quot;,
+            &quot;accepted_at&quot;: null,
+            &quot;ended_at&quot;: null,
+            &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+        }
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -12014,6 +12842,48 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-encounters--encounter--accept">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;in_progress&quot;,
+        &quot;version&quot;: 3,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: null,
+        &quot;queue&quot;: &quot;in_progress&quot;,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: {
+            &quot;id&quot;: 6,
+            &quot;doctor_id&quot;: 7,
+            &quot;assigned_by&quot;: 4,
+            &quot;ended_by&quot;: null,
+            &quot;consultation_type&quot;: &quot;General Consultation&quot;,
+            &quot;status&quot;: &quot;accepted&quot;,
+            &quot;version&quot;: 2,
+            &quot;assigned_at&quot;: &quot;2026-11-21T08:05:00.000000Z&quot;,
+            &quot;accepted_at&quot;: &quot;2026-11-21T08:10:00.000000Z&quot;,
+            &quot;ended_at&quot;: null,
+            &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+        }
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -12270,6 +13140,36 @@ fetch(url, {
 
 <span id="example-responses-POSTapi-v1-encounters--encounter--complete">
             <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;closed&quot;,
+        &quot;version&quot;: 4,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: &quot;2026-11-21T08:25:00.000000Z&quot;,
+        &quot;queue&quot;: null,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: null
+    }
+}</code>
+ </pre>
+            <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
                 <pre>
@@ -12521,6 +13421,36 @@ fetch(url, {
 </span>
 
 <span id="example-responses-POSTapi-v1-encounters--encounter--cancel">
+            <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;id&quot;: 19,
+        &quot;patient_id&quot;: 1,
+        &quot;appointment_id&quot;: 12,
+        &quot;category_id&quot;: 1,
+        &quot;opened_by&quot;: 4,
+        &quot;visit_type&quot;: &quot;General Consultation&quot;,
+        &quot;care_setting&quot;: &quot;OPD&quot;,
+        &quot;status&quot;: &quot;cancelled&quot;,
+        &quot;version&quot;: 2,
+        &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+        &quot;closed_at&quot;: &quot;2026-11-21T08:25:00.000000Z&quot;,
+        &quot;queue&quot;: null,
+        &quot;patient&quot;: {
+            &quot;id&quot;: 1,
+            &quot;mrn&quot;: &quot;PVT-01&quot;,
+            &quot;first_name&quot;: &quot;Example&quot;,
+            &quot;last_name&quot;: &quot;Patient&quot;,
+            &quot;version&quot;: 1
+        },
+        &quot;current_assignment&quot;: null
+    }
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -30729,7 +31659,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>preauth_required</code></b>&nbsp;&nbsp;
@@ -31131,7 +32061,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>preauth_required</code></b>&nbsp;&nbsp;
@@ -31512,7 +32442,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>preauth_required</code></b>&nbsp;&nbsp;
@@ -31926,7 +32856,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
             <b style="line-height: 2;"><code>preauth_required</code></b>&nbsp;&nbsp;
@@ -45027,7 +45957,7 @@ Must be one of:
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
@@ -45371,7 +46301,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>page</code></b>&nbsp;&nbsp;
@@ -53627,6 +54557,86 @@ fetch(url, {
 </span>
 
 <span id="example-responses-GETapi-v1-queues">
+            <blockquote>
+            <p>Example response (200, Synthetic saved record or page; use returned IDs and versions):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: [
+        {
+            &quot;id&quot;: 19,
+            &quot;patient_id&quot;: 1,
+            &quot;appointment_id&quot;: 12,
+            &quot;category_id&quot;: 1,
+            &quot;opened_by&quot;: 4,
+            &quot;visit_type&quot;: &quot;General Consultation&quot;,
+            &quot;care_setting&quot;: &quot;OPD&quot;,
+            &quot;status&quot;: &quot;open&quot;,
+            &quot;version&quot;: 2,
+            &quot;opened_at&quot;: &quot;2026-11-21T08:00:00.000000Z&quot;,
+            &quot;closed_at&quot;: null,
+            &quot;queue&quot;: &quot;waiting&quot;,
+            &quot;patient&quot;: {
+                &quot;id&quot;: 1,
+                &quot;mrn&quot;: &quot;PVT-01&quot;,
+                &quot;first_name&quot;: &quot;Example&quot;,
+                &quot;last_name&quot;: &quot;Patient&quot;,
+                &quot;version&quot;: 1
+            },
+            &quot;current_assignment&quot;: {
+                &quot;id&quot;: 6,
+                &quot;doctor_id&quot;: 7,
+                &quot;assigned_by&quot;: 4,
+                &quot;ended_by&quot;: null,
+                &quot;consultation_type&quot;: &quot;General Consultation&quot;,
+                &quot;status&quot;: &quot;assigned&quot;,
+                &quot;version&quot;: 1,
+                &quot;assigned_at&quot;: &quot;2026-11-21T08:05:00.000000Z&quot;,
+                &quot;accepted_at&quot;: null,
+                &quot;ended_at&quot;: null,
+                &quot;doctor_name&quot;: &quot;Example Clinician&quot;
+            }
+        }
+    ],
+    &quot;links&quot;: {
+        &quot;first&quot;: &quot;/api/v1/queues?page=1&quot;,
+        &quot;last&quot;: &quot;/api/v1/queues?page=1&quot;,
+        &quot;prev&quot;: null,
+        &quot;next&quot;: null
+    },
+    &quot;meta&quot;: {
+        &quot;current_page&quot;: 1,
+        &quot;from&quot;: 1,
+        &quot;last_page&quot;: 1,
+        &quot;links&quot;: [
+            {
+                &quot;url&quot;: null,
+                &quot;label&quot;: &quot;&amp;laquo; Previous&quot;,
+                &quot;page&quot;: null,
+                &quot;active&quot;: false
+            },
+            {
+                &quot;url&quot;: &quot;/api/v1/queues?page=1&quot;,
+                &quot;label&quot;: &quot;1&quot;,
+                &quot;page&quot;: 1,
+                &quot;active&quot;: true
+            },
+            {
+                &quot;url&quot;: null,
+                &quot;label&quot;: &quot;Next &amp;raquo;&quot;,
+                &quot;page&quot;: null,
+                &quot;active&quot;: false
+            }
+        ],
+        &quot;path&quot;: &quot;/api/v1/queues&quot;,
+        &quot;per_page&quot;: 25,
+        &quot;to&quot;: 1,
+        &quot;total&quot;: 1
+    },
+    &quot;timezone&quot;: &quot;Africa/Lagos&quot;
+}</code>
+ </pre>
             <blockquote>
             <p>Example response (401, No valid staff session):</p>
         </blockquote>
@@ -62551,7 +63561,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -62837,7 +63847,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -63123,7 +64133,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -63409,7 +64419,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
