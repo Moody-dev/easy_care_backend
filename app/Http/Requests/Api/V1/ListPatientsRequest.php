@@ -14,7 +14,7 @@ class ListPatientsRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['q', 'mrn'] as $field) {
+        foreach (['q', 'mrn', 'insurance_member_number'] as $field) {
             if (is_string($this->input($field))) {
                 $value = trim($this->input($field));
                 $this->merge([$field => $field === 'mrn' ? strtoupper($value) : $value]);
@@ -27,6 +27,7 @@ class ListPatientsRequest extends FormRequest
         return [
             'q' => ['sometimes', 'nullable', 'string', 'max:100'],
             'mrn' => ['sometimes', 'string', 'max:64', 'regex:/^[A-Z0-9][A-Z0-9\/._-]*$/D'],
+            'insurance_member_number' => ['sometimes', 'filled', 'string', 'max:128'],
             'category_id' => ['sometimes', 'integer', 'min:1'],
             'date_of_birth' => ['sometimes', 'date_format:Y-m-d', 'before_or_equal:today'],
             'sort' => ['sometimes', 'string', Rule::in(['mrn', '-mrn', 'last_name', '-last_name', 'created_at', '-created_at'])],

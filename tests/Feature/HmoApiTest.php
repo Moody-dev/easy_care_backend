@@ -10,6 +10,27 @@ class HmoApiTest extends HmoTestCase
 {
     use RefreshDatabase;
 
+    public function test_patient_search_by_member_number_requires_coverage_access_and_hides_restricted_patients(): void
+    {
+        $this->setupCatalog();
+        $this->coverage();
+        $this->getJson('/api/v1/patients?insurance_member_number=%20syn-member-1%20')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $this->visit->patient_id)
+            ->assertJsonMissingPath('data.0.member_number');
+        $this->getJson('/api/v1/patients?insurance_member_number=SYN-MEMBER')
+            ->assertOk()->assertJsonCount(0, 'data');
+
+        $this->grantRolePermissions('doctor', ['patients.view', 'billing.view']);
+        $this->loginCashier($this->createStaffWithRole('doctor'));
+        $this->getJson('/api/v1/patients?insurance_member_number=SYN-MEMBER-1')->assertForbidden();
+        $this->getJson('/api/v1/patients')->assertOk();
+
+        $this->visit->patient->forceFill(['access_status' => 'restricted', 'version' => 2])->save();
+        $this->loginCashier();
+        $this->getJson('/api/v1/patients?insurance_member_number=SYN-MEMBER-1')
+            ->assertOk()->assertJsonCount(0, 'data');
+    }
+
     public function test_one_outside_remittance_can_settle_separate_patients_without_sharing_their_claim_balances(): void
     {
         $firstClaim=$this->approvedClaim();

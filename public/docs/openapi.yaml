@@ -3210,6 +3210,16 @@ paths:
             example: 'n'
         -
           in: query
+          name: insurance_member_number
+          description: 'Exact, case-insensitive match against a recorded HMO member number, including historical coverage. Requires patients.view, billing.view and hmo.view. Matching does not verify current eligibility. Must not be greater than 128 characters.'
+          example: SYN-MEMBER-1
+          required: false
+          schema:
+            type: string
+            description: 'Exact, case-insensitive match against a recorded HMO member number, including historical coverage. Requires patients.view, billing.view and hmo.view. Matching does not verify current eligibility. Must not be greater than 128 characters.'
+            example: SYN-MEMBER-1
+        -
+          in: query
           name: category_id
           description: 'Must be at least 1.'
           example: 67

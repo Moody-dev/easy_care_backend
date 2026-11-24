@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\StorePatientRequest;
 use App\Http\Requests\Api\V1\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
 use App\Http\Resources\PatientSummaryResource;
+use App\Models\HmoCoverage;
 use App\Models\Patient;
 use App\Models\PatientCategory;
 use App\Models\PatientIdentifier;
@@ -31,6 +32,15 @@ class PatientController extends Controller
     public function index(ListPatientsRequest $request, AuditTrail $audit, PatientIdentityResolver $identities): AnonymousResourceCollection
     {
         $query = Patient::query()->visibleTo($request->user('web'))->with('category');
+        if ($request->filled('insurance_member_number')) {
+            $actor = $request->user('web');
+            abort_unless($actor->hasPermission('billing.view') && $actor->hasPermission('hmo.view'), 403);
+            $memberNumber = $request->validated('insurance_member_number');
+            $query->whereIn('patients.id', HmoCoverage::query()
+                ->join('billing_accounts', 'billing_accounts.id', '=', 'hmo_coverages.account_id')
+                ->whereRaw('LOWER(hmo_coverages.member_number) = LOWER(?)', [$memberNumber])
+                ->select('billing_accounts.patient_id'));
+        }
         $search = trim($request->validated('q', '') ?? '');
         foreach (preg_split('/\s+/u', $search, flags: PREG_SPLIT_NO_EMPTY) as $part) {
             $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $part).'%';

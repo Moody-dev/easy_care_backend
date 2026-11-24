@@ -51,6 +51,12 @@ class ApiParameters extends GetFromFormRequestBase
             }
         }
         $customData = [];
+        if ($reflection->getShortName() === 'ListPatientsRequest') {
+            $customData['insurance_member_number'] = [
+                'description' => 'Exact, case-insensitive match against a recorded HMO member number, including historical coverage. Requires patients.view, billing.view and hmo.view. Matching does not verify current eligibility.',
+                'example' => 'SYN-MEMBER-1',
+            ];
+        }
         if ($reflection->getShortName() === 'StorePatientRequest') {
             $customData = [
                 'mrn' => ['description' => 'Required only for categories using staff-entered numbers. For Private/Walk-in, omit or echo the exact reserved number; it is read-only.'],

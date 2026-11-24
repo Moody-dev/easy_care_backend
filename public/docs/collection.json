@@ -1537,6 +1537,12 @@
                                     "disabled": false
                                 },
                                 {
+                                    "key": "insurance_member_number",
+                                    "value": "SYN-MEMBER-1",
+                                    "description": "Exact, case-insensitive match against a recorded HMO member number, including historical coverage. Requires patients.view, billing.view and hmo.view. Matching does not verify current eligibility. Must not be greater than 128 characters.",
+                                    "disabled": false
+                                },
+                                {
                                     "key": "category_id",
                                     "value": "67",
                                     "description": "Must be at least 1.",
@@ -1567,7 +1573,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/patients?q=b&mrn=n&category_id=67&date_of_birth=2022-12-14&sort=-created_at&page=22&per_page=7"
+                            "raw": "{{baseUrl}}\/api\/v1\/patients?q=b&mrn=n&insurance_member_number=SYN-MEMBER-1&category_id=67&date_of_birth=2022-12-18&sort=created_at&page=22&per_page=7"
                         },
                         "method": "GET",
                         "header": [

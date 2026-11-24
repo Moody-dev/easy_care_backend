@@ -5825,7 +5825,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/patients?q=b&amp;mrn=n&amp;category_id=67&amp;date_of_birth=2022-12-14&amp;sort=-created_at&amp;page=22&amp;per_page=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/patients?q=b&amp;mrn=n&amp;insurance_member_number=SYN-MEMBER-1&amp;category_id=67&amp;date_of_birth=2022-12-18&amp;sort=created_at&amp;page=22&amp;per_page=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -5837,9 +5837,10 @@ You can check the Dev Tools console for debugging information.</code></pre>
 const params = {
     "q": "b",
     "mrn": "n",
+    "insurance_member_number": "SYN-MEMBER-1",
     "category_id": "67",
-    "date_of_birth": "2022-12-14",
-    "sort": "-created_at",
+    "date_of_birth": "2022-12-18",
+    "sort": "created_at",
     "page": "22",
     "per_page": "7",
 };
@@ -6000,6 +6001,18 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="query">
     <br>
 <p>Must match the regex /^[A-Z0-9][A-Z0-9\/._-]*$/D. Must not be greater than 64 characters. Example: <code>n</code></p>
+            </div>
+                                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>insurance_member_number</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="insurance_member_number"                data-endpoint="GETapi-v1-patients"
+               value="SYN-MEMBER-1"
+               data-component="query">
+    <br>
+<p>Exact, case-insensitive match against a recorded HMO member number, including historical coverage. Requires patients.view, billing.view and hmo.view. Matching does not verify current eligibility. Must not be greater than 128 characters. Example: <code>SYN-MEMBER-1</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>category_id</code></b>&nbsp;&nbsp;
