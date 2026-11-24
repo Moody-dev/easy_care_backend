@@ -76,6 +76,17 @@ class HmoWorkflows
         }
         $id=(int)$request->route('hmoRecord');
         if ($action==='coverage-create') {
+            $intake = null;
+            if (isset($data['verify_registration_insurance'])) {
+                $intake = DB::table('patient_insurance_intakes')->where('patient_id', $account->patient_id)->lockForUpdate()->first();
+                if ($intake === null || $intake->coverage_id !== null) {
+                    throw new WriteConflict('hmo_registration_insurance_unavailable', 'The patient has no pending registration insurance.');
+                }
+                if ((int) $intake->plan_id !== (int) $data['plan_id']
+                    || mb_strtolower($intake->member_number) !== mb_strtolower($data['member_number'])) {
+                    $this->invalid('verify_registration_insurance', 'The verified plan and member number must match the registration insurance.');
+                }
+            }
             $context=$this->catalog->plan((int)$data['plan_id']);
             $existing=DB::table('hmo_coverages')->where('account_id',$account->id)->where('plan_id',$data['plan_id'])
                 ->where('valid_from','<=',$data['valid_until'])->where('valid_until','>=',$data['valid_from'])->lockForUpdate()->get();
@@ -83,6 +94,9 @@ class HmoWorkflows
             $id=DB::table('hmo_coverages')->insertGetId(['account_id'=>$account->id,'plan_id'=>$data['plan_id'],'member_number'=>$data['member_number'],
                 'valid_from'=>$data['valid_from'],'valid_until'=>$data['valid_until'],'group_number'=>$data['group_number']??null,'employer_name'=>$data['employer_name']??null,
                 'verification_reference'=>$data['verification_reference'],'snapshot'=>json_encode($context,JSON_THROW_ON_ERROR)]+$signature);
+            if ($intake !== null) {
+                DB::table('patient_insurance_intakes')->where('patient_id', $account->patient_id)->update(['coverage_id' => $id]);
+            }
         } elseif ($action==='coverage-revoke'||$action==='preauth-revoke') {
             $kind=$action==='coverage-revoke'?'coverage':'preauth'; $table=$kind==='coverage'?'hmo_coverages':'hmo_preauthorizations';
             $record=DB::table($table)->where('account_id',$account->id)->lockForUpdate()->find($id); abort_if($record===null,404);

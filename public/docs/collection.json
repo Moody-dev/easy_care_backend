@@ -1573,7 +1573,7 @@
                                     "disabled": false
                                 }
                             ],
-                            "raw": "{{baseUrl}}\/api\/v1\/patients?q=b&mrn=n&insurance_member_number=SYN-MEMBER-1&category_id=67&date_of_birth=2022-12-18&sort=created_at&page=22&per_page=7"
+                            "raw": "{{baseUrl}}\/api\/v1\/patients?q=b&mrn=n&insurance_member_number=SYN-MEMBER-1&category_id=67&date_of_birth=2022-12-19&sort=last_name&page=22&per_page=7"
                         },
                         "method": "GET",
                         "header": [
@@ -9842,6 +9842,60 @@
                     ]
                 },
                 {
+                    "name": "Hmo \/ Registration Insurance",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/hmo\/patients\/:patient\/registration-insurance",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/hmo\/patients\/:patient\/registration-insurance",
+                            "variable": [
+                                {
+                                    "id": "patient",
+                                    "key": "patient",
+                                    "value": "3642559314232",
+                                    "description": "The patient."
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "Route name: api.v1.hmo.registration-insurance.\n\nRequired permission checks: patients.view, billing.view, hmo.view. Record visibility and workflow restrictions also apply."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"data\":{\"patient_id\":1,\"plan_id\":2,\"member_number\":\"SYN-MEMBER-1\",\"captured_by\":3,\"captured_at\":\"2026-11-24T10:15:00.000000Z\",\"coverage_id\":null,\"provider_id\":4}}",
+                            "name": "Registration insurance. Data is null if absent; coverage_id is null until verified."
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"message\":\"Please sign in to continue.\",\"code\":\"unauthenticated\"}",
+                            "name": "No valid staff session"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"message\":\"You do not have permission to perform this action.\",\"code\":\"forbidden\"}",
+                            "name": "Permission or workflow access denied"
+                        },
+                        {
+                            "header": [],
+                            "code": 429,
+                            "body": "{\"message\":\"Too many requests. Please try again later.\",\"code\":\"too_many_requests\"}",
+                            "name": "Rate limited; respect Retry-After"
+                        }
+                    ]
+                },
+                {
                     "name": "Hmo \/ Coverages \/ Index",
                     "request": {
                         "url": {
@@ -10476,7 +10530,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"plan_id\":16,\"member_number\":\"m\",\"valid_from\":\"1283-07-05\",\"valid_until\":\"2052-12-13\",\"verification_reference\":\"n\",\"verified\":true,\"group_number\":\"g\",\"employer_name\":\"z\"}"
+                            "raw": "{\"current_password\":\"b\",\"reason\":\"n\",\"account_version\":7,\"plan_id\":16,\"member_number\":\"m\",\"valid_from\":\"1345-10-29\",\"valid_until\":\"2052-12-17\",\"verification_reference\":\"n\",\"verified\":true,\"group_number\":\"g\",\"employer_name\":\"z\",\"verify_registration_insurance\":true}"
                         },
                         "description": "Route name: api.v1.hmo.coverage-create.\n\nRequired permission checks: patients.view, billing.view, hmo.view, hmo.coverages.verify. Record visibility and workflow restrictions also apply.\n\nRequires an Idempotency-Key. Reuse the same key and payload for a retry; use a new key for a new intent. Supply the current saved version fields shown below. A reason, password confirmation or independent approval may also be required."
                     },

@@ -96,6 +96,22 @@ class HmoController extends Controller
             'X-Content-Type-Options'=>'nosniff','Cache-Control'=>'no-store, private']);
     }
 
+    public function registrationInsurance(Request $request, AuditTrail $audit): JsonResponse
+    {
+        $actor = $request->user('web');
+        $patient = Patient::query()->visibleTo($actor)->findOrFail($request->route('patient'));
+        $intake = DB::table('patient_insurance_intakes as intake')
+            ->join('hmo_plans as plan', 'plan.id', '=', 'intake.plan_id')
+            ->where('intake.patient_id', $patient->id)
+            ->first(['intake.*', 'plan.provider_id']);
+        $audit->record('hmo.registration_insurance_viewed', $actor->id, 'patient', $patient->id);
+        if ($intake !== null) {
+            $intake->captured_at = \Carbon\CarbonImmutable::parse($intake->captured_at, 'UTC')->toISOString();
+        }
+
+        return response()->json(['data' => $intake], headers: ['Cache-Control' => 'no-store, private']);
+    }
+
     public function records(Request $request,AuditTrail $audit): JsonResponse
     {
         $data=$request->validate(['page'=>['sometimes','integer','min:1'],'per_page'=>['sometimes','integer','min:1','max:100'],'claim_id'=>['sometimes','integer','min:1']]);

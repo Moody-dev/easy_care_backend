@@ -53,7 +53,7 @@ class ApiParameters extends GetFromFormRequestBase
         $customData = [];
         if ($reflection->getShortName() === 'ListPatientsRequest') {
             $customData['insurance_member_number'] = [
-                'description' => 'Exact, case-insensitive match against a recorded HMO member number, including historical coverage. Requires patients.view, billing.view and hmo.view. Matching does not verify current eligibility.',
+                'description' => 'Exact, case-insensitive match against an HMO member number from pending registration intake or recorded coverage, including historical coverage. Requires patients.view, billing.view and hmo.view. Matching does not verify current eligibility.',
                 'example' => 'SYN-MEMBER-1',
             ];
         }
@@ -61,7 +61,11 @@ class ApiParameters extends GetFromFormRequestBase
             $customData = [
                 'mrn' => ['description' => 'Required only for categories using staff-entered numbers. For Private/Walk-in, omit or echo the exact reserved number; it is read-only.'],
                 'number_reservation_token' => ['description' => 'Required for Private/Walk-in. Obtain it from POST /api/v1/patients/number-reservations using the same staff session.'],
+                'insurance' => ['description' => 'Optional HMO registration details. Submit both plan_id and member_number for an active plan. The plan determines the provider. Registration capture does not verify coverage.'],
             ];
+        }
+        if ($route->getName() === 'api.v1.hmo.coverage-create') {
+            $customData['verify_registration_insurance'] = ['description' => 'Set to true when verifying the saved registration intake. The submitted plan_id and member_number must match the intake.'];
         }
         if (count($variants) > 1) {
             foreach ($rules as $key => &$fieldRules) {

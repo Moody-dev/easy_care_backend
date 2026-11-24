@@ -47,7 +47,8 @@ class HmoCommandRequest extends FormRequest
         }
         if ($action==='coverage-create') { return $rules+['plan_id'=>$id,'member_number'=>$text,'valid_from'=>$day,
             'valid_until'=>[...$day,'after_or_equal:valid_from'],'verification_reference'=>$reason,'verified'=>['required','accepted'],
-            'group_number'=>['sometimes','nullable','string','max:128'],'employer_name'=>['sometimes','nullable','string','max:191']]; }
+            'group_number'=>['sometimes','nullable','string','max:128'],'employer_name'=>['sometimes','nullable','string','max:191'],
+            'verify_registration_insurance'=>['sometimes','accepted']]; }
         if (str_ends_with($action,'revoke')) { return $rules; }
         if ($action==='preauth-create') { return $rules+['coverage_id'=>$id,'encounter_id'=>$id,'encounter_version'=>$version,'subject_type'=>['required',Rule::in(['service','drug'])],
             'subject_id'=>$id,'status'=>['required',Rule::in(['approved','denied'])],'limit'=>$money,'reference'=>$text,'approved_at'=>$date,

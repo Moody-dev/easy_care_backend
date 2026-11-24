@@ -33,6 +33,12 @@ class ApiResponses extends Strategy
         }
         $responses[] = $this->example(429, ['message' => 'Too many requests. Please try again later.', 'code' => 'too_many_requests'], 'Rate limited; respect Retry-After');
         $name = $endpointData->route->getName();
+        if ($name === 'api.v1.hmo.registration-insurance') {
+            $responses[] = $this->example(200, ['data' => [
+                'patient_id' => 1, 'plan_id' => 2, 'member_number' => 'SYN-MEMBER-1', 'captured_by' => 3,
+                'captured_at' => '2026-11-24T10:15:00.000000Z', 'coverage_id' => null, 'provider_id' => 4,
+            ]], 'Registration insurance. Data is null if absent; coverage_id is null until verified.');
+        }
         if ($name === 'api.v1.billing.options') {
             $responses[] = $this->example(200, ['data' => [
                 'currency' => 'NGN',

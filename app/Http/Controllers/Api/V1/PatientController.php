@@ -36,10 +36,13 @@ class PatientController extends Controller
             $actor = $request->user('web');
             abort_unless($actor->hasPermission('billing.view') && $actor->hasPermission('hmo.view'), 403);
             $memberNumber = $request->validated('insurance_member_number');
-            $query->whereIn('patients.id', HmoCoverage::query()
+            $matches = HmoCoverage::query()
                 ->join('billing_accounts', 'billing_accounts.id', '=', 'hmo_coverages.account_id')
                 ->whereRaw('LOWER(hmo_coverages.member_number) = LOWER(?)', [$memberNumber])
-                ->select('billing_accounts.patient_id'));
+                ->select('billing_accounts.patient_id');
+            $query->where(fn (Builder $patients) => $patients->whereIn('patients.id', $matches)
+                ->orWhereIn('patients.id', DB::table('patient_insurance_intakes')->whereNull('coverage_id')
+                    ->whereRaw('LOWER(member_number) = LOWER(?)', [$memberNumber])->select('patient_id')));
         }
         $search = trim($request->validated('q', '') ?? '');
         foreach (preg_split('/\s+/u', $search, flags: PREG_SPLIT_NO_EMPTY) as $part) {

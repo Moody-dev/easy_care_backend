@@ -18,7 +18,7 @@ class AuditTrail
         'hmo.provider-create','hmo.provider-update','hmo.plan-create','hmo.plan-update','hmo.tariff-import','hmo.tariff-review',
         'hmo.coverage-create','hmo.coverage-revoke','hmo.preauth-create','hmo.preauth-revoke','hmo.invoice','hmo.claim-submit','hmo.claim-resubmit',
         'hmo.decision-record','hmo.decision-review','hmo.remittance-create','hmo.remittance-review','hmo.allocation-record','hmo.allocation-review',
-        'hmo.catalog_viewed','hmo.viewed','hmo.csv_downloaded','hmo.reconciled',
+        'hmo.catalog_viewed','hmo.viewed','hmo.csv_downloaded','hmo.reconciled','hmo.registration_insurance_viewed',
         'billing.service', 'billing.price', 'billing.performed', 'billing.invoice', 'billing.receipt', 'billing.allocate',
         'billing.credit-request', 'billing.refund-request', 'billing.approve', 'billing.reject',
         'billing.catalog_viewed', 'billing.viewed', 'billing.history_viewed', 'billing.reconciled',

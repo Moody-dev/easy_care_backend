@@ -10,6 +10,38 @@ class HmoApiTest extends HmoTestCase
 {
     use RefreshDatabase;
 
+    public function test_hmo_registration_captures_insurance_until_authorized_verification(): void
+    {
+        $this->setupCatalog();
+        $this->grantRolePermissions('doctor', ['patients.view', 'patients.create']);
+        $this->loginCashier($this->createStaffWithRole('doctor'));
+        $category = \App\Models\PatientCategory::query()->where('code', 'hmo')->firstOrFail();
+        $payload = ['category_id' => $category->id, 'mrn' => 'HMO-SYN-1', 'first_name' => 'Synthetic',
+            'last_name' => 'Intake', 'insurance' => ['plan_id' => $this->planId, 'member_number' => 'SYN-INTAKE-1']];
+        $key = ['Idempotency-Key' => 'hmo-registration-test-1'];
+        $patient = $this->postCommand('/api/v1/patients', $payload, $key)->assertCreated()->json('data.id');
+        $this->postCommand('/api/v1/patients', $payload, $key)->assertOk()->assertJsonPath('data.id', $patient);
+        $path = "/api/v1/hmo/patients/$patient";
+        $this->getJson($path.'/registration-insurance')->assertForbidden();
+        $this->assertDatabaseMissing('billing_accounts', ['patient_id' => $patient]);
+
+        $this->loginCashier();
+        $this->getJson('/api/v1/patients?insurance_member_number=syn-intake-1')->assertOk()->assertJsonPath('data.0.id', $patient);
+        $this->getJson($path.'/registration-insurance')->assertOk()->assertJsonPath('data.coverage_id', null)
+            ->assertJsonPath('data.provider_id', $this->providerId);
+        $verification = ['account_version' => 0, 'plan_id' => $this->planId, 'member_number' => 'WRONG',
+            'valid_from' => now()->subDay()->toDateString(), 'valid_until' => now()->addYear()->toDateString(),
+            'verification_reference' => 'Synthetic insurance check', 'verified' => true, 'verify_registration_insurance' => true];
+        $this->command("/patients/$patient/coverages", $verification)->assertUnprocessable();
+        $this->assertDatabaseMissing('billing_accounts', ['patient_id' => $patient]);
+        $coverage = $this->command("/patients/$patient/coverages", array_replace($verification, ['member_number' => 'SYN-INTAKE-1']))
+            ->assertCreated()->json('data.last_record_id');
+        $this->assertNotNull($coverage);
+        $this->getJson($path.'/registration-insurance')->assertOk()->assertJsonPath('data.coverage_id', $coverage);
+        $this->getJson('/api/v1/patients?insurance_member_number=syn-intake-1')->assertOk()
+            ->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $patient);
+    }
+
     public function test_patient_search_by_member_number_requires_coverage_access_and_hides_restricted_patients(): void
     {
         $this->setupCatalog();

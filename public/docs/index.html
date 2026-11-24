@@ -628,6 +628,9 @@
                                                                                 <li class="tocify-item level-2" data-unique="hmo-POSTapi-v1-hmo-remittances--hmoRecord--review">
                                 <a href="#hmo-POSTapi-v1-hmo-remittances--hmoRecord--review">Hmo / Remittance Review</a>
                             </li>
+                                                                                <li class="tocify-item level-2" data-unique="hmo-GETapi-v1-hmo-patients--patient--registration-insurance">
+                                <a href="#hmo-GETapi-v1-hmo-patients--patient--registration-insurance">Hmo / Registration Insurance</a>
+                            </li>
                                                                                 <li class="tocify-item level-2" data-unique="hmo-GETapi-v1-hmo-patients--patient--coverages">
                                 <a href="#hmo-GETapi-v1-hmo-patients--patient--coverages">Hmo / Coverages / Index</a>
                             </li>
@@ -5825,7 +5828,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
 <div class="bash-example">
     <pre><code class="language-bash">curl --request GET \
-    --get "https://easycare-development-api-production.up.railway.app/api/v1/patients?q=b&amp;mrn=n&amp;insurance_member_number=SYN-MEMBER-1&amp;category_id=67&amp;date_of_birth=2022-12-18&amp;sort=created_at&amp;page=22&amp;per_page=7" \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/patients?q=b&amp;mrn=n&amp;insurance_member_number=SYN-MEMBER-1&amp;category_id=67&amp;date_of_birth=2022-12-19&amp;sort=last_name&amp;page=22&amp;per_page=7" \
     --header "Accept: application/json"</code></pre></div>
 
 
@@ -6759,6 +6762,42 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="body">
     <br>
 <p>Must match an existing stored value. Must be at least 1. Example: <code>73</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+        <details>
+            <summary style="padding-bottom: 10px;">
+                <b style="line-height: 2;"><code>insurance</code></b>&nbsp;&nbsp;
+<small>object</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+<br>
+<p>Optional HMO registration details. Submit both plan_id and member_number for an active plan. The plan determines the provider. Registration capture does not verify coverage.</p>
+            </summary>
+                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>plan_id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="insurance.plan_id"                data-endpoint="POSTapi-v1-patients"
+               value="8"
+               data-component="body">
+    <br>
+<p>This field is required when <code>insurance</code> is present. Must match an existing stored value. Must be at least 1. Must not be greater than 999999999999999999. Example: <code>8</code></p>
+                    </div>
+                                                                <div style="margin-left: 14px; clear: unset;">
+                        <b style="line-height: 2;"><code>member_number</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="insurance.member_number"                data-endpoint="POSTapi-v1-patients"
+               value="m"
+               data-component="body">
+    <br>
+<p>This field is required when <code>insurance</code> is present. Must not be greater than 128 characters. Example: <code>m</code></p>
+                    </div>
+                                    </details>
         </div>
                 <div style=" padding-left: 28px;  clear: unset;">
         <details>
@@ -34199,6 +34238,148 @@ Must be one of:
         </div>
         </form>
 
+                    <h2 id="hmo-GETapi-v1-hmo-patients--patient--registration-insurance">Hmo / Registration Insurance</h2>
+
+<p>
+<small class="badge badge-darkred">requires authentication</small>
+</p>
+
+<p>Route name: api.v1.hmo.registration-insurance.</p>
+<p>Required permission checks: patients.view, billing.view, hmo.view. Record visibility and workflow restrictions also apply.</p>
+
+<span id="example-requests-GETapi-v1-hmo-patients--patient--registration-insurance">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request GET \
+    --get "https://easycare-development-api-production.up.railway.app/api/v1/hmo/patients/3642559314232/registration-insurance" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "https://easycare-development-api-production.up.railway.app/api/v1/hmo/patients/3642559314232/registration-insurance"
+);
+
+const headers = {
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-GETapi-v1-hmo-patients--patient--registration-insurance">
+            <blockquote>
+            <p>Example response (200, Registration insurance. Data is null if absent; coverage_id is null until verified.):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;data&quot;: {
+        &quot;patient_id&quot;: 1,
+        &quot;plan_id&quot;: 2,
+        &quot;member_number&quot;: &quot;SYN-MEMBER-1&quot;,
+        &quot;captured_by&quot;: 3,
+        &quot;captured_at&quot;: &quot;2026-11-24T10:15:00.000000Z&quot;,
+        &quot;coverage_id&quot;: null,
+        &quot;provider_id&quot;: 4
+    }
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (401, No valid staff session):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Please sign in to continue.&quot;,
+    &quot;code&quot;: &quot;unauthenticated&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (403, Permission or workflow access denied):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;You do not have permission to perform this action.&quot;,
+    &quot;code&quot;: &quot;forbidden&quot;
+}</code>
+ </pre>
+            <blockquote>
+            <p>Example response (429, Rate limited; respect Retry-After):</p>
+        </blockquote>
+                <pre>
+
+<code class="language-json" style="max-height: 300px;">{
+    &quot;message&quot;: &quot;Too many requests. Please try again later.&quot;,
+    &quot;code&quot;: &quot;too_many_requests&quot;
+}</code>
+ </pre>
+    </span>
+<span id="execution-results-GETapi-v1-hmo-patients--patient--registration-insurance" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-GETapi-v1-hmo-patients--patient--registration-insurance"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-GETapi-v1-hmo-patients--patient--registration-insurance"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-GETapi-v1-hmo-patients--patient--registration-insurance" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-GETapi-v1-hmo-patients--patient--registration-insurance">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-GETapi-v1-hmo-patients--patient--registration-insurance" data-method="GET"
+      data-path="api/v1/hmo/patients/{patient}/registration-insurance"
+      data-authed="1"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('GETapi-v1-hmo-patients--patient--registration-insurance', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+            </h3>
+            <p>
+            <small class="badge badge-green">GET</small>
+            <b><code>api/v1/hmo/patients/{patient}/registration-insurance</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="GETapi-v1-hmo-patients--patient--registration-insurance"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>patient</code></b>&nbsp;&nbsp;
+<small>string</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="patient"                data-endpoint="GETapi-v1-hmo-patients--patient--registration-insurance"
+               value="3642559314232"
+               data-component="url">
+    <br>
+<p>The patient. Example: <code>3642559314232</code></p>
+            </div>
+                    </form>
+
                     <h2 id="hmo-GETapi-v1-hmo-patients--patient--coverages">Hmo / Coverages / Index</h2>
 
 <p>
@@ -36180,12 +36361,13 @@ You can check the Dev Tools console for debugging information.</code></pre>
     \"account_version\": 7,
     \"plan_id\": 16,
     \"member_number\": \"m\",
-    \"valid_from\": \"1283-07-05\",
-    \"valid_until\": \"2052-12-13\",
+    \"valid_from\": \"1345-10-29\",
+    \"valid_until\": \"2052-12-17\",
     \"verification_reference\": \"n\",
     \"verified\": true,
     \"group_number\": \"g\",
-    \"employer_name\": \"z\"
+    \"employer_name\": \"z\",
+    \"verify_registration_insurance\": true
 }"
 </code></pre></div>
 
@@ -36208,12 +36390,13 @@ let body = {
     "account_version": 7,
     "plan_id": 16,
     "member_number": "m",
-    "valid_from": "1283-07-05",
-    "valid_until": "2052-12-13",
+    "valid_from": "1345-10-29",
+    "valid_until": "2052-12-17",
     "verification_reference": "n",
     "verified": true,
     "group_number": "g",
-    "employer_name": "z"
+    "employer_name": "z",
+    "verify_registration_insurance": true
 };
 
 fetch(url, {
@@ -36514,6 +36697,28 @@ You can check the Dev Tools console for debugging information.</code></pre>
                data-component="body">
     <br>
 <p>Must not be greater than 191 characters. Example: <code>z</code></p>
+        </div>
+                <div style=" padding-left: 28px;  clear: unset;">
+            <b style="line-height: 2;"><code>verify_registration_insurance</code></b>&nbsp;&nbsp;
+<small>boolean</small>&nbsp;
+<i>optional</i> &nbsp;
+ &nbsp;
+                <label data-endpoint="POSTapi-v1-hmo-patients--patient--coverages" style="display: none">
+            <input type="radio" name="verify_registration_insurance"
+                   value="true"
+                   data-endpoint="POSTapi-v1-hmo-patients--patient--coverages"
+                   data-component="body"             >
+            <code>true</code>
+        </label>
+        <label data-endpoint="POSTapi-v1-hmo-patients--patient--coverages" style="display: none">
+            <input type="radio" name="verify_registration_insurance"
+                   value="false"
+                   data-endpoint="POSTapi-v1-hmo-patients--patient--coverages"
+                   data-component="body"             >
+            <code>false</code>
+        </label>
+    <br>
+<p>Set to true when verifying the saved registration intake. The submitted plan_id and member_number must match the intake. Must be accepted. Example: <code>true</code></p>
         </div>
         </form>
 
@@ -63860,7 +64065,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>false</code></p>
+<p>Example: <code>true</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;
@@ -64146,7 +64351,7 @@ You can check the Dev Tools console for debugging information.</code></pre>
             <code>false</code>
         </label>
     <br>
-<p>Example: <code>true</code></p>
+<p>Example: <code>false</code></p>
             </div>
                                     <div style="padding-left: 28px; clear: unset;">
                 <b style="line-height: 2;"><code>store_id</code></b>&nbsp;&nbsp;

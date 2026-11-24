@@ -98,6 +98,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
                 }
                 Route::prefix('patients/{patient}')->where(['patient'=>'[1-9][0-9]{0,17}','hmoRecord'=>'[1-9][0-9]{0,17}'])
                     ->middleware(['can:patients.view','can:billing.view','can:hmo.view'])->group(function () use ($controller): void {
+                        Route::get('registration-insurance', [$controller, 'registrationInsurance'])->name('registration-insurance');
                         foreach (['coverages','preauthorizations','revocations','claims','submissions','decisions','shares','allocations','reviews'] as $kind) {
                             Route::get($kind, [$controller, 'records'])->defaults('kind', $kind)->name($kind.'.index');
                         }

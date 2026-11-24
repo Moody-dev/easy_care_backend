@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class PatientRegistry
 {
@@ -27,11 +28,25 @@ class PatientRegistry
             Gate::forUser($actor)->authorize('create', Patient::class);
             $this->reviewDuplicates($actor, $data);
             $category = PatientCategory::query()->lockForUpdate()->findOrFail($data['category_id']);
+            $insurance = $data['insurance'] ?? null;
+            if ($insurance !== null) {
+                if ($category->code !== 'hmo') {
+                    throw ValidationException::withMessages(['insurance' => ['Insurance intake is available for HMO registration.']]);
+                }
+                app(HmoCatalog::class)->plan((int) $insurance['plan_id']);
+            }
             $reservation = app(PatientNumbers::class)->claim($actor, $category, $data);
             $patient = new Patient;
             $patient->fill(collect($data)->only(self::DEMOGRAPHICS)->all());
             $patient->forceFill(['mrn' => $reservation?->number ?? $data['mrn'], 'category_id' => (int) $data['category_id'], 'created_by' => $actor->id]);
             $patient->save();
+            if ($insurance !== null) {
+                DB::table('patient_insurance_intakes')->insert([
+                    'patient_id' => $patient->id, 'plan_id' => $insurance['plan_id'],
+                    'member_number' => $insurance['member_number'], 'captured_by' => $actor->id,
+                    'captured_at' => now('UTC'),
+                ]);
+            }
             if ($reservation !== null) {
                 DB::table('patient_number_reservations')->where('id', $reservation->id)->update([
                     'patient_id' => $patient->id, 'consumed_at' => now('UTC'), 'updated_at' => now('UTC'),
