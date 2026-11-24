@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -16,6 +17,9 @@ return new class extends Migration
             $table->timestamp('captured_at', 6);
             $table->foreignId('coverage_id')->nullable()->unique()->constrained('hmo_coverages')->restrictOnDelete();
         });
+        if (DB::getDriverName() === 'pgsql') {
+            app(\App\Services\PostgresSchema::class)->restrictAccess();
+        }
     }
 
     public function down(): void
